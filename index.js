@@ -2,7 +2,6 @@ const { app, BrowserWindow, ipcMain, globalShortcut } = require('electron');
 const path = require('path');
 const shutdown = require('electron-shutdown-command');
 const si = require('systeminformation');
-let XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
 let pjson = require('./package.json');
 let fs = require('fs');
 
