@@ -1,5 +1,5 @@
 {
-  "name": "electron-player",
+  "name": "pintomind-player",
   "version": "0.1.0",
   "description": "Player app for PinToMind",
   "main": "index.js",
