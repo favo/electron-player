@@ -13,10 +13,10 @@ var host = "http://app.infoskjermen.no"
 const createWindow = () => {
   // Create the browser window.
   mainWindow = new BrowserWindow({
-    alwaysOnTop: false,
+    alwaysOnTop: true,
     width: 1920,
     height: 1080,
-    kiosk: false,
+    kiosk: true,
     webPreferences: {
       nodeIntegration: false, 
       contextIsolation: true, 
