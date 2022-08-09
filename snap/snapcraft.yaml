@@ -11,12 +11,31 @@ description: |
 grade: devel # must be 'stable' to release into candidate/stable channels
 confinement: devmode # use 'strict' once you have the right plugs and slots
 
-architectures:
-  - build-on: amd64
-  - build-on: armhf
-  - build-on: arm64
+apps:
+  pintomind-player:
+    command: pintomind-player/pintomind-player --no-sandbox
+    extensions: [gnome-3-34]
+    plugs:
+    - browser-support
+    - network
+    - network-bind
+    environment:
+      # Correct the TMPDIR path for Chromium Framework/Electron to ensure
+      # libappindicator has readable resources.
+      TMPDIR: $XDG_RUNTIME_DIR
 
 parts:
-  my-part:
-    # See 'snapcraft plugins'
+  pintomind-player:
     plugin: nil
+    source: .
+    override-build: |
+        npm install electron electron-packager
+        npx electron-packager . --overwrite --platform=linux --output=release-build --prune=true
+        cp -rv ./pintomind-player-linux-* $SNAPCRAFT_PART_INSTALL/pintomind-player
+    build-snaps:
+    - node/14/stable
+    build-packages:
+    - unzip
+    stage-packages:
+    - libnss3
+    - libnspr4
