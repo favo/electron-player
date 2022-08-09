@@ -27,7 +27,7 @@ apps:
 parts:
   pintomind-player:
     plugin: nil
-    source: https://github.com/favo/electron-player
+    source: https://github.com/favo/electron-player.git
     override-build: |
         npm install electron electron-packager
         npx electron-packager . --overwrite --platform=linux --output=release-build --prune=true
