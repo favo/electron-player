@@ -102,7 +102,7 @@ parts:
       npm install --unsafe-perm true electron-packager
       electron-packager . --overwrite --platform=linux \
           --output=release-build --prune=true
-      cp -a ./pintomind-player-linux-* $SNAPCRAFT_PART_INSTALL/pintomind-player
+      cp -a ./electron-player-linux-* $SNAPCRAFT_PART_INSTALL/pintomind-player
     stage-packages:
       - libnspr4
       - libnss3
