@@ -1,7 +1,7 @@
-var host = "https://local.infoskjermen.no"
-var myStorage
-var webviewReady = false;
-var webview
+let host = "https://app.infoskjermen.no"
+let myStorage
+let webviewReady = false;
+let webview
 
 
 window.onload = function() {

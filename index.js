@@ -56,7 +56,12 @@ app.whenReady().then(() => {
   globalShortcut.register('CommandOrControl+D', () => {
     console.log('Opening DevTools..')
     mainWindow.webContents.openDevTools()
-})
+  })
+  // Exits kiosk mode
+  globalShortcut.register('CommandOrControl+K', () => {
+    console.log('Exiting kiosk mode..')
+    mainWindow.kiosk = !mainWindow.kiosk
+  })
 
 })
 
@@ -99,14 +104,13 @@ ipcMain.on("toMain", (event, arg) => {
 *   Reboots device
 */
 function rebootDevice() {
-  /* shutdown.reboot({
+  shutdown.reboot({
     force: true,
     timerseconds: 5,
     sudo: true,
     debug: false,
     quitapp: true,
-  }) */
-  console.log("rebooting");
+  })
 }
 
 /*
