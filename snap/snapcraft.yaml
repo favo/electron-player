@@ -12,8 +12,8 @@ system-usernames:
 apps:
   pintomind-player:
     command-chain:
-      - bin/drop-snap-daemon
       - bin/wayland-launch
+      - bin/drop-snap-daemon
       - bin/dbus-launch
     command: usr/bin/wrapper
     daemon: simple
