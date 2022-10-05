@@ -14,7 +14,7 @@ apps:
     command-chain:
       - bin/wayland-launch
       - bin/dbus-launch
-    command: usr/bin/setpriv --clear-groups --reuid snap_daemon --regid snap_daemon -- usr/bin/wrapper
+    command: usr/bin/setpriv --clear-groups --reuid snap_daemon --regid snap_daemon -- $SNAP/usr/bin/wrapper
     daemon: simple
     restart-condition: always
     plugs:
