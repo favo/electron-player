@@ -12,9 +12,9 @@ system-usernames:
 apps:
   pintomind-player:
     command-chain:
-      - bin/drop-snap-daemon
       - bin/wayland-launch
       - bin/dbus-launch
+      - bin/drop-snap-daemon
     command: usr/bin/wrapper
     daemon: simple
     restart-condition: always
