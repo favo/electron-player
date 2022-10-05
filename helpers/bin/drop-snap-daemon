@@ -42,8 +42,6 @@ export GDK_PIXBUF_MODULE_FILE=$XDG_CACHE_HOME/gdk-pixbuf-loaders.cache
 export GTK_IM_MODULE_FILE=$XDG_CACHE_HOME/immodules/immodules.cache
 export GIO_MODULE_DIR=$XDG_CACHE_HOME/gio-modules
 
-# Give the snap_daemon user access to the X server
-xhost si:localuser:snap_daemon
 
 # Change to $SNAP/snap-daemon-home to allow Electron write access
 cd $SNAP_DAEMON_HOME
