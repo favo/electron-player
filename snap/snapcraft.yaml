@@ -11,111 +11,122 @@ system-usernames:
 
 apps:
   pintomind-player:
-    command-chain:
-      - bin/wayland-launch
-      - bin/dbus-launch
-      - bin/drop-snap-daemon
-    command: usr/bin/wrapper
     daemon: simple
     restart-condition: always
+    command-chain: 
+      - desktop-launch
+      - xwayland-kiosk-launch
+      - bin/drop-snap-daemon
+    command: usr/bin/wrapper -p systemd
+    slots:
+    - x11
     plugs:
-      - opengl
-      - wayland
-      - audio-playback
-      - browser-support
-      - hardware-observe
-      - network
-      - network-bind
-      - process-control
-      - shutdown
-      - screen-inhibit-control
-    environment:
-      XDG_DATA_HOME: $SNAP_USER_DATA
-      XDG_DATA_DIRS: $SNAP/usr/share
-      GTK_USE_PORTAL: 0
-      GDK_GL: gles
+    - audio-playback
+    - browser-support
+    - network
+    - network-bind
+    - network-manager
+    - opengl
+    - pulseaudio
+    - wayland
+    - x11-plug
 
-# This is one of four snippets that relate to providing the userspace graphics needed by your application.
-# You can treat this as "magic" so long as you don't need to make changes.
-# On the Mir discourse forum there's a lot more detail on [the graphics-core20 Snap interface](https://discourse.ubuntu.com/t/the-graphics-core20-snap-interface/23000) and it's use.
 plugs:
-  graphics-core20:
-    interface: content
-    target: $SNAP/graphics
-    default-provider: mesa-core20
+  x11-plug:
+    interface: x11
 
 environment:
-  # This is one of four snippets that relate to providing the userspace graphics needed by your application.
-  LD_LIBRARY_PATH:    $SNAP/graphics/lib
-  LIBGL_DRIVERS_PATH: $SNAP/graphics/dri
-  LIBVA_DRIVERS_PATH: $SNAP/graphics/dri
-  __EGL_VENDOR_LIBRARY_DIRS: $SNAP/graphics/glvnd/egl_vendor.d
-  # Other, generally useful environment settings...
-  # XDG config
-  XDG_CACHE_HOME:  $SNAP_USER_COMMON/.cache
-  XDG_CONFIG_HOME: $SNAP_USER_DATA/.config
-  XDG_CONFIG_DIRS: $SNAP/etc/xdg
-  # XKB config
-  XKB_CONFIG_ROOT: $SNAP/usr/share/X11/xkb
-
-# The `layout` ensures that files can be found by applications where they are expected by the toolkit or application.
-layout:
-  # This is one of four snippets that relate to providing the userspace graphics needed by your application.
-  # These paths (/usr/share/libdrm and /usr/share/drirc.d) are hardcoded in mesa.
-  /usr/share/libdrm:  # Needed by mesa-core20 on AMD GPUs
-    bind: $SNAP/graphics/libdrm
-  /usr/share/drirc.d:  # Used by mesa-core20 for app specific workarounds
-    bind: $SNAP/graphics/drirc.d
-  # Other, generally useful paths
-  /usr/share/fonts:
-    bind: $SNAP/usr/share/fonts
-  /usr/share/icons:
-    bind: $SNAP/usr/share/icons
-  /usr/share/sounds:
-    bind: $SNAP/usr/share/sounds
-  /etc/fonts:
-    bind: $SNAP/etc/fonts
-  # GTK
-  /usr/lib/$SNAPCRAFT_ARCH_TRIPLET/gdk-pixbuf-2.0:
-    bind: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/gdk-pixbuf-2.0
-  /usr/lib/${SNAPCRAFT_ARCH_TRIPLET}/gtk-3.0:
-    bind: $SNAP/usr/lib/${SNAPCRAFT_ARCH_TRIPLET}/gtk-3.0
-  /usr/share/mime:
-    bind: $SNAP/usr/share/mime
-  /etc/gtk-3.0:
-    bind: $SNAP/etc/gtk-3.0
+  XWAYLAND_FULLSCREEN_WINDOW_HINT: window_role="browser-window"
 
 parts:
   pintomind-player:
-    plugin: nil
+    plugin: nodejs
+    nodejs-package-manager: npm
+    nodejs-version: 12.18.2
     source: https://github.com/favo/electron-player.git
-    build-environment:
-      - PATH: "$PATH:$SNAPCRAFT_PART_BUILD/node_modules/.bin"
+    after: [desktop-gtk3, xwayland-kiosk-helper]
     override-build: |
-      set +u # core20 base does not allow unbound variables !
-      # workaround for build.snapcraft.io builds
-      # https://bugs.launchpad.net/bugs/1886861
-      
-      if [ -n "$http_proxy" ]; then
-        export ELECTRON_GET_USE_PROXY=1
-        export GLOBAL_AGENT_HTTP_PROXY="${http_proxy}"
-        export GLOBAL_AGENT_HTTPS_PROXY="${http_proxy}"
-      fi
-      
-      npm install --unsafe-perm true electron-packager
-      electron-packager . --overwrite --platform=linux \
-          --output=release-build --prune=true
-      cp -a ./pintomind-player-linux-* $SNAPCRAFT_PART_INSTALL/pintomind-player
+        # Only try to build for architectures supported by Electron
+        case $SNAPCRAFT_ARCH_TRIPLET in
+          "i386-linux-gnu") ARCH="ia32";;
+          "x86_64-linux-gnu") ARCH="x64";;
+          "arm-linux-gnueabihf") ARCH="armv7l";;
+          "aarch64-linux-gnu") ARCH="arm64";;
+          *) echo "ERROR: electron does not support the '$SNAPCRAFT_ARCH_TRIPLET' architecture" && exit 1;;
+        esac
+        # Tell snapcraft nodejs plugin where to find installed node version due to https://bugs.launchpad.net/snapcraft/+bug/1886858
+        PATH=$PATH:$SNAPCRAFT_PART_SRC/../npm/bin
+        # Set npm permissions to allow global dependencies
+        npm config set unsafe-perm True
+        # Force use of proxy to work around build.snapcraft.io networking issues due to https://bugs.launchpad.net/snapcraft/+bug/1886861
+        if [ -n "$http_proxy" ]; then
+          export ELECTRON_GET_USE_PROXY=1
+          export GLOBAL_AGENT_HTTP_PROXY="${http_proxy}"
+          export GLOBAL_AGENT_HTTPS_PROXY="${http_proxy}"
+        fi
+        # Install dependencies
+        npm install
+        npm install -g node-gyp
+        # Re-build d-bus package for Electron's node version
+        ./node_modules/.bin/electron-rebuild
+        # Package Electron application
+        ./node_modules/.bin/electron-packager . --overwrite --platform=linux --arch=$ARCH --output=release-build --prune=true
+        cp -v -R ./pintomind-player-linux-$ARCH $SNAPCRAFT_PART_INSTALL/pintomind-player
     stage-packages:
-      - libnspr4
-      - libnss3
-      - libatk-bridge2.0-0
-      - libcups2
-      - libgtk-3-0
       - libasound2
-      - util-linux
-    build-snaps:
-      - node/16/stable
+      - libgconf-2-4
+      - libpulse0
+      - libnss3
+      - libx11-xcb1
+      - libxss1
+      - libxtst6
+      - setpriv
+      - x11-xserver-utils
+      - curl
+    build-packages:
+      - unzip
+
+  # Adapted from snapcraft-desktop-helpers https://github.com/ubuntu/snapcraft-desktop-helpers/blob/master/snapcraft.yaml#L183
+  desktop-gtk3:
+    source: https://github.com/ubuntu/snapcraft-desktop-helpers.git
+    source-subdir: gtk
+    plugin: make
+    make-parameters: ["FLAVOR=gtk3"]
+    build-packages:
+      - build-essential
+      - libgtk-3-dev
+    stage-packages:
+      - libxkbcommon0  # XKB_CONFIG_ROOT
+      - ttf-ubuntu-font-family
+      - dmz-cursor-theme
+      - light-themes
+      - adwaita-icon-theme
+      - gnome-themes-standard
+      - shared-mime-info
+      - libgtk-3-0
+      - libgdk-pixbuf2.0-0
+      - libglib2.0-bin
+      - libgtk-3-bin
+      - unity-gtk3-module
+      - libappindicator3-1
+      - locales-all
+      - xdg-user-dirs
+      - ibus-gtk3
+      - libibus-1.0-5
+    override-prime: |
+        snapcraftctl prime
+        # Rebuild mime database as it seems to be missed
+        update-mime-database $SNAPCRAFT_PRIME/usr/share/mime
+  xwayland-kiosk-helper:
+    plugin: cmake
+    source: https://github.com/MirServer/xwayland-kiosk-helper.git
+    build-packages: [ build-essential ]
+    stage-packages: [ xwayland, i3, libegl1-mesa, libgl1-mesa-glx ]
+
+  # Copy runtime helpers (including bin/drop-snap-daemon.sh) into snap
+  pintomind-player-runtime-helpers:
+    plugin: dump
+    source: snap/local/runtime-helpers
 
   wrapper:
     plugin: dump
@@ -123,86 +134,6 @@ parts:
     organize:
       wrapper.sh: usr/bin/wrapper
 
-  install-helpers:
-    plugin: dump
-    source: helpers
-  
-  gsettings+pixbuf:
-    plugin: nil
-    build-packages:
-      - libgdk-pixbuf2.0-0
-      - librsvg2-common
-      - shared-mime-info
-    override-build: |
-      # Update mime database
-      update-mime-database ${SNAPCRAFT_PART_INSTALL}/usr/share/mime
-    stage-packages:
-      - librsvg2-common
-      - gsettings-desktop-schemas
-      - libglib2.0-bin
-    override-prime: |
-      snapcraftctl prime
-      # Compile the gsettings schemas
-      /usr/lib/${SNAPCRAFT_ARCH_TRIPLET}/glib-2.0/glib-compile-schemas "$SNAPCRAFT_PRIME/usr/share/glib-2.0/schemas"
-      # Index the pixbuf loaders
-      LOADERS_PATH=$(echo ${SNAPCRAFT_PRIME}/usr/lib/${SNAPCRAFT_ARCH_TRIPLET}/gdk-pixbuf-2.0/*/loaders)
-      QUERY_LOADERS=/usr/lib/${SNAPCRAFT_ARCH_TRIPLET}/gdk-pixbuf-2.0/gdk-pixbuf-query-loaders
-      GDK_PIXBUF_MODULEDIR=${LOADERS_PATH} ${QUERY_LOADERS} > ${LOADERS_PATH}/../loaders.cache
-      sed s!$SNAPCRAFT_PRIME!!g --in-place ${LOADERS_PATH}/../loaders.cache
-  immodules:
-    plugin: nil
-    build-packages:
-      - libgtk-3-0
-    override-build: |
-      snapcraftctl build
-      mkdir -p ${SNAPCRAFT_PART_INSTALL}/usr/lib/${SNAPCRAFT_ARCH_TRIPLET}/gtk-3.0/3.0.0/
-      /usr/lib/${SNAPCRAFT_ARCH_TRIPLET}/libgtk-3-0/gtk-query-immodules-3.0 > ${SNAPCRAFT_PART_INSTALL}/usr/lib/${SNAPCRAFT_ARCH_TRIPLET}/gtk-3.0/3.0.0/immodules.cache
-  # Because Bomber won't run without a session dbus, and this isn't available to daemons on core
-  # (there is no "session") we need to include a dbus session in the snap.
-  # The `source: dbus` contains a script and configuration file for running `dbus-run-session`.
-  dbus:
-    plugin: dump
-    source: dbus
-    override-prime: |
-      snapcraftctl prime
-      # replace the SNAP_NAME placeholder with our actual project name
-      sed -i "s/SNAP_NAME/$SNAPCRAFT_PROJECT_NAME/" $SNAPCRAFT_PRIME/etc/dbus-1/session.conf
-  # Some utility scripts for setting up the Wayland environment
-  wayland-launch:
-    plugin: dump
-    source: wayland-launch
-    override-build: |
-      # The plugs needed to run Wayland. (wayland-launch checks them, setup.sh connects them)
-      # You may add further plugs here if you want these options
-      PLUGS="opengl wayland graphics-core20"
-      sed --in-place "s/%PLUGS%/$PLUGS/g" $SNAPCRAFT_PART_BUILD/bin/wayland-launch
-      sed --in-place "s/%PLUGS%/$PLUGS/g" $SNAPCRAFT_PART_BUILD/bin/setup.sh
-      snapcraftctl build
-    stage-packages:
-      - inotify-tools
-
-  # This is one of four snippets that relate to providing the userspace graphics needed by your application.
-  # This ensures that your snap doesn't contain its own copy of the userspace drivers
-  cleanup:
-    after:
-      - pintomind-player
-      - wrapper
-      - install-helpers
-      - wayland-launch
-      - dbus
-      - gsettings+pixbuf
-      - immodules
-    plugin: nil
-    build-snaps: [ mesa-core20 ]
-    override-prime: |
-      set -eux
-      cd /snap/mesa-core20/current/egl/lib
-      find . -type f,l -exec rm -f $SNAPCRAFT_PRIME/usr/lib/${SNAPCRAFT_ARCH_TRIPLET}/{} \;
-      rm -fr "$SNAPCRAFT_PRIME/usr/lib/${SNAPCRAFT_ARCH_TRIPLET}/dri"
-      cd "$SNAPCRAFT_PRIME/usr/share/"
-      rm -rf bug drirc.d glvnd libdrm lintian man
-      rm -rf applications apport bash-completion dbus-1 doc-base doc gtk-doc\
-             help pkgconfig libthai metainfo themes thumbnailers xml
 architectures:
   - build-on: amd64
   - build-on: armhf

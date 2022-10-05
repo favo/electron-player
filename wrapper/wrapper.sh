@@ -1,4 +1,4 @@
-#! /bin/sh
+#!/bin/sh
 
 if grep -q "Pi 4" /proc/cpuinfo; then
   EXTRAOPTS="--disable-gpu"

@@ -1,3 +1,0 @@
-#!/bin/sh
-
-dbus-run-session --config-file=$SNAP/etc/dbus-1/session.conf -- "$@"
