@@ -28,7 +28,8 @@ wait_for()
   kill "${inotify_pid}"
 }
 
-real_xdg_runtime_dir=$(dirname "${XDG_RUNTIME_DIR}")
+export XDB_RUNTIME_DIR="/run/user/$(id -u)"
+real_xdg_runtime_dir="${XDG_RUNTIME_DIR}"
 real_wayland=${real_xdg_runtime_dir}/${WAYLAND_DISPLAY:-wayland-0}
 
 # On core systems may need to wait for real XDG_RUNTIME_DIR

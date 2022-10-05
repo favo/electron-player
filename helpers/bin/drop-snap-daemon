@@ -1,33 +1,15 @@
-#!/bin/bash -e
+#!/bin/sh
 
 
 SNAP_DAEMON_HOME=$SNAP_DATA/snap-daemon-home
 
-if [[ ! -d $SNAP_DAEMON_HOME ]]
-then
-  mkdir -p $SNAP_DAEMON_HOME
-  # We `chown snap_daemon $SNAP_DAEMON_HOME` later and
-  # this breaks `root` access in the snap ... somehow
-  # Try to make sure everyone has execute on the directory
-  chmod 0755 $SNAP_DAEMON_HOME
-fi
+mkdir -p $SNAP_DAEMON_HOME
+chmod 0755 $SNAP_DAEMON_HOME
+mkdir -p $SNAP_DAEMON_HOME/.cache
+mkdir -p $SNAP_DAEMON_HOME/.config
+mkdir -p $SNAP_DAEMON_HOME/.local/share
 
-if [[ ! -d $SNAP_DAEMON_HOME/.cache ]]
-then
-    mkdir -p $SNAP_DAEMON_HOME/.cache
-fi
-
-if [[ ! -d $SNAP_DAEMON_HOME/.config ]]
-then
-    mkdir -p $SNAP_DAEMON_HOME/.config
-fi
-
-if [[ ! -d $SNAP_DAEMON_HOME/.local/share ]]
-then
-    mkdir -p $SNAP_DAEMON_HOME/.local/share
-fi
-
-chown snap_daemon:snap_daemon $SNAP_DAEMON_HOME
+chown -R snap_daemon:snap_daemon $SNAP_DAEMON_HOME
 
 
 # Tell Electron where to find data directories
