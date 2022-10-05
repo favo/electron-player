@@ -6,123 +6,82 @@ confinement: devmode
 compression: lzo
 grade: devel
 base: core20
-system-usernames:
-  snap_daemon: shared
-
-apps:
-  pintomind-player:
-    daemon: simple
-    restart-condition: always
-    command-chain: 
-      - desktop-launch
-      - xwayland-kiosk-launch
-      - bin/drop-snap-daemon
-    command: usr/bin/wrapper -p systemd
-    slots:
-    - x11
-    plugs:
-    - audio-playback
-    - browser-support
-    - network
-    - network-bind
-    - network-manager
-    - opengl
-    - pulseaudio
-    - wayland
-    - x11-plug
-
-plugs:
-  x11-plug:
-    interface: x11
-
-environment:
-  XWAYLAND_FULLSCREEN_WINDOW_HINT: window_role="browser-window"
-
-parts:
-  pintomind-player:
-    plugin: nil
-    source: https://github.com/favo/electron-player.git
-    after: [desktop-gtk3, xwayland-kiosk-helper]
-    build-environment:
-      - PATH: "$PATH:$SNAPCRAFT_PART_BUILD/node_modules/.bin"
-    override-build: |
-      set +u # core20 base does not allow unbound variables !
-      # workaround for build.snapcraft.io builds
-      # https://bugs.launchpad.net/bugs/1886861
-      
-      if [ -n "$http_proxy" ]; then
-        export ELECTRON_GET_USE_PROXY=1
-        export GLOBAL_AGENT_HTTP_PROXY="${http_proxy}"
-        export GLOBAL_AGENT_HTTPS_PROXY="${http_proxy}"
-      fi
-      
-      npm install --unsafe-perm true electron-packager
-      electron-packager . --overwrite --platform=linux \
-          --output=release-build --prune=true
-      cp -a ./pintomind-player-linux-* $SNAPCRAFT_PART_INSTALL/pintomind-player
-    stage-packages:
-      - libasound2
-      - libgconf-2-4
-      - libpulse0
-      - libnss3
-      - libx11-xcb1
-      - libxss1
-      - libxtst6
-      - util-linux
-      - x11-xserver-utils
-      - curl
-    build-packages:
-      - unzip
-
-  # Adapted from snapcraft-desktop-helpers https://github.com/ubuntu/snapcraft-desktop-helpers/blob/master/snapcraft.yaml#L183
-  desktop-gtk3:
-    source: https://github.com/ubuntu/snapcraft-desktop-helpers.git
-    source-subdir: gtk
-    plugin: make
-    make-parameters: ["FLAVOR=gtk3"]
-    build-packages:
-      - build-essential
-      - libgtk-3-dev
-    stage-packages:
-      - libxkbcommon0  # XKB_CONFIG_ROOT
-      - ttf-ubuntu-font-family
-      - dmz-cursor-theme
-      - light-themes
-      - adwaita-icon-theme
-      - gnome-themes-standard
-      - shared-mime-info
-      - libgtk-3-0
-      - libgdk-pixbuf2.0-0
-      - libglib2.0-bin
-      - libgtk-3-bin
-      - unity-gtk3-module
-      - libappindicator3-1
-      - locales-all
-      - xdg-user-dirs
-      - ibus-gtk3
-      - libibus-1.0-5
-    override-prime: |
-        snapcraftctl prime
-        # Rebuild mime database as it seems to be missed
-        update-mime-database $SNAPCRAFT_PRIME/usr/share/mime
-  xwayland-kiosk-helper:
-    plugin: cmake
-    source: https://github.com/MirServer/xwayland-kiosk-helper.git
-    build-packages: [ build-essential ]
-    stage-packages: [ xwayland, i3, libegl1-mesa, libgl1-mesa-glx ]
-
-  # Copy runtime helpers (including bin/drop-snap-daemon.sh) into snap
-  pintomind-player-runtime-helpers:
-    plugin: dump
-    source: snap/local/runtime-helpers
-
-  wrapper:
-    plugin: dump
-    source: wrapper
-    organize:
-      wrapper.sh: usr/bin/wrapper
 
 architectures:
   - build-on: amd64
   - build-on: armhf
   - build-on: arm64
+
+apps:
+  pintomind-player:
+    daemon: simple
+    restart-condition: always
+    extensions: [ gnome-3-38 ]
+    environment:
+      GTK_USE_PORTAL: 0
+    command: usr/bin/wrapper
+    command-chain:
+      - bin/dbus-launch
+      - snap/command-chain/desktop-launch
+    plugs:
+      - audio-playback
+      - browser-support
+      - hardware-observe
+      - network
+      - network-bind
+      - opengl
+      - process-control
+      - wayland
+
+# Needed by Mir and/or Wayland
+layout:
+  /usr/share/icons:
+    bind: $SNAP/gnome-platform/usr/share/icons
+  /usr/share/fonts:
+    bind: $SNAP/gnome-platform/usr/share/fonts
+  /usr/local/share/fonts:
+    bind: $SNAP_COMMON/fonts
+
+parts:
+  pintomind-player:
+    plugin: nil
+    source: .
+    build-environment:
+      - PATH: "$PATH:$SNAPCRAFT_PART_BUILD/node_modules/.bin"
+    override-build: |
+      set +u # core20 base does not allow unbound variables !
+      
+      # workaround for build.snapcraft.io builds
+      # https://bugs.launchpad.net/bugs/1886861
+      if [ -n "$http_proxy" ]; then
+        export ELECTRON_GET_USE_PROXY=1
+        export GLOBAL_AGENT_HTTP_PROXY="${http_proxy}"
+        export GLOBAL_AGENT_HTTPS_PROXY="${http_proxy}"
+      fi
+     
+      npm install --unsafe-perm true electron-packager
+     
+      electron-packager . --overwrite --platform=linux \
+          --output=release-build --prune=true
+      cp -a ./pintomind-player-linux-* $SNAPCRAFT_PART_INSTALL/pintomind-player
+    stage-packages:
+      - libnspr4
+      - libnss3
+    build-snaps:
+      - node/16/stable
+  dbus-launch:
+    plugin: dump
+    source: dbus
+    organize:
+      session.conf: etc/dbus-1/session.conf
+      dbus-launch: bin/dbus-launch
+    override-prime: |
+      snapcraftctl prime
+      sed -i "s/SNAP_NAME/$SNAPCRAFT_PROJECT_NAME/" $SNAPCRAFT_PRIME/etc/dbus-1/session.conf
+    stage-packages:
+      - dbus
+  wrapper:
+    plugin: dump
+    source: wrapper
+    organize:
+      wrapper.sh: usr/bin/wrapper

@@ -1,13 +1,13 @@
-#!/bin/sh
+#! /bin/sh
 
-if grep -q "Pi 4" /proc/cpuinfo; then
+export SNAP_URL="$(snapctl get url)"
+
+if cat /proc/cpuinfo | grep -q "Pi 4"; then
   EXTRAOPTS="--disable-gpu"
 fi
 
 exec $SNAP/pintomind-player/pintomind-player \
-	--enable-logging \
 	--enable-features=UseOzonePlatform \
 	--ozone-platform=wayland \
 	--disable-dev-shm-usage \
-	--enable-wayland-ime \
 	--no-sandbox $EXTRAOPTS
