@@ -12,9 +12,10 @@ system-usernames:
 apps:
   pintomind-player:
     command-chain:
+      - bin/drop-snap-daemon.sh
       - bin/wayland-launch
       - bin/dbus-launch
-    command: usr/bin/setpriv --clear-groups --reuid snap_daemon --regid snap_daemon -- $SNAP/usr/bin/wrapper
+    command: usr/bin/wrapper
     daemon: simple
     restart-condition: always
     plugs:
@@ -122,6 +123,10 @@ parts:
     organize:
       wrapper.sh: usr/bin/wrapper
 
+  permissions:
+    plugin: dump
+    source: permissions
+  
   gsettings+pixbuf:
     plugin: nil
     build-packages:
@@ -182,6 +187,7 @@ parts:
     after:
       - pintomind-player
       - wrapper
+      - permissions
       - wayland-launch
       - dbus
       - gsettings+pixbuf
