@@ -62,8 +62,12 @@ app.whenReady().then(() => {
     console.log('Exiting kiosk mode..')
     mainWindow.kiosk = !mainWindow.kiosk
   })
+  // Takes screenshot
+  globalShortcut.register('CommandOrControl+P', () => {
+    screenShot()
+  })
 
-})
+});
 
 app.on('ready', () => {
   createWindow()
@@ -127,4 +131,22 @@ function sendDeviceInfo() {
   .then(data => options["Model"] = data.model)
   
   mainWindow.webContents.send("send_device_info", options);
+}
+
+function screenShot() {
+  mainWindow.webContents.capturePage({
+    x: 0,
+    y: 0,
+    width: mainWindow.webContents.width,
+    height: mainWindow.webContents.height,
+  })
+  .then((img) => {
+    fs.writeFile("./screenshots/shot.png", img.toPNG(), "base64", function (err) {
+      if (err) throw err;
+      console.log("Saved!");
+    });
+  })
+  .catch((err) => {
+    console.log(err);
+  });
 }
