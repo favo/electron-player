@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Access-Control-Allow-Origin: *" >
+    <title>Infoskjermen Player</title>
+    <script type="text/javascript" language="javascript" src='./offline_renderer.js'></script>
+    <style>
+        body { 
+            background: #000;
+            color: rgb(130, 130, 130);
+            font-family: "Verdana";
+            font-size: 2vw;
+            overflow: hidden;
+        }	
+
+        main {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            flex-direction: column;
+        }
+
+        #top-right {
+            position: absolute;
+            top: 0;
+            right: 0;
+            padding: 1vw;
+            height: 16%
+            }
+
+        #bottom-left {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            padding: 1vw;
+            height: 50%
+        }
+
+        #bottom-right {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            padding: 1vw;
+        }
+    </style>
+  </head>
+  <body>
+    <main>
+        <p>Hei! Det ser ut som du ikke har nett.. :(</p>
+        <p>Scan QR-koden for å sette opp nettverk på enheten</p>
+    </main>
+    <img src="assets/swirls.svg" id="bottom-left">
+    <img src="assets/dots.svg" id="top-right">
+    <img id="bottom-right"></img>
+  </body>
+</html>

@@ -2,6 +2,11 @@ const { app, BrowserWindow, ipcMain, globalShortcut } = require('electron');
 const path = require('path');
 const shutdown = require('electron-shutdown-command');
 const si = require('systeminformation');
+const QRCode = require('qrcode')
+const { net } = require('electron')
+const bleno = require('bleno');
+
+
 let pjson = require('./package.json');
 let fs = require('fs');
 
@@ -12,10 +17,10 @@ var host = "http://app.infoskjermen.no"
 const createWindow = () => {
   // Create the browser window.
   mainWindow = new BrowserWindow({
-    alwaysOnTop: true,
+    alwaysOnTop: false,
     width: 1920,
     height: 1080,
-    kiosk: true,
+    kiosk: false,
     webPreferences: {
       nodeIntegration: false, 
       contextIsolation: true, 
@@ -25,10 +30,22 @@ const createWindow = () => {
     frame: false,
     icon: path.join(__dirname, '../assets/icon/png/logo256.png')
   });
-  mainWindow.loadFile(path.join(__dirname, 'index.html'));
+  
+  if (net.isOnline()) {
+    mainWindow.loadFile(path.join(__dirname, 'index.html'));
+  } else {
+    mainWindow.loadFile(path.join(__dirname, 'offline.html'));
+    const interval = setInterval(() => {
+      if (net.isOnline()) { 
+        mainWindow.loadFile(path.join(__dirname, 'index.html'));
+        clearInterval(interval)
+      }
+    }, 2000)
+  }
   
   mainWindow.once('ready-to-show', () => {
     mainWindow.show()
+
   })
   
   mainWindow.on("closed", function () {
@@ -100,9 +117,23 @@ ipcMain.on("restart_app", function() {
 ipcMain.on("request_device_info", (event, arg) => {
   sendDeviceInfo()
 })
-ipcMain.on("toMain", (event, arg) => {
-  console.log(arg);
+ipcMain.on("qrcode", (event, arg) => {
+  const opts = {
+    errorCorrectionLevel: 'H',
+    type: 'image/jpeg',
+    quality: 1,
+    color: {
+      dark:"#828282FF",
+      light:"#000000FF"
+    }
+  }
+
+  QRCode.toDataURL('https://app.infoskjermen.no', opts, (err, qrcode) => {
+    mainWindow.webContents.send("qrcode", qrcode);
+  })
 })
+
+
 
 /*
 *   Reboots device

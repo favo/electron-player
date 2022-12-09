@@ -7,13 +7,13 @@ contextBridge.exposeInMainWorld(
     "api", {
         send: (channel, data) => {
             // whitelist channels
-            let validChannels = ["reboot_device", "restart_app", "request_device_info", "reboot_device"];
+            let validChannels = ["reboot_device", "restart_app", "request_device_info", "reboot_device", "qrcode"];
             if (validChannels.includes(channel)) {
                 ipcRenderer.send(channel, data);
             }
         },
         receive: (channel, func) => {
-            let validChannels = ["send_device_info"];
+            let validChannels = ["send_device_info", "qrcode"];
             if (validChannels.includes(channel)) {
                 ipcRenderer.on(channel, (event, ...args) => func(...args));
             }
