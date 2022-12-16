@@ -6,7 +6,6 @@ const QRCode = require('qrcode')
 const { net } = require('electron')
 const bleno = require('bleno');
 
-
 let pjson = require('./package.json');
 let fs = require('fs');
 
@@ -88,6 +87,35 @@ app.whenReady().then(() => {
 
 app.on('ready', () => {
   createWindow()
+
+
+  const BlenoPrimaryService = bleno.PrimaryService;
+  const EchoCharacteristic = require('./characteristic');
+
+  bleno.on('stateChange', function(state) {
+    console.log('on -> stateChange: ' + state);
+
+    if (state === 'poweredOn') {
+      bleno.startAdvertising('echo', ['ec00']);
+    } else {
+      bleno.stopAdvertising();
+    }
+  });
+
+  bleno.on('advertisingStart', function(error) {
+    console.log('on -> advertisingStart: ' + (error ? 'error ' + error : 'success'));
+
+    if (!error) {
+      bleno.setServices([
+        new BlenoPrimaryService({
+          uuid: 'ec00',
+          characteristics: [
+            new EchoCharacteristic()
+          ]
+        })
+      ]);
+    }
+  });
 });
 
 

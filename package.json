@@ -6,7 +6,9 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "electron .",
-    "dist": "electron-builder --linux snap"
+    "dist": "electron-builder --linux snap",
+    "dist:linux": "electron-builder --linux",
+    "publish": "electron-builder --linux -p always"
   },
   "repository": {
     "type": "git",
@@ -23,9 +25,31 @@
     "electron-builder": "^22.10.3"
   },
   "dependencies": {
-    "bleno": "^0.5.0",
+    "bleno": "npm:@abandonware/bleno@^0.5.1-4",
     "electron-shutdown-command": "^2.0.1",
     "qrcode": "^1.5.1",
     "systeminformation": "^5.12.3"
+  },
+  "build": {
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "favo",
+        "repo": "electron-player"
+      }
+    ],
+    "appId": "no.favo.pintomindplayer",
+    "productName": "PintomindPlayer",
+    "linux": {
+      "target": {
+        "target": "AppImage",
+        "arch": [
+          "armv7l"
+        ]
+      },
+      "maintainer": "Favo AS",
+      "category": "Utility",
+      "artifactName": "pintomindplayer.AppImage"
+    }
   }
 }
