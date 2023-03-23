@@ -1,13 +1,20 @@
-const { app, BrowserWindow, ipcMain, globalShortcut } = require('electron');
+const { app, BrowserWindow, ipcMain, globalShortcut, net } = require('electron');
+const nodeChildProcess = require('child_process');
 const path = require('path');
 const shutdown = require('electron-shutdown-command');
 const si = require('systeminformation');
 let pjson = require('./package.json');
 let fs = require('fs');
+const https = require('https');
+const { resolve } = require('path');
+
+app.disableHardwareAcceleration()
 
 let mainWindow 
 
-var host = "http://app.infoskjermen.no"
+let host = "http://app.pintomind.com"
+const appUpdateURL = "https://github.com/favo/electron-player/releases/latest/"
+const dowlaodAppURL = "https://github.com/favo/electron-player/releases/latest/download/pintomind-player.deb"
 
 const createWindow = () => {
   // Create the browser window.
@@ -15,7 +22,7 @@ const createWindow = () => {
     alwaysOnTop: true,
     width: 1920,
     height: 1080,
-    kiosk: true,
+    kiosk: false,
     webPreferences: {
       nodeIntegration: false, 
       contextIsolation: true, 
@@ -26,7 +33,9 @@ const createWindow = () => {
     icon: path.join(__dirname, '../assets/icon/png/logo256.png')
   });
   mainWindow.loadFile(path.join(__dirname, 'index.html'));
-  
+
+  mainWindow.webContents.setFrameRate(30)
+
   mainWindow.once('ready-to-show', () => {
     mainWindow.show()
   })
@@ -61,6 +70,16 @@ app.whenReady().then(() => {
   globalShortcut.register('CommandOrControl+K', () => {
     console.log('Exiting kiosk mode..')
     mainWindow.kiosk = !mainWindow.kiosk
+  })
+  // Exits kiosk mode
+  globalShortcut.register('CommandOrControl+U+P', () => {
+    console.log('Cheching and Updating App..')
+    updateApp()
+  })
+  // Updates Firmware
+  globalShortcut.register('CommandOrControl+U+F', () => {
+    console.log('Updating firmware...')
+    upgradeFirmware()
   })
   // Takes screenshot
   globalShortcut.register('CommandOrControl+P', () => {
@@ -100,9 +119,83 @@ ipcMain.on("restart_app", function() {
 ipcMain.on("request_device_info", (event, arg) => {
   sendDeviceInfo()
 })
+ipcMain.on("upgrade_firmware", (event, arg) => {
+  upgradeFirmware()
+})
+ipcMain.on("update_app", (event, arg) => {
+  updateApp()
+})
 ipcMain.on("toMain", (event, arg) => {
   console.log(arg);
 })
+
+/*
+*   Updates Firmware
+*/
+function upgradeFirmware() {
+  const script = nodeChildProcess.spawn('bash', [path.join(__dirname, 'scripts/update_firmware.sh'), 'arg1', 'arg2']);
+
+  script.stdout.on('data', (data) => {
+    console.log('stdout: ' + data);
+  });
+
+  script.stderr.on('data', (err) => {
+      console.log('stderr: ' + err);
+  });
+
+  script.on('exit', (code) => {
+      console.log('Exit Code: ' + code);
+  });
+}
+
+/*
+*   Updates Player App
+*/
+async function updateApp() {
+
+  const newAppVersion = await checkNewAppVersion()
+
+  const AppVersion = pjson.version
+  const updateApp = cmpVersions(newAppVersion, AppVersion)
+
+  if (updateApp) {
+    const script = nodeChildProcess.spawn('bash', [path.join(__dirname, 'scripts/update_app.sh'), dowlaodAppURL, __dirname]);
+    
+    script.stdout.on('data', (data) => {
+      console.log('stdout: ' + data);
+    });
+
+    script.on('exit', (code) => {
+        console.log('Exit Code: ' + code);
+    });
+
+  }
+}
+
+function checkNewAppVersion() {
+  return new Promise(resolve => {
+    const request = net.request({
+      method: 'GET',
+      protocol: 'https:',
+      hostname: 'github.com',
+      path: '/favo/electron-player/releases/latest',
+      redirect: 'follow'
+    })
+
+    request.on('redirect', (statusCode, method, redirectUrl, responseHeaders) => {
+      const list = redirectUrl.split("/")
+      const newAppVersion = list[list.length - 1]
+      resolve(newAppVersion)
+    })
+
+    request.on('error', (res) => {
+      console.log(res);
+    })
+
+    request.setHeader('Content-Type', 'application/json');
+    request.end();
+  });
+}
 
 /*
 *   Reboots device
@@ -125,6 +218,7 @@ function sendDeviceInfo() {
   var options = {}
   options["Host"] = host
   options["App-version"] = pjson.version
+  options["Platform"] = "Electron"
   si.osInfo()
   .then(data => options["Platform-OS"] = data.platform)
   si.system()
@@ -149,4 +243,20 @@ function screenShot() {
   .catch((err) => {
     console.log(err);
   });
+}
+
+function cmpVersions (a, b) {
+  var i, diff;
+  var regExStrip0 = /(\.0+)+$/;
+  var segmentsA = a.replace(regExStrip0, '').split('.');
+  var segmentsB = b.replace(regExStrip0, '').split('.');
+  var l = Math.min(segmentsA.length, segmentsB.length);
+
+  for (i = 0; i < l; i++) {
+      diff = parseInt(segmentsA[i], 10) - parseInt(segmentsB[i], 10);
+      if (diff) {
+          return diff;
+      }
+  }
+  return segmentsA.length - segmentsB.length;
 }

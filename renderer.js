@@ -1,4 +1,4 @@
-let host = "https://app.infoskjermen.no"
+let host = "https://app.pintomind.com"
 let myStorage
 let webviewReady = false;
 let webview
@@ -33,7 +33,6 @@ window.onload = function() {
     *   Listener from server
     */
     window.addEventListener("message", function(e) {
-        console.log(e.data);
         var request = JSON.parse(e.data);
         
         switch (request.action) {
@@ -51,6 +50,12 @@ window.onload = function() {
                 break;
             case "restart":
                 window.api.send("restart_app")
+                break;
+            case "update_app":
+                window.api.send("update_app")
+                break;
+            case "upgrade_firmware":
+                window.api.send("upgrade_firmware")
                 break;
         }
 

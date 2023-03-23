@@ -1,29 +1,33 @@
 {
   "name": "pintomind-player",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Player app for PinToMind",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "electron .",
-    "dist": "electron-builder --linux snap"
+    "dist": "electron-builder --linux deb --armv7l"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/favo/electron-player.git"
   },
-  "author": "Favo AS",
+  "author": {
+    "name": "Favo AS",
+    "email": "favo@post.no"
+  },
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/favo/electron-player/issues"
   },
   "homepage": "https://github.com/favo/electron-player#readme",
   "devDependencies": {
-    "electron": "^20.0.1",
-    "electron-builder": "^23.3.3"
+    "electron": "^23.2.0",
+    "electron-builder": "^24.1.0"
   },
   "dependencies": {
     "electron-shutdown-command": "^2.0.1",
-    "systeminformation": "^5.12.3"
+    "i": "^0.3.7",
+    "systeminformation": "^5.17.12"
   }
 }

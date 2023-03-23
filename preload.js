@@ -7,7 +7,7 @@ contextBridge.exposeInMainWorld(
     "api", {
         send: (channel, data) => {
             // whitelist channels
-            let validChannels = ["reboot_device", "restart_app", "request_device_info", "reboot_device"];
+            let validChannels = ["reboot_device", "restart_app", "request_device_info", "upgrade_firmware", "update_app"];
             if (validChannels.includes(channel)) {
                 ipcRenderer.send(channel, data);
             }
