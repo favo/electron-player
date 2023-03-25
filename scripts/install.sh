@@ -5,15 +5,15 @@ sudo apt-get update
 sudo apt-get full-upgrade --yes
 
 # Download necessary packages
-sudo apt-get install --yes libgles2-mesa libgles2-mesa-dev xorg-dev unclutter sed openbox
+sudo apt-get -y install --yes libgles2-mesa libgles2-mesa-dev xorg-dev unclutter sed openbox
 
 # Increase gpu-ram to 256
 sudo raspi-config nonint do_memory_split 256
 
 wget https://github.com/favo/electron-player/releases/latest/download/pintomind-player.deb
-sudo apt install /home/pi/Downloads/pintomind-player.deb
+sudo apt -y install ~/pintomind-player.deb
 
-rm /home/pi/Downloads/pintomind-player.deb
+rm ~/pintomind-player.deb
 
 # Create kiosk service script
 cat << EOS > /home/pi/kiosk.service

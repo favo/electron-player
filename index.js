@@ -5,21 +5,21 @@ const shutdown = require('electron-shutdown-command');
 const si = require('systeminformation');
 let pjson = require('./package.json');
 let fs = require('fs');
-const https = require('https');
-const { resolve } = require('path');
+var https = require('https');
+
 
 app.disableHardwareAcceleration()
 
 let mainWindow 
 
 let host = "http://app.pintomind.com"
-const appUpdateURL = "https://github.com/favo/electron-player/releases/latest/"
 const dowlaodAppURL = "https://github.com/favo/electron-player/releases/latest/download/pintomind-player.deb"
+const appName = "pintomind-player.deb"
 
 const createWindow = () => {
   // Create the browser window.
   mainWindow = new BrowserWindow({
-    alwaysOnTop: true,
+    alwaysOnTop: false,
     width: 1920,
     height: 1080,
     kiosk: false,
@@ -109,10 +109,10 @@ app.on('activate', () => {
 /*
 *   Listeners from renderer. Called when server sends message
 */
-ipcMain.on("reboot_device", function() {
+ipcMain.on("reboot_device", (event, arg) => {
   rebootDevice()
 })
-ipcMain.on("restart_app", function() {
+ipcMain.on("restart_app", (event, arg) => {
   app.relaunch()
   app.exit()
 })
@@ -125,18 +125,18 @@ ipcMain.on("upgrade_firmware", (event, arg) => {
 ipcMain.on("update_app", (event, arg) => {
   updateApp()
 })
-ipcMain.on("toMain", (event, arg) => {
-  console.log(arg);
-})
 
 /*
 *   Updates Firmware
 */
+
+/* TODO */
+/* Finne en bedre måte enn å fjerne /app.asar path */
 function upgradeFirmware() {
-  const script = nodeChildProcess.spawn('bash', [path.join(__dirname, 'scripts/update_firmware.sh'), 'arg1', 'arg2']);
+  const script = nodeChildProcess.spawn('bash', [path.join(__dirname.replace("/app.asar", ""), 'scripts/update_firmware.sh'), 'arg1', 'arg2']);
 
   script.stdout.on('data', (data) => {
-    console.log('stdout: ' + data);
+    console.log("stdout" + data);
   });
 
   script.stderr.on('data', (err) => {
@@ -145,7 +145,9 @@ function upgradeFirmware() {
 
   script.on('exit', (code) => {
       console.log('Exit Code: ' + code);
+      rebootDevice()
   });
+
 }
 
 /*
@@ -157,19 +159,69 @@ async function updateApp() {
 
   const AppVersion = pjson.version
   const updateApp = cmpVersions(newAppVersion, AppVersion)
+  console.log(AppVersion, newAppVersion);
 
-  if (updateApp) {
-    const script = nodeChildProcess.spawn('bash', [path.join(__dirname, 'scripts/update_app.sh'), dowlaodAppURL, __dirname]);
-    
-    script.stdout.on('data', (data) => {
-      console.log('stdout: ' + data);
-    });
+  if (true) {
+    const filePath = path.join(__dirname, appName)
+    const success = await downloadFile(dowlaodAppURL, filePath)
+    console.log(filePath);
 
-    script.on('exit', (code) => {
-        console.log('Exit Code: ' + code);
-    });
-
+    if (success) {
+      console.log("Downloaded file");
+      const script = nodeChildProcess.spawn('bash', [path.join(__dirname.replace("/app.asar", ""), 'scripts/update_app.sh'), filePath, 'arg2']);
+      
+      script.stdout.on('data', (data) => {
+        console.log("stdout" + data);
+      });
+      
+      script.stdout.on('finish', (data) => {
+        console.log("finished with script");
+        //rebootDevice()
+      });
+      
+    }
   }
+}
+
+
+async function downloadFile(fileUrl, filePath) {  
+  return await new Promise((resolve, reject) => {
+    https.get(fileUrl, response => {
+      const code = response.statusCode ?? 0
+
+      if (code >= 400) {
+        return reject(new Error(response.statusMessage))
+      }
+
+      // handle redirects
+      if (code > 300 && code < 400 && !!response.headers.location) {
+        return resolve(
+          downloadFile(response.headers.location, filePath)
+        )
+      }
+
+      // save the file to disk
+      const fileWriter = fs
+        .createWriteStream(filePath)
+        .on('finish', () => {
+          resolve({success: true})
+        })
+
+      response.pipe(fileWriter)
+    }).on('error', error => {
+      reject(error)
+    })
+  })
+}
+
+function removeFile(filePath) {
+  fs.unlink(filePath, (error) => {
+    if (error) {
+      console.error('Error removing file:', error);
+    } else {
+      console.log('File removed:', filePath);
+    }
+  });
 }
 
 function checkNewAppVersion() {
