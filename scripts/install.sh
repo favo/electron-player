@@ -10,10 +10,9 @@ sudo apt-get -y install --yes libgles2-mesa libgles2-mesa-dev xorg-dev unclutter
 # Increase gpu-ram to 256
 sudo raspi-config nonint do_memory_split 256
 
-wget https://github.com/favo/electron-player/releases/latest/download/pintomind-player.deb
-sudo apt -y install ~/pintomind-player.deb
+wget https://github.com/favo/electron-player/releases/latest/download/pintomind-player.AppImage
+chmod +x /home/pi/pintomind-player.AppImage
 
-rm ~/pintomind-player.deb
 
 # Create kiosk service script
 cat << EOS > /home/pi/kiosk.service
@@ -26,7 +25,7 @@ After=graphical.target
 Environment=DISPLAY=:0.0
 Environment=XAUTHORITY=/home/pi/.Xauthority
 Type=simple
-ExecStart=pintomind-player
+ExecStart=/home/pi/pintomind-player
 Restart=always
 User=pi
 Group=pi

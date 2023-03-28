@@ -1,5 +1,6 @@
 const { app, BrowserWindow, ipcMain, globalShortcut, net } = require('electron');
 const nodeChildProcess = require('child_process');
+const { autoUpdater } = require("electron-updater")
 const path = require('path');
 const shutdown = require('electron-shutdown-command');
 const si = require('systeminformation');
@@ -13,16 +14,17 @@ app.disableHardwareAcceleration()
 let mainWindow 
 
 let host = "http://app.pintomind.com"
-const dowlaodAppURL = "https://github.com/favo/electron-player/releases/latest/download/pintomind-player.deb"
-const appName = "pintomind-player.deb"
+
+autoUpdater.autoDownload = false
+autoUpdater.autoInstallOnAppQuit = true
 
 const createWindow = () => {
   // Create the browser window.
   mainWindow = new BrowserWindow({
-    alwaysOnTop: false,
+    alwaysOnTop: true,
     width: 1920,
     height: 1080,
-    kiosk: false,
+    kiosk: true,
     webPreferences: {
       nodeIntegration: false, 
       contextIsolation: true, 
@@ -44,6 +46,7 @@ const createWindow = () => {
     mainWindow = null
   })
 
+  autoUpdater.checkForUpdates()
 };
 
 /*
@@ -51,7 +54,7 @@ const createWindow = () => {
 */
 app.whenReady().then(() => {
   //  Restarts app
-  globalShortcut.register('CommandOrControl+J', () => {
+  globalShortcut.register('CommandOrControl+U+B', () => {
     console.log('Restarting app..')
     app.relaunch()
     app.exit()
@@ -62,7 +65,7 @@ app.whenReady().then(() => {
     rebootDevice()
   })
   //  Opens devTools
-  globalShortcut.register('CommandOrControl+D', () => {
+  globalShortcut.register('CommandOrControl+D+C', () => {
     console.log('Opening DevTools..')
     mainWindow.webContents.openDevTools()
   })
@@ -73,13 +76,13 @@ app.whenReady().then(() => {
   })
   // Exits kiosk mode
   globalShortcut.register('CommandOrControl+U+P', () => {
-    console.log('Cheching and Updating App..')
+    console.log('Checking and Updating App..')
     updateApp()
   })
   // Updates Firmware
   globalShortcut.register('CommandOrControl+U+F', () => {
     console.log('Updating firmware...')
-    upgradeFirmware()
+    updateFirmware()
   })
   // Takes screenshot
   globalShortcut.register('CommandOrControl+P', () => {
@@ -106,6 +109,21 @@ app.on('activate', () => {
   }
 });
 
+autoUpdater.on('checking-for-update', (info) => {
+  console.log(info);
+}) 
+autoUpdater.on('update-available', (info) => {
+  autoUpdater.downloadUpdate()
+  console.log(info);
+}) 
+autoUpdater.on('download-progress', (info) => {
+  console.log(info);
+}) 
+autoUpdater.on('update-downloaded', (info) => {
+  autoUpdater.quitAndInstall()
+}) 
+
+
 /*
 *   Listeners from renderer. Called when server sends message
 */
@@ -120,7 +138,7 @@ ipcMain.on("request_device_info", (event, arg) => {
   sendDeviceInfo()
 })
 ipcMain.on("upgrade_firmware", (event, arg) => {
-  upgradeFirmware()
+  updateFirmware()
 })
 ipcMain.on("update_app", (event, arg) => {
   updateApp()
@@ -132,7 +150,7 @@ ipcMain.on("update_app", (event, arg) => {
 
 /* TODO */
 /* Finne en bedre måte enn å fjerne /app.asar path */
-function upgradeFirmware() {
+function updateFirmware() {
   const script = nodeChildProcess.spawn('bash', [path.join(__dirname.replace("/app.asar", ""), 'scripts/update_firmware.sh'), 'arg1', 'arg2']);
 
   script.stdout.on('data', (data) => {
@@ -153,100 +171,8 @@ function upgradeFirmware() {
 /*
 *   Updates Player App
 */
-async function updateApp() {
-
-  const newAppVersion = await checkNewAppVersion()
-
-  const AppVersion = pjson.version
-  const updateApp = cmpVersions(newAppVersion, AppVersion)
-  console.log(AppVersion, newAppVersion);
-
-  if (true) {
-    const filePath = path.join(__dirname, appName)
-    const success = await downloadFile(dowlaodAppURL, filePath)
-    console.log(filePath);
-
-    if (success) {
-      console.log("Downloaded file");
-      const script = nodeChildProcess.spawn('bash', [path.join(__dirname.replace("/app.asar", ""), 'scripts/update_app.sh'), filePath, 'arg2']);
-      
-      script.stdout.on('data', (data) => {
-        console.log("stdout" + data);
-      });
-      
-      script.stdout.on('finish', (data) => {
-        console.log("finished with script");
-        //rebootDevice()
-      });
-      
-    }
-  }
-}
-
-
-async function downloadFile(fileUrl, filePath) {  
-  return await new Promise((resolve, reject) => {
-    https.get(fileUrl, response => {
-      const code = response.statusCode ?? 0
-
-      if (code >= 400) {
-        return reject(new Error(response.statusMessage))
-      }
-
-      // handle redirects
-      if (code > 300 && code < 400 && !!response.headers.location) {
-        return resolve(
-          downloadFile(response.headers.location, filePath)
-        )
-      }
-
-      // save the file to disk
-      const fileWriter = fs
-        .createWriteStream(filePath)
-        .on('finish', () => {
-          resolve({success: true})
-        })
-
-      response.pipe(fileWriter)
-    }).on('error', error => {
-      reject(error)
-    })
-  })
-}
-
-function removeFile(filePath) {
-  fs.unlink(filePath, (error) => {
-    if (error) {
-      console.error('Error removing file:', error);
-    } else {
-      console.log('File removed:', filePath);
-    }
-  });
-}
-
-function checkNewAppVersion() {
-  return new Promise(resolve => {
-    const request = net.request({
-      method: 'GET',
-      protocol: 'https:',
-      hostname: 'github.com',
-      path: '/favo/electron-player/releases/latest',
-      redirect: 'follow'
-    })
-
-    request.on('redirect', (statusCode, method, redirectUrl, responseHeaders) => {
-      const list = redirectUrl.split("/")
-      const newAppVersion = list[list.length - 1]
-      resolve(newAppVersion)
-    })
-
-    request.on('error', (res) => {
-      console.log(res);
-    })
-
-    request.setHeader('Content-Type', 'application/json');
-    request.end();
-  });
+function updateApp() {
+  autoUpdater.checkForUpdates()
 }
 
 /*
@@ -295,20 +221,4 @@ function screenShot() {
   .catch((err) => {
     console.log(err);
   });
-}
-
-function cmpVersions (a, b) {
-  var i, diff;
-  var regExStrip0 = /(\.0+)+$/;
-  var segmentsA = a.replace(regExStrip0, '').split('.');
-  var segmentsB = b.replace(regExStrip0, '').split('.');
-  var l = Math.min(segmentsA.length, segmentsB.length);
-
-  for (i = 0; i < l; i++) {
-      diff = parseInt(segmentsA[i], 10) - parseInt(segmentsB[i], 10);
-      if (diff) {
-          return diff;
-      }
-  }
-  return segmentsA.length - segmentsB.length;
 }
