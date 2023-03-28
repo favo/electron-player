@@ -6,7 +6,6 @@ const shutdown = require('electron-shutdown-command');
 const si = require('systeminformation');
 let pjson = require('./package.json');
 let fs = require('fs');
-var https = require('https');
 
 
 app.disableHardwareAcceleration()
@@ -36,7 +35,7 @@ const createWindow = () => {
   });
   mainWindow.loadFile(path.join(__dirname, 'index.html'));
 
-  mainWindow.webContents.setFrameRate(30)
+  mainWindow.webContents.setFrameRate(60)
 
   mainWindow.once('ready-to-show', () => {
     mainWindow.show()
@@ -179,13 +178,19 @@ function updateApp() {
 *   Reboots device
 */
 function rebootDevice() {
-  shutdown.reboot({
-    force: true,
-    timerseconds: 5,
-    sudo: true,
-    debug: false,
-    quitapp: true,
-  })
+  const script = nodeChildProcess.spawn('bash', [path.join(__dirname.replace("/app.asar", ""), 'scripts/reboot.sh'), 'arg1', 'arg2']);
+
+  script.stdout.on('data', (data) => {
+    console.log("stdout" + data);
+  });
+
+  script.stderr.on('data', (err) => {
+      console.log('stderr: ' + err);
+  });
+
+  script.on('exit', (code) => {
+      console.log('Exit Code: ' + code);
+  });
 }
 
 /*
