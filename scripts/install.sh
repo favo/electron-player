@@ -13,7 +13,6 @@ sudo raspi-config nonint do_memory_split 256
 wget https://github.com/favo/electron-player/releases/latest/download/pintomind-player.AppImage
 chmod +x /home/pi/pintomind-player.AppImage
 
-
 # Create kiosk service script
 cat << EOS > /home/pi/kiosk.service
 [Unit]
@@ -25,7 +24,7 @@ After=graphical.target
 Environment=DISPLAY=:0.0
 Environment=XAUTHORITY=/home/pi/.Xauthority
 Type=simple
-ExecStart=/home/pi/pintomind-player
+ExecStart=/home/pi/pintomind-player.AppImage
 Restart=always
 User=pi
 Group=pi
