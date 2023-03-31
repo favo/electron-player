@@ -8,8 +8,6 @@ let pjson = require('./package.json');
 let fs = require('fs');
 
 
-app.disableHardwareAcceleration()
-
 let mainWindow 
 
 let host = "http://app.pintomind.com"
@@ -34,8 +32,6 @@ const createWindow = () => {
     icon: path.join(__dirname, '../assets/icon/png/logo256.png')
   });
   mainWindow.loadFile(path.join(__dirname, 'index.html'));
-
-  mainWindow.webContents.setFrameRate(60)
 
   mainWindow.once('ready-to-show', () => {
     mainWindow.show()
