@@ -4,7 +4,9 @@ const { autoUpdater } = require("electron-updater")
 const path = require('path');
 let pjson = require('./package.json');
 let fs = require('fs');
-
+const os = require('os');
+const storage = require('electron-json-storage');
+storage.setDataPath(os.tmpdir());
 
 let mainWindow 
 
@@ -21,20 +23,31 @@ app.commandLine.appendSwitch("ignore-gpu-blacklist")
 const createWindow = () => {
   // Create the browser window.
   mainWindow = new BrowserWindow({
-    alwaysOnTop: true,
+    alwaysOnTop: false,
     width: 1920,
     height: 1080,
-    kiosk: true,
+    kiosk: false,
     webPreferences: {
       nodeIntegration: false, 
       contextIsolation: true, 
       enableRemoteModule: false,
       preload: path.join(__dirname, "preload.js")
     },
-    frame: false,
+    frame: true,
     icon: path.join(__dirname, '../assets/icon/png/logo256.png')
   });
-  mainWindow.loadFile(path.join(__dirname, 'index.html'));
+
+
+  storage.get('storage', function(error, data) {
+    if (error) throw error;
+  
+    let firstTime = data.firstTime
+    if (firstTime == "true") {
+      mainWindow.loadFile(path.join(__dirname, 'settings.html'));
+    } else {
+      mainWindow.loadFile(path.join(__dirname, 'index.html'));
+    }
+  });
 
   mainWindow.once('ready-to-show', () => {
     mainWindow.show()
@@ -52,7 +65,7 @@ const createWindow = () => {
 */
 app.whenReady().then(() => {
   //  Restarts app
-  globalShortcut.register('CommandOrControl+U+B', () => {
+  globalShortcut.register('CommandOrControl+B', () => {
     console.log('Restarting app..')
     app.relaunch()
     app.exit()
@@ -62,20 +75,8 @@ app.whenReady().then(() => {
     console.log('Rebooting device..')
     rebootDevice()
   })
-  globalShortcut.register("CommandOrControl+R+J", () => {
-    setRotation("normal");
-  })
-  globalShortcut.register("CommandOrControl+R+K", () => {
-    setRotation("inverted");
-  })
-  globalShortcut.register("CommandOrControl+R+H", () => {
-    setRotation("left");
-  })
-  globalShortcut.register("CommandOrControl+R+L", () => {
-    setRotation("right");
-  })
   //  Opens devTools
-  globalShortcut.register('CommandOrControl+D+C', () => {
+  globalShortcut.register('CommandOrControl+D', () => {
     console.log('Opening DevTools..')
     mainWindow.webContents.openDevTools()
   })
@@ -84,19 +85,29 @@ app.whenReady().then(() => {
     console.log('Exiting kiosk mode..')
     mainWindow.kiosk = !mainWindow.kiosk
   })
-  // Exits kiosk mode
-  globalShortcut.register('CommandOrControl+U+P', () => {
+  // Updates app
+  globalShortcut.register('CommandOrControl+U', () => {
     console.log('Checking and Updating App..')
     updateApp()
   })
-  // Updates Firmware
-  globalShortcut.register('CommandOrControl+U+F', () => {
+/*   // Updates Firmware
+  globalShortcut.register('CommandOrControl+F', () => {
     console.log('Updating firmware...')
     updateFirmware()
-  })
-  // Takes screenshot
+  }) */
+/*   // Takes screenshot
   globalShortcut.register('CommandOrControl+P', () => {
     screenShot()
+  }) */
+  globalShortcut.register('CommandOrControl+N', () => {
+    searchNetwork()
+  })
+  // Opens settings page
+  globalShortcut.register('CommandOrControl+I', () => {
+    mainWindow.loadFile(path.join(__dirname, 'settings.html'));
+  })
+  globalShortcut.register('CommandOrControl+P', () => {
+    mainWindow.loadFile(path.join(__dirname, 'index.html'));
   })
 
 });
@@ -155,12 +166,62 @@ ipcMain.on("update_app", (event, arg) => {
 })
 
 /* 
+  Listeners from settings page.
+*/
+ipcMain.on("change_rotation", (event, arg) => {
+  setRotation(arg)
+})
+ipcMain.on("search_after_networks", (event, arg) => {
+  searchNetwork()
+})
+ipcMain.on("connect_to_network", (event, arg) => {
+  connectToNetwork(arg)
+})
+ipcMain.on("go_to_app", (event, arg) => {
+  storage.set('storage', { firstTime: 'false' }, function(error) {
+    if (error) throw error;
+});
+  mainWindow.loadFile(path.join(__dirname, 'index.html'));
+})
+
+/* 
 *   Simple function to rotate the screen using scripts we have added 
 */
 function setRotation(rotation) {
   fs.writeFileSync("./rotation", rotation);
   nodeChildProcess.execSync("killall xinit");
 }
+
+/* 
+*   Simple function to rotate the screen using scripts we have added 
+*/
+function connectToNetwork(data) {
+  const ssid = data.ssid
+  const password = data.password
+  const response = nodeChildProcess.execSync(`sudo nmcli device wifi connect "${ssid}"  password "${password}" | grep -q "activated"`);
+
+  console.log(response);
+}
+
+/* 
+*   Simple function to rotate the screen using scripts we have added 
+*/
+function searchNetwork() {
+  const script = nodeChildProcess.execSync("nmcli --fields SSID,SECURITY --terse --mode multiline dev wifi list");
+
+  mainWindow.webContents.send("list_of_networks", script.toString());
+
+/*   script.stdout.on('data', (data) => {
+    console.log("stdout" + data);
+  });
+
+  script.stderr.on('data', (err) => {
+      console.log('stderr: ' + err);
+  });
+ */
+}
+
+
 
 /*
 *   Updates Firmware
@@ -178,12 +239,6 @@ function updateFirmware() {
   script.stderr.on('data', (err) => {
       console.log('stderr: ' + err);
   });
-
-  script.on('exit', (code) => {
-      console.log('Exit Code: ' + code);
-      rebootDevice()
-  });
-
 }
 
 /*
@@ -197,19 +252,7 @@ function updateApp() {
 *   Reboots device
 */
 function rebootDevice() {
-  const script = nodeChildProcess.spawn('bash', [path.join(__dirname.replace("/app.asar", ""), 'scripts/reboot.sh'), 'arg1', 'arg2']);
-
-  script.stdout.on('data', (data) => {
-    console.log("stdout" + data);
-  });
-
-  script.stderr.on('data', (err) => {
-      console.log('stderr: ' + err);
-  });
-
-  script.on('exit', (code) => {
-      console.log('Exit Code: ' + code);
-  });
+  nodeChildProcess.execSync("sudo reboot");
 }
 
 /*

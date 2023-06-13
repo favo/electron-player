@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Access-Control-Allow-Origin: *" >
+    <title>PinToMind Player</title>
+    <script type="text/javascript" language="javascript" src='./settings.js'></script>
+    <style>
+      body { width:100%; height:100%;  margin:0px; padding:0px; color: rgb(130, 130, 130); background-color: black;font-family: poppins, sans-serif;; font-size: 1vw;overflow: hidden;}	
+      .settings {display: flex; flex-direction: column; align-items: center; justify-content: center; color: #828282; max-width: 60vw; margin: auto; margin-top: 10vh;}
+      button, input, select {border: 1px solid #666; border-radius: 5px; padding: 0.5em; color: inherit; background-color: #111;}
+      .button-container  {display: flex; gap: 1em; }
+      .button-container.branding button { padding: 1em 1.5em;  font-size: 1.3em;}
+      .button-container.rotation button { padding: 1em 1.5em; display: flex; align-items: center;}
+      button img {height: 4.5em; width: auto; pointer-events: none;}
+      label {text-transform: uppercase; margin-bottom: 0.3em;}
+      label + input { min-width: 10em;}
+      input, select { min-width: 15em; }
+      .networks, .password-box {display: flex; align-items: center; gap: 1em; margin-bottom: 0.3em;}
+      .networks img {height: 1em;}
+      .network-settings, .connected-network, #lets-go-button {display: none;}
+      .networks button, .password-box button { display: flex; align-items: center; }
+      
+      body[data-is-online="false"] .network-settings {display: block;}
+      body[data-is-online="true"] .connected-network {display: block;}
+      body[data-is-online="true"] #lets-go-button {display: block;}
+
+      #bottom-left {position: absolute;bottom: 0;left: 0;padding: 1vw;height: 50%;}
+      #top-right {position: absolute;top: 0;right: 0;padding: 1vw;height: 16%;}
+      #bottom-right {position: absolute;bottom: 0;right: 0;padding: 1vw; font-size: 2vw;}
+
+      .center-flex {
+        display: -webkit-flex;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .message {
+        font-size: 0.7em;
+        margin-right: 0.7em;
+      }
+
+      .spinner {
+        width: 1.5em;
+        height: 1.5em;
+        padding: 0;
+      }
+
+      .spin {
+        animation: spin 1.5s infinite linear;
+      }
+
+      .shake {
+        animation: shake 0.75s ease;
+      }
+
+      .spinner .✓ {
+        display: none;
+      }
+
+      .spinner .x * {
+        display: none;
+      }
+
+      .spinner.success .✓ {
+        display: block;
+        animation: pop 0.3s ease 1;
+      }
+
+      .spinner.success .spinner-line {
+        display: none;
+      }
+
+      .spinner.error .spinner-line {
+        display: none;
+      }
+
+      .spinner.error .x * {
+        display: block;
+      }
+
+      .message {
+        text-align: right;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(359deg);
+        }
+      }
+    </style>
+  </head>
+  <body>
+      <img src="./assets/dots.svg" id="top-right" alt="">
+      <img src="./assets/swirls.svg" id="bottom-left" alt="">
+
+      <div id="bottom-right">
+        <div class="center-flex">
+            <div class="message">
+                <strong>infoskjermen.no</strong>
+                <div id="status-message">Tilkoblet</div>
+            </div>
+            <svg class="spinner" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle class="spinner-circle " cx="50" cy="50" r="42" stroke="#333333" stroke-width="12"></circle>
+              <path class="spinner-line" stroke="#CCC" d="M92 50C92 58.9907 89.1149 67.7442 83.7691 74.973C78.4233 82.2017 70.8988 87.5243 62.3025 90.1578C53.7061 92.7913 44.4915 92.5968 36.0139 89.6029C27.5363 86.6089 20.2432 80.9736 15.2072 73.5256" stroke-width="12" stroke-linecap="round"></path>
+              <path class="✓" stroke="#CCC" d="M33 48L47.547 60.8356C48.8661 61.9995 50.8989 61.7839 51.9444 60.3693L67 40" stroke-width="12" stroke-linecap="round"></path>
+              <g class="x">
+                  <path d="M39.5086 60.7322L59.8101 40.5866" stroke="#CCC" stroke-width="12" stroke-linecap="round"></path>
+                  <path d="M59.7322 60.8102L39.5865 40.5087" stroke="#CCC" stroke-width="12" stroke-linecap="round"></path>
+              </g>    
+            </svg>
+        </div>
+      </div>
+      
+      <div class="settings">
+            <h1>Kom igang!</h1>
+          
+            <label>Velg språk</label>
+            <div class="button-container branding">
+              <button>Infoskjermen 🇳🇴</button>
+              <button>PinToMind 🇬🇧</button>
+            </div>
+
+            <br><br>
+
+            <label>Velg skjerm rotasjon</label>
+            <div id="rotation-buttons" class="button-container rotation">
+                <button value="normal"><img src="./assets/monitor.svg" alt=""></button>
+                <button value="right"><img src="./assets/monitor.svg" style="transform: rotate(90deg);" alt=""></button>
+                <button value="inverted"><img src="./assets/monitor.svg" style="transform: rotate(180deg);" alt=""></button>
+                <button value="left"><img src="./assets/monitor.svg" style="transform: rotate(270deg);" alt=""></button>
+            </div>
+
+            <br><br>
+
+            <div class="connected-network">
+              <p>Du er koblet til internet, heldig du!</p>
+              <button>Koble til et annet nettverk</button>
+            </div>
+
+            <div class="network-settings">
+              <label for="">Velg nettverk</label>
+              <div class="networks">
+                <label for="" style="display: inline-flex;">SSID</label>
+                <select name="" id="network"></select>
+                <button id="refresh-button">
+                  Refresh
+                  <img src="./assets/arrow-clockwise.svg" alt="">
+                </button>
+              </div>
+              <div class="password-box">
+                <label for="" style="display: inline-flex;">Passord</label>
+                <input id="password" type="text">
+                <button id="connect-button">Koble til</button>
+              </div>
+              
+              <br>
+
+              <label for="">Skriv inn nettverk</label>
+
+              <div>
+                  <div class="">
+                      <label for="" style="display: inline-flex; min-width: 5em;">SSID</label>
+                      <input type="text">
+                  </div>
+                  <br>
+                  <div class="">
+                      <label for="" style="display: inline-flex; min-width: 5em;">Passord</label>
+                      <input type="text">
+                  </div>
+              </div>
+            </div>
+
+            <br><br>
+
+            <div class="button-container branding">
+              <button id="lets-go-button">Gå til skjerm!</button>
+            </div>
+        </div>
+  </body>
+</html>
