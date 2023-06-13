@@ -2,8 +2,6 @@ const { app, BrowserWindow, ipcMain, globalShortcut, net } = require('electron')
 const nodeChildProcess = require('child_process');
 const { autoUpdater } = require("electron-updater")
 const path = require('path');
-const shutdown = require('electron-shutdown-command');
-const si = require('systeminformation');
 let pjson = require('./package.json');
 let fs = require('fs');
 
@@ -14,6 +12,11 @@ let host = "http://app.pintomind.com"
 
 autoUpdater.autoDownload = false
 autoUpdater.autoInstallOnAppQuit = true
+
+app.commandLine.appendSwitch("use-vulkan")
+app.commandLine.appendSwitch("enable-features", "Vulkan")
+app.commandLine.appendSwitch("disable-gpu-driver-workarounds")
+app.commandLine.appendSwitch("ignore-gpu-blacklist")
 
 const createWindow = () => {
   // Create the browser window.
@@ -55,9 +58,21 @@ app.whenReady().then(() => {
     app.exit()
   })
   //  reboot device
-  globalShortcut.register('CommandOrControl+A+J', () => {
+  globalShortcut.register('CommandOrControl+A', () => {
     console.log('Rebooting device..')
     rebootDevice()
+  })
+  globalShortcut.register("CommandOrControl+R+J", () => {
+    setRotation("normal");
+  })
+  globalShortcut.register("CommandOrControl+R+K", () => {
+    setRotation("inverted");
+  })
+  globalShortcut.register("CommandOrControl+R+H", () => {
+    setRotation("left");
+  })
+  globalShortcut.register("CommandOrControl+R+L", () => {
+    setRotation("right");
   })
   //  Opens devTools
   globalShortcut.register('CommandOrControl+D+C', () => {
@@ -139,6 +154,14 @@ ipcMain.on("update_app", (event, arg) => {
   updateApp()
 })
 
+/* 
+*   Simple function to rotate the screen using scripts we have added 
+*/
+function setRotation(rotation) {
+  fs.writeFileSync("./rotation", rotation);
+  nodeChildProcess.execSync("killall xinit");
+}
+
 /*
 *   Updates Firmware
 */
@@ -198,10 +221,6 @@ function sendDeviceInfo() {
   options["Host"] = host
   options["App-version"] = pjson.version
   options["Platform"] = "Electron"
-  si.osInfo()
-  .then(data => options["Platform-OS"] = data.platform)
-  si.system()
-  .then(data => options["Model"] = data.model)
   
   mainWindow.webContents.send("send_device_info", options);
 }

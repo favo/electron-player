@@ -1,6 +1,6 @@
 {
   "name": "pintomind-player",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "Player app for PinToMind",
   "main": "index.js",
   "scripts": {
@@ -32,7 +32,7 @@
       "target": {
         "target": "AppImage",
         "arch": [
-          "armv7l"
+          "arm64"
         ]
       }
     }
