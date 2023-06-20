@@ -1,6 +1,6 @@
 {
   "name": "pintomind-player",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "Player app for PinToMind",
   "main": "index.js",
   "scripts": {
