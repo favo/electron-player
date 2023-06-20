@@ -29,6 +29,8 @@ window.onload = function() {
         const ssid = document.getElementById("network").value
 
         spinner.classList.add("spin")
+        spinner.classList.remove("error")
+        spinner.classList.remove("success")
         setStatusMessage("Kobler til nettverk")
         window.api.send("connect_to_network", {ssid: ssid, password: passwordstring})
     });

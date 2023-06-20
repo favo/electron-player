@@ -27,26 +27,25 @@ const createWindow = () => {
     alwaysOnTop: false,
     width: 1920,
     height: 1080,
-    kiosk: false,
+    kiosk: true,
     webPreferences: {
       nodeIntegration: false, 
       contextIsolation: true, 
       enableRemoteModule: false,
       preload: path.join(__dirname, "preload.js")
     },
-    frame: true,
+    frame: false,
     icon: path.join(__dirname, '../assets/icon/png/logo256.png')
   });
-
 
   storage.get('storage', function(error, data) {
     if (error) throw error;
   
     let firstTime = data.firstTime
-    if (firstTime == "true") {
-      mainWindow.loadFile(path.join(__dirname, 'settings.html'));
-    } else {
+    if (firstTime == "false") {
       mainWindow.loadFile(path.join(__dirname, 'index.html'));
+    } else {
+      mainWindow.loadFile(path.join(__dirname, 'settings.html'));
     }
   });
 
@@ -68,8 +67,9 @@ app.whenReady().then(() => {
   //  Restarts app
   globalShortcut.register('CommandOrControl+B', () => {
     console.log('Restarting app..')
-    app.relaunch()
-    app.exit()
+    /* app.relaunch()
+    app.exit() */
+    nodeChildProcess.execSync("killall xinit");
   })
   //  reboot device
   globalShortcut.register('CommandOrControl+A', () => {
@@ -100,13 +100,12 @@ app.whenReady().then(() => {
   globalShortcut.register('CommandOrControl+P', () => {
     screenShot()
   }) */
-  globalShortcut.register('CommandOrControl+N', () => {
-    searchNetwork()
-  })
+
   // Opens settings page
   globalShortcut.register('CommandOrControl+I', () => {
     mainWindow.loadFile(path.join(__dirname, 'settings.html'));
   })
+  // Opens player page
   globalShortcut.register('CommandOrControl+P', () => {
     mainWindow.loadFile(path.join(__dirname, 'index.html'));
   })
@@ -190,7 +189,17 @@ ipcMain.on("go_to_app", (event, arg) => {
 */
 function setRotation(rotation) {
   fs.writeFileSync("./rotation", rotation);
-  nodeChildProcess.execSync("/home/pi/.adjust_video.sh");
+
+  const command = "/home/pi/.adjust_video.sh"
+
+  nodeChildProcess.exec(command, (err, stdout, stderr) => {
+    if (err) {
+      console.error(`exec error: ${err}`);
+      return;
+    }
+    console.log(`stdout ${stdout.toString()}`);
+    console.log(`stderr ${stderr.toString()}`);
+  });
 }
 
 /* 
@@ -221,36 +230,29 @@ function connectToNetwork(data) {
 }
 
 /* 
-*   Simple function to rotate the screen using scripts we have added 
+*   Function for searching after local networks
 */
 function searchNetwork() {
-  try {
-    const response = nodeChildProcess.execSync("nmcli --fields SSID,SECURITY --terse --mode multiline dev wifi list");
-    
-    mainWindow.webContents.send("list_of_networks", response.toString());
-  } catch (err) {
-    console.log("Something wrong happened..");
-    console.log(err);
-  }
+  const command = "nmcli --fields SSID,SECURITY --terse --mode multiline dev wifi list"
 
+  nodeChildProcess.exec(command, (err, stdout, stderr) => {
+    if (err) {
+      console.error(`exec error: ${err}`);
+      return;
+    }
+    console.log(`stdout ${stdout.toString()}`);
+    console.log(`stderr ${stderr.toString()}`);
+    
+    mainWindow.webContents.send("list_of_networks", stdout.toString());
+  });
+}
 
 
 /*
 *   Updates Firmware
 */
-
-/* TODO */
-/* Finne en bedre måte enn å fjerne /app.asar path */
 function updateFirmware() {
-  const script = nodeChildProcess.spawn('bash', [path.join(__dirname.replace("/app.asar", ""), 'scripts/update_firmware.sh'), 'arg1', 'arg2']);
-
-  script.stdout.on('data', (data) => {
-    console.log("stdout" + data);
-  });
-
-  script.stderr.on('data', (err) => {
-      console.log('stderr: ' + err);
-  });
+  console.log("NOT IMPLEMENTED");
 }
 
 /*
