@@ -6,6 +6,9 @@ let pjson = require('../package.json');
 let fs = require('fs');
 const quote = require('shell-quote/quote');
 
+const Store = require('electron-store');
+const store = new Store();
+
 let mainWindow 
 
 let host = "http://app.pintomind.com"
@@ -35,24 +38,13 @@ const createWindow = () => {
     icon: path.join(__dirname, '../assets/icon/png/logo256.png')
   });
 
-  fs.readFile('data/data.json', 'utf8', (err, fileContents) => {
-    if (err) {
-      console.error('Error reading file', err);
-      return;
-    }
-    
-    try {
-      const data = JSON.parse(fileContents);
-      console.log(data);
-      if (data.firstTime) {
-        mainWindow.loadFile(path.join(__dirname, 'settings/settings.html'));
-      } else {
-        mainWindow.loadFile(path.join(__dirname, 'index/index.html'));
-      }
-    } catch(err) {
-      console.error('Error parsing JSON string:', err);
-    }
-  });
+  console.log(store.get("firstTime"));
+  
+  if (! store.has('firstTime')) {
+    mainWindow.loadFile(path.join(__dirname, 'settings/settings.html'));
+  } else {
+    mainWindow.loadFile(path.join(__dirname, 'index/index.html'));
+  }
 
   mainWindow.once('ready-to-show', () => {
     mainWindow.show()
@@ -183,30 +175,8 @@ ipcMain.on("connect_to_network", (event, arg) => {
   connectToNetwork(arg)
 })
 ipcMain.on("go_to_app", (event, arg) => {
-  fs.readFile('data/data.json', 'utf8', (err, fileContents) => {
-    if (err) {
-      console.error('Error reading file', err);
-      return;
-    }
-  
-    try {
-      let data = JSON.parse(fileContents);
-      
-      // Modify the value of "firstTime"
-      data.firstTime = false;
-      console.log(data);
-      // Convert back to JSON and write to the file
-      fs.writeFile('data/data.json', JSON.stringify(data, null, 2), (err) => {
-        if (err) {
-          console.error('Error writing file', err);
-        }
-
-        mainWindow.loadFile(path.join(__dirname, 'index/index.html'));
-      });
-    } catch(err) {
-      console.error('Error parsing JSON string:', err);
-    }
-  });
+  store.set('firstTime', 'false');
+  mainWindow.loadFile(path.join(__dirname, 'index/index.html'));
 })
 
 /* 

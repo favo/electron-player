@@ -1,15 +1,15 @@
 let host = "https://app.pintomind.com"
 let myStorage
-let webviewReady = false;
 let webview
+let webviewReady = false;
 
 
 window.onload = function() {
     
     myStorage = window.localStorage;
-    storagehost = myStorage.getItem("host") 
+    storagehost = myStorage.getItem("host")
     webview = document.getElementById("iframe");
-    
+    console.log(myStorage);
     webview.src = host + "/live/"
 
     /* 
@@ -34,7 +34,6 @@ window.onload = function() {
     */
     window.addEventListener("message", function(e) {
         var request = JSON.parse(e.data);
-        
         switch (request.action) {
             case "request_device_info": 
                 requestDeviceInfo()
@@ -57,15 +56,38 @@ window.onload = function() {
             case "upgrade_firmware":
                 window.api.send("upgrade_firmware")
                 break;
+            case "current_physical_id":
+                console.log("current_physical_id");
+                myStorage = window.localStorage;
+                physicalID = myStorage.getItem("physicalID") 
+                if (physicalID == null) {
+                    myStorage.setItem("physicalID", request.physicalID)
+                } else {
+                    if (physicalID != request.physicalID) {
+                        sendPhysicalID()
+                    }
+                }
+                break;
+            case "update_physical_id":
+                if (request.physicalID != null) {
+                    myStorage.setItem("physicalID", request.physicalID)
+                }
+                break;
         }
 
     })
 
     function requestDeviceInfo() {
-        window.api.send("request_device_info")
         window.api.receive("send_device_info", (data) => {
             webview.contentWindow.postMessage({action: "device_info", info: data}, "*");
         });
+
+        window.api.send("request_device_info")
+    }
+
+    function sendPhysicalID() {
+        physicalID = myStorage.getItem("physicalID") 
+        webview.contentWindow.postMessage({action: "player_physical_id", physicalID: physicalID}, "*");
     }
 
 }
