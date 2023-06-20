@@ -1,13 +1,10 @@
-const { app, BrowserWindow, ipcMain, globalShortcut, net } = require('electron');
+const { app, BrowserWindow, ipcMain, globalShortcut } = require('electron');
 const nodeChildProcess = require('child_process');
 const { autoUpdater } = require("electron-updater")
 const path = require('path');
-let pjson = require('./package.json');
+let pjson = require('../package.json');
 let fs = require('fs');
-const os = require('os');
-const storage = require('electron-json-storage');
 const quote = require('shell-quote/quote');
-storage.setDataPath(os.tmpdir());
 
 let mainWindow 
 
@@ -27,7 +24,7 @@ const createWindow = () => {
     alwaysOnTop: false,
     width: 1920,
     height: 1080,
-    kiosk: true,
+    kiosk: false,
     webPreferences: {
       nodeIntegration: false, 
       contextIsolation: true, 
@@ -38,14 +35,22 @@ const createWindow = () => {
     icon: path.join(__dirname, '../assets/icon/png/logo256.png')
   });
 
-  storage.get('storage', function(error, data) {
-    if (error) throw error;
-  
-    let firstTime = data.firstTime
-    if (firstTime == "false") {
-      mainWindow.loadFile(path.join(__dirname, 'index.html'));
-    } else {
-      mainWindow.loadFile(path.join(__dirname, 'settings.html'));
+  fs.readFile('data/data.json', 'utf8', (err, fileContents) => {
+    if (err) {
+      console.error('Error reading file', err);
+      return;
+    }
+    
+    try {
+      const data = JSON.parse(fileContents);
+      console.log(data);
+      if (data.firstTime) {
+        mainWindow.loadFile(path.join(__dirname, 'settings/settings.html'));
+      } else {
+        mainWindow.loadFile(path.join(__dirname, 'index/index.html'));
+      }
+    } catch(err) {
+      console.error('Error parsing JSON string:', err);
     }
   });
 
@@ -103,11 +108,11 @@ app.whenReady().then(() => {
 
   // Opens settings page
   globalShortcut.register('CommandOrControl+I', () => {
-    mainWindow.loadFile(path.join(__dirname, 'settings.html'));
+    mainWindow.loadFile(path.join(__dirname, 'settings/settings.html'));
   })
   // Opens player page
   globalShortcut.register('CommandOrControl+P', () => {
-    mainWindow.loadFile(path.join(__dirname, 'index.html'));
+    mainWindow.loadFile(path.join(__dirname, 'index/index.html'));
   })
 
 });
@@ -178,10 +183,30 @@ ipcMain.on("connect_to_network", (event, arg) => {
   connectToNetwork(arg)
 })
 ipcMain.on("go_to_app", (event, arg) => {
-  storage.set('storage', { firstTime: 'false' }, function(error) {
-    if (error) throw error;
-});
-  mainWindow.loadFile(path.join(__dirname, 'index.html'));
+  fs.readFile('data/data.json', 'utf8', (err, fileContents) => {
+    if (err) {
+      console.error('Error reading file', err);
+      return;
+    }
+  
+    try {
+      let data = JSON.parse(fileContents);
+      
+      // Modify the value of "firstTime"
+      data.firstTime = false;
+      console.log(data);
+      // Convert back to JSON and write to the file
+      fs.writeFile('data/data.json', JSON.stringify(data, null, 2), (err) => {
+        if (err) {
+          console.error('Error writing file', err);
+        }
+
+        mainWindow.loadFile(path.join(__dirname, 'index/index.html'));
+      });
+    } catch(err) {
+      console.error('Error parsing JSON string:', err);
+    }
+  });
 })
 
 /* 
