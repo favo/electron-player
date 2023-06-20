@@ -6,6 +6,7 @@ let pjson = require('./package.json');
 let fs = require('fs');
 const os = require('os');
 const storage = require('electron-json-storage');
+const quote = require('shell-quote/quote');
 storage.setDataPath(os.tmpdir());
 
 let mainWindow 
@@ -189,7 +190,7 @@ ipcMain.on("go_to_app", (event, arg) => {
 */
 function setRotation(rotation) {
   fs.writeFileSync("./rotation", rotation);
-  nodeChildProcess.execSync("killall xinit");
+  nodeChildProcess.execSync("/home/pi/.adjust_video.sh");
 }
 
 /* 
@@ -198,28 +199,39 @@ function setRotation(rotation) {
 function connectToNetwork(data) {
   const ssid = data.ssid
   const password = data.password
-  const response = nodeChildProcess.execSync(`sudo nmcli device wifi connect "${ssid}"  password "${password}" | grep -q "activated"`);
 
-  console.log(response);
+  let command1 = quote(['nmcli', 'device', 'wifi', 'connect', ssid, 'password', password]);
+  let command2 = quote(['grep', '-q', 'activated']);
+
+  let fullCommand = command1 + ' | ' + command2;
+
+  console.log(fullCommand);
+  
+  nodeChildProcess.exec(fullCommand, (err, stdout, stderr) => {
+    if (err) {
+      console.error(`exec error: ${err}`);
+      mainWindow.webContents.send("network_status", false);
+      return;
+    }
+    console.log(`stdout ${stdout.toString()}`);
+    console.log(`stderr ${stderr.toString()}`);
+    
+    mainWindow.webContents.send("network_status", true);
+  });
 }
 
 /* 
 *   Simple function to rotate the screen using scripts we have added 
 */
 function searchNetwork() {
-  const script = nodeChildProcess.execSync("nmcli --fields SSID,SECURITY --terse --mode multiline dev wifi list");
-
-  mainWindow.webContents.send("list_of_networks", script.toString());
-
-/*   script.stdout.on('data', (data) => {
-    console.log("stdout" + data);
-  });
-
-  script.stderr.on('data', (err) => {
-      console.log('stderr: ' + err);
-  });
- */
-}
+  try {
+    const response = nodeChildProcess.execSync("nmcli --fields SSID,SECURITY --terse --mode multiline dev wifi list");
+    
+    mainWindow.webContents.send("list_of_networks", response.toString());
+  } catch (err) {
+    console.log("Something wrong happened..");
+    console.log(err);
+  }
 
 
 

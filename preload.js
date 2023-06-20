@@ -13,7 +13,7 @@ contextBridge.exposeInMainWorld(
             }
         },
         receive: (channel, func) => {
-            let validChannels = ["send_device_info", "list_of_networks"];
+            let validChannels = ["send_device_info", "list_of_networks", "network_status"];
             if (validChannels.includes(channel)) {
                 ipcRenderer.on(channel, (event, ...args) => func(...args));
             }

@@ -1,65 +1,90 @@
 window.ononline = (event) => {
-    console.log("You are now connected to the network.");
-    window.document.body.dataset.isOnline = window.navigator.onLine
     const spinner = document.querySelector(".spinner")
     spinner.classList.remove("spin")
+    updateShowNetworkSettings()
     setStatusMessage("Koblet til!")
-};
+  };
 window.onoffline = (event) => {
-    console.log("The network connection has been lost.");
-    window.document.body.dataset.isOnline = window.navigator.onLine
+    updateShowNetworkSettings()
+    setStatusMessage("Ikke tilkoblet..")
 };
 
 window.onload = function() {
     const isOnline = window.navigator.onLine
+    isOnline ? setStatusMessage("Tilkoblet!") : setStatusMessage("Ingen nettverk!")
+    
+    updateShowNetworkSettings()
 
+    const spinner = document.querySelector(".spinner")
     const refreshButton = document.getElementById("refresh-button");
-    refreshButton.addEventListener("click", () => window.api.send("search_after_networks"))
-
     const letsGoButton = document.getElementById("lets-go-button");
-    letsGoButton.addEventListener("click", () => window.api.send("go_to_app"))
-
     const connectButton = document.getElementById("connect-button");
+    const rotationButtons = document.getElementById("rotation-buttons").querySelectorAll("button");
+    const connectAnotherButton = document.getElementById("connect-another-button");
+
+    refreshButton.addEventListener("click", () => window.api.send("search_after_networks"))
+    letsGoButton.addEventListener("click", () => window.api.send("go_to_app"))
     connectButton.addEventListener("click", (e) => {
         const passwordstring = document.getElementById("password").value;
         const ssid = document.getElementById("network").value
-        const spinner = document.querySelector(".spinner")
+
         spinner.classList.add("spin")
         setStatusMessage("Kobler til nettverk")
         window.api.send("connect_to_network", {ssid: ssid, password: passwordstring})
-    })
+    });
 
-    const buttons = document.getElementById("rotation-buttons").querySelectorAll("button");
-
-    [...buttons].forEach(button => {
+    [...rotationButtons].forEach(button => {
         button.addEventListener(("click"), changeRotation)
     });
 
-    window.document.body.dataset.isOnline = isOnline
-    
+    connectAnotherButton.addEventListener("click", () =>{ 
+      window.document.body.dataset.showNetworkSettings = true
+      window.api.send("search_after_networks")
+    })
+
     window.api.receive("list_of_networks", (data) => {
         displayListOfNetworks(data)
     });
-
-    function changeRotation(e) {
-        const orientation = e.target.value
-        window.api.send("change_rotation", orientation)
-    }
     
-    function displayListOfNetworks(data) {
-        const select = document.getElementById("network")
-        select.innerHTML = ""
-        
-        const list = findUniqueSSIDs(data)
-        
-        list.forEach(network => {
-            const option = document.createElement('option');
-            option.textContent = `${network.ssid} - ${network.security}`;
-            option.value = network.ssid;
-            select.appendChild(option);
-        })
+    window.api.receive("network_status", (data) => {
+      if (data == true) {
+        setStatusMessage("Tilkoblet!")
+        spinner.classList.add("success")
+        window.document.body.dataset.isOnline = true
+      } else {
+        spinner.classList.add("error")
+        setStatusMessage("Kunne ikke koble til..")
+      }
+      spinner.classList.remove("spin")
+    });
+}
 
-    }
+function updateShowNetworkSettings() {
+  if (window.navigator.onLine) {
+    window.document.body.dataset.showNetworkSettings = false
+  } else {
+    window.document.body.dataset.showNetworkSettings = true
+    window.api.send("search_after_networks")
+  }
+}
+
+function changeRotation(e) {
+  const orientation = e.target.value
+  window.api.send("change_rotation", orientation)
+}
+
+function displayListOfNetworks(data) {
+  const select = document.getElementById("network")
+  select.innerHTML = ""
+  
+  const list = findUniqueSSIDs(data)
+  
+  list.forEach(network => {
+      const option = document.createElement('option');
+      option.textContent = `${network.ssid} - ${network.security}`;
+      option.value = network.ssid;
+      select.appendChild(option);
+  })
 }
 
 function setStatusMessage(message) {
