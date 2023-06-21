@@ -28,7 +28,7 @@ const createWindow = () => {
     width: 1920,
     height: 1080,
     kiosk: false,
-    webPreferences: {
+    webPreferences: { 
       nodeIntegration: false, 
       contextIsolation: true, 
       enableRemoteModule: false,
@@ -37,13 +37,15 @@ const createWindow = () => {
     frame: false,
     icon: path.join(__dirname, '../assets/icon/png/logo256.png')
   });
-
-  console.log(store.get("firstTime"));
   
   if (! store.has('firstTime')) {
     mainWindow.loadFile(path.join(__dirname, 'settings/settings.html'));
   } else {
     mainWindow.loadFile(path.join(__dirname, 'index/index.html'));
+  }
+
+  if (!store.has('host')) {
+    store.set("host", "app.pintomind.com")
   }
 
   mainWindow.once('ready-to-show', () => {
@@ -178,6 +180,14 @@ ipcMain.on("go_to_app", (event, arg) => {
   store.set('firstTime', 'false');
   mainWindow.loadFile(path.join(__dirname, 'index/index.html'));
 })
+ipcMain.on("set_host", (event, arg) => {
+  console.log("Settings host to:", arg);
+  store.set('host', arg);
+})
+ipcMain.on("request_host", (event, arg) => {
+  const host = store.get("host")
+  mainWindow.webContents.send("send_host", host);
+})
 
 /* 
 *   Simple function to rotate the screen using scripts we have added 
@@ -198,13 +208,17 @@ function setRotation(rotation) {
 }
 
 /* 
-*   Simple function to rotate the screen using scripts we have added 
+*   Function for connection to a network
 */
 function connectToNetwork(data) {
   const ssid = data.ssid
   const password = data.password
-
-  let command1 = quote(['nmcli', 'device', 'wifi', 'connect', ssid, 'password', password]);
+  let command1
+  if (password) {
+    command1 = quote(['nmcli', 'device', 'wifi', 'connect', ssid, 'password', password]);
+  } else {
+    command1 = quote(['nmcli', 'device', 'wifi', 'connect', ssid]);
+  }
   let command2 = quote(['grep', '-q', 'activated']);
 
   let fullCommand = command1 + ' | ' + command2;

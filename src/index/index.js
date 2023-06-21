@@ -1,4 +1,3 @@
-let host = "https://app.pintomind.com"
 let myStorage
 let webview
 let webviewReady = false;
@@ -7,10 +6,10 @@ let webviewReady = false;
 window.onload = function() {
     
     myStorage = window.localStorage;
-    storagehost = myStorage.getItem("host")
+    host = myStorage.getItem("host")
     webview = document.getElementById("iframe");
-    console.log(myStorage);
-    webview.src = host + "/live/"
+
+    requestHost()()
 
     /* 
     *   LOAD STOP - Called when page is finished loading
@@ -89,5 +88,14 @@ window.onload = function() {
         physicalID = myStorage.getItem("physicalID") 
         webview.contentWindow.postMessage({action: "player_physical_id", physicalID: physicalID}, "*");
     }
+
+    function requestHost() {
+        window.api.receive("send_host", (host) => {
+            webview.src = "https://" + host + "/live/"
+            myStorage.setItem("host", host)
+        });
+      
+        window.api.send("request_host")
+      }
 
 }

@@ -14,7 +14,7 @@
       <div id="bottom-right">
         <div class="center-flex">
             <div class="message">
-                <strong>infoskjermen.no</strong>
+                <strong id="host-name">infoskjermen.no</strong>
                 <div id="status-message">Tilkoblet</div>
             </div>
             <svg class="spinner" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -34,8 +34,8 @@
           
             <label>Velg språk</label>
             <div class="button-container branding">
-              <button>Infoskjermen 🇳🇴</button>
-              <button>PinToMind 🇬🇧</button>
+              <button id="infoskjermen" value="app.infoskjermen.no">Infoskjermen 🇳🇴</button>
+              <button id="pintomind" value="app.pintomind.com">PinToMind 🇬🇧</button>
             </div>
 
             <br><br>
@@ -70,10 +70,11 @@
                 <input id="password" type="text">
                 <button id="connect-button">Koble til</button>
               </div>
+
+              <p id="error-message"></p>
               
               <div class="hidden-network">
                 <label for="">Skriv inn nettverk</label>
-                
                 <div>
                   <div class="">
                     <label for="" style="display: inline-flex; min-width: 5em;">SSID</label>

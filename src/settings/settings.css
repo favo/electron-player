@@ -18,6 +18,7 @@ input, select { min-width: 15em; }
 body[data-show-network-settings="true"] .network-settings {display: block;}
 body[data-show-network-settings="true"] .connected-network {display: none; }
 body[data-show-lets-go="false"] #lets-go-button {display: none;}
+body[data-has-had-connection="false"] #lets-go-button {display: none;}
 
 #bottom-left {position: absolute;bottom: 0;left: 0;padding: 1vw;height: 50%;}
 #top-right {position: absolute;top: 0;right: 0;padding: 1vw;height: 16%;}

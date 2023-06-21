@@ -1,3 +1,5 @@
+let myStorage
+
 window.ononline = (event) => {
     const spinner = document.querySelector(".spinner")
     spinner.classList.remove("spin")
@@ -12,28 +14,64 @@ window.onoffline = (event) => {
 window.onload = function() {
     const isOnline = window.navigator.onLine
     isOnline ? setStatusMessage("Tilkoblet!") : setStatusMessage("Ingen nettverk!")
-    
-    updateShowNetworkSettings()
 
+    myStorage = window.localStorage;
+    const hasHadConnection =  myStorage.getItem("has-had-connection")
+    hasHadConnection || isOnline ? window.document.body.dataset.hasHadConnection = "true" : window.document.body.dataset.hasHadConnection = "false"
+
+    updateShowNetworkSettings()
+    
     const spinner = document.querySelector(".spinner")
     const refreshButton = document.getElementById("refresh-button");
     const letsGoButton = document.getElementById("lets-go-button");
     const connectButton = document.getElementById("connect-button");
     const rotationButtons = document.getElementById("rotation-buttons").querySelectorAll("button");
     const connectAnotherButton = document.getElementById("connect-another-button");
+    const errorMessage = document.getElementById("error-message");
+    const passwordField = document.getElementById("password")
+    const ssidField = document.getElementById("network")
+    const pinToMindButton = document.getElementById("pintomind")
+    const infoskjermenButton = document.getElementById("infoskjermen")
+    const hostName = document.getElementById("host-name")
 
+    infoskjermenButton.addEventListener("click", (e) => setHost(e))
+    pinToMindButton.addEventListener("click", (e) => setHost(e))
     refreshButton.addEventListener("click", () => window.api.send("search_after_networks"))
     letsGoButton.addEventListener("click", () => window.api.send("go_to_app"))
+    passwordField.addEventListener("input", () => errorMessage.innerHTML = null)
     connectButton.addEventListener("click", (e) => {
-        const passwordstring = document.getElementById("password").value;
-        const ssid = document.getElementById("network").value
+        errorMessage.innerHTML = null
 
-        spinner.classList.add("spin")
+        const passwordstring = passwordField.value;
+        const ssid = ssidField.value
+        const security = ssidField.options[ssidField.selectedIndex].dataset.security
+
         spinner.classList.remove("error")
         spinner.classList.remove("success")
-        setStatusMessage("Kobler til nettverk")
-        window.api.send("connect_to_network", {ssid: ssid, password: passwordstring})
+
+        if (security.includes("WPA") && passwordstring) {
+          /* Case 2: Password field is filled, network network requires it and we try to connect */
+          spinner.classList.add("spin")
+          setStatusMessage("Kobler til nettverk")
+          window.api.send("connect_to_network", {ssid: ssid, password: passwordstring})
+        } else if (security.includes("WPA") && !passwordstring) {
+          /* Case 1: Password field is empty and network requires it */
+          errorMessage.innerHTML = "*Nettverket krever et passord"
+        } else if (!security) {
+          /* Case 3: Network has no security */
+          window.api.send("connect_to_network", {ssid: ssid})
+        } else {
+          /* Case 4: Something wrong happened.. */
+          errorMessage.innerHTML = "*Noe feil skjedde.."
+        }
     });
+
+    const host = myStorage.getItem("host")
+    if (host) {
+      hostName.innerHTML = host
+    } else {
+      updateHost()
+    }
 
     [...rotationButtons].forEach(button => {
         button.addEventListener(("click"), changeRotation)
@@ -52,7 +90,8 @@ window.onload = function() {
       if (data == true) {
         setStatusMessage("Tilkoblet!")
         spinner.classList.add("success")
-        window.document.body.dataset.isOnline = true
+        window.document.body.dataset.hasHadConnection = "true"
+        myStorage.setItem("has-had-connection", "true")
       } else {
         spinner.classList.add("error")
         setStatusMessage("Kunne ikke koble til..")
@@ -70,6 +109,21 @@ function updateShowNetworkSettings() {
   }
 }
 
+function updateHost() {
+  window.api.receive("send_host", (data) => {
+    document.getElementById("host-name").innerHTML = data
+    myStorage.setItem("host", data)
+  });
+
+  window.api.send("request_host")
+}
+
+function setHost(e) {
+  const hostname = e.target.value
+  window.api.send("set_host", hostname)
+  document.getElementById("host-name").innerHTML = hostname
+}
+
 function changeRotation(e) {
   const orientation = e.target.value
   window.api.send("change_rotation", orientation)
@@ -85,6 +139,7 @@ function displayListOfNetworks(data) {
       const option = document.createElement('option');
       option.textContent = `${network.ssid} - ${network.security}`;
       option.value = network.ssid;
+      option.dataset.security = network.security;
       select.appendChild(option);
   })
 }
@@ -113,6 +168,7 @@ function findUniqueSSIDs(inputString) {
         // Extract the SSID value by removing "SSID:" and trimming any whitespace
         const ssid = line.replace('SSID:', '').trim();
   
+
         // Find the next line that contains "SECURITY:"
         let securityLine;
         for (let j = i + 1; j < lines.length; j++) {
@@ -125,8 +181,8 @@ function findUniqueSSIDs(inputString) {
         // Extract the security value by removing "SECURITY:" and trimming any whitespace
         const security = securityLine ? securityLine.replace('SECURITY:', '').trim() : '';
   
-        // Check if the SSID is unique
-        if (!uniqueSSIDNames.has(ssid)) {
+        // Check if the SSID is unique and ssid is not empty string
+        if (!uniqueSSIDNames.has(ssid) && ssid) {
           // Add the SSID name to the set of unique SSIDs
           uniqueSSIDNames.add(ssid);
   
