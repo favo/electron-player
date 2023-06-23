@@ -9,7 +9,7 @@ window.onload = function() {
     host = myStorage.getItem("host")
     webview = document.getElementById("iframe");
 
-    requestHost()()
+    requestHost()
 
     /* 
     *   LOAD STOP - Called when page is finished loading

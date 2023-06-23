@@ -24,23 +24,28 @@
               <g class="x">
                   <path d="M39.5086 60.7322L59.8101 40.5866" stroke="#CCC" stroke-width="12" stroke-linecap="round"></path>
                   <path d="M59.7322 60.8102L39.5865 40.5087" stroke="#CCC" stroke-width="12" stroke-linecap="round"></path>
-              </g>    
+              </g>      
             </svg>
         </div>
       </div>
+
+      <div class="ethernet-connected">
+        <h1>We see you are connected with ethernet!</h1>
+        <h1>Press any button or else you will be redirected to your screen in <span id="countdown">10</span></h1>
+      </div>
       
       <div class="settings">
-            <h1>Kom igang!</h1>
+            <h1>Let's go!</h1>
           
-            <label>Velg språk</label>
+            <label>Choose language</label>
             <div class="button-container branding">
-              <button id="infoskjermen" value="app.infoskjermen.no">Infoskjermen 🇳🇴</button>
               <button id="pintomind" value="app.pintomind.com">PinToMind 🇬🇧</button>
+              <button id="infoskjermen" value="app.infoskjermen.no">Infoskjermen 🇳🇴</button>
             </div>
 
             <br><br>
 
-            <label>Velg skjerm rotasjon</label>
+            <label>Choose screen rotation</label>
             <div id="rotation-buttons" class="button-container rotation">
                 <button value="normal"><img src="../../assets/monitor.svg" alt=""></button>
                 <button value="right"><img src="../../assets/monitor.svg" style="transform: rotate(90deg);" alt=""></button>
@@ -51,12 +56,12 @@
             <br><br>
 
             <div class="connected-network">
-              <p>Du er koblet til internet, heldig du!</p>
-              <button id="connect-another-button">Koble til et annet nettverk</button>
+              <p>You are connected to the internet!</p>
+              <button id="connect-another-button">Connect to another network</button>
             </div>
 
             <div class="network-settings">
-              <label for="">Velg nettverk</label>
+              <label for="">Chose a network</label>
               <div class="networks">
                 <label for="" style="display: inline-flex;">SSID</label>
                 <select name="" id="network"></select>
@@ -66,9 +71,9 @@
                 </button>
               </div>
               <div class="password-box">
-                <label for="" style="display: inline-flex;">Passord</label>
+                <label for="" style="display: inline-flex;">Password</label>
                 <input id="password" type="text">
-                <button id="connect-button">Koble til</button>
+                <button id="connect-button">Connect</button>
               </div>
 
               <p id="error-message"></p>
@@ -92,7 +97,7 @@
             <br><br>
 
             <div class="button-container branding">
-              <button id="lets-go-button">Gå til skjerm!</button>
+              <button id="lets-go-button">Go to screen!</button>
             </div>
         </div>
   </body>

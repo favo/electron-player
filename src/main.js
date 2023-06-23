@@ -42,6 +42,7 @@ const createWindow = () => {
     mainWindow.loadFile(path.join(__dirname, 'settings/settings.html'));
   } else {
     mainWindow.loadFile(path.join(__dirname, 'index/index.html'));
+    ethernetInterval = setInterval(() => checkForEthernetConnection(), 2000)
   }
 
   if (!store.has('host')) {
@@ -256,6 +257,36 @@ function searchNetwork() {
   });
 }
 
+function checkForEthernetConnection() {
+  const command = "nmcli device status | grep ethernet | grep -q connected && echo 1 || echo 0"
+
+  nodeChildProcess.exec(command, (err, stdout, stderr) => {
+    if (err) {
+      console.error(`exec error: ${err}`);
+      if (ethernetInterval) {
+        clearInterval(ethernetInterval)
+        ethernetInterval = null
+      }
+      return;
+    }
+    console.log(`stdout ${stdout.toString()}`);
+    console.log(`stderr ${stderr.toString()}`);
+    /* TODO REMOVE ELSE */
+    if (stdout == "1") {
+      if (ethernetInterval) {
+        clearInterval(ethernetInterval)
+        ethernetInterval = null
+      }
+      mainWindow.webContents.send("ethernet_status", stdout.toString());
+    } else {
+      if (ethernetInterval) {
+        clearInterval(ethernetInterval)
+        ethernetInterval = null
+      }
+      mainWindow.webContents.send("ethernet_status", '1');
+    }
+  });
+}
 
 /*
 *   Updates Firmware

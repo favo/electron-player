@@ -14,6 +14,7 @@ input, select { min-width: 15em; }
 .networks button, .password-box button { display: flex; align-items: center; }
 .network-settings {display: none;}
 .hidden-network {display: none;}
+.ethernet-connected {position: absolute; display: none; justify-content: center; align-items: center; height: 100%; width: 100%; flex-direction: column;}
 
 body[data-show-network-settings="true"] .network-settings {display: block;}
 body[data-show-network-settings="true"] .connected-network {display: none; }
