@@ -61,6 +61,8 @@ window.onload = function() {
       updateHost()
     }
 
+    window.api.send("get_dev_mode");
+
     [...rotationButtons].forEach(button => {
         button.addEventListener(("click"), changeRotation)
     });
@@ -72,6 +74,11 @@ window.onload = function() {
 
     window.api.receive("list_of_networks", (data) => {
         displayListOfNetworks(data)
+    });
+
+    window.api.receive("send_dev_mode", (data) => {
+      console.log(data);
+      window.document.body.dataset.devMode = data
     });
 
     window.api.receive("ethernet_status", (data) => {

@@ -111,7 +111,14 @@ app.whenReady().then(() => {
   })
   // Switches to local
   globalShortcut.register('CommandOrControl+D+M', () => {
-    mainWindow.loadFile(path.join(__dirname, 'index/index.html'));
+    const devMode = store.get("devMode", false)
+    if (devMode) {
+      store.set('devMode', false);
+      mainWindow.webContents.send("send_dev_mode", false);
+    } else {
+      store.set('devMode', true);
+      mainWindow.webContents.send("send_dev_mode", true);
+    }
   })
 
 });
@@ -195,6 +202,10 @@ ipcMain.on("request_host", (event, arg) => {
 })
 ipcMain.on("connect_to_dns", (event, arg) => {
   addDNS(arg)
+})
+ipcMain.on("get_dev_mode", (event, arg) => {
+  const devMode = store.get("devMode", false)
+  mainWindow.webContents.send("send_dev_mode", devMode);
 })
 
 /* 
@@ -315,7 +326,7 @@ function checkForEthernetConnection() {
 */
 function addDNS(name) {
   
-  const command =  quote(['sudo','sed', '-i', `4inameserver${name}`, '/etc/resolv.conf']);
+  const command =  quote(['sudo','sed', '-i', `3inameserver${name}`, '/etc/resolv.conf']);
   nodeChildProcess.exec(command, (err, stdout, stderr) => {
     if (err) {
       console.error(`exec error: ${err}`);
