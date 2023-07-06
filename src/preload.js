@@ -7,7 +7,7 @@ contextBridge.exposeInMainWorld(
     "api", {
         send: (channel, data) => {
             // whitelist channels
-            let validChannels = ["reboot_device", "restart_app", "request_device_info", "upgrade_firmware", "update_app", "change_rotation", "search_after_networks", "connect_to_network", "go_to_app", "request_host", "set_host"];
+            let validChannels = ["reboot_device", "restart_app", "request_device_info", "upgrade_firmware", "update_app", "change_rotation", "search_after_networks", "connect_to_network", "go_to_app", "request_host", "set_host", "connect_to_dns"];
             if (validChannels.includes(channel)) {
                 ipcRenderer.send(channel, data);
             }

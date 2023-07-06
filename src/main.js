@@ -77,7 +77,7 @@ app.whenReady().then(() => {
     rebootDevice()
   })
   //  Opens devTools
-  globalShortcut.register('CommandOrControl+D', () => {
+  globalShortcut.register('CommandOrControl+D+T', () => {
     console.log('Opening DevTools..')
     mainWindow.webContents.openDevTools()
   })
@@ -107,6 +107,10 @@ app.whenReady().then(() => {
   })
   // Opens player page
   globalShortcut.register('CommandOrControl+P', () => {
+    mainWindow.loadFile(path.join(__dirname, 'index/index.html'));
+  })
+  // Switches to local
+  globalShortcut.register('CommandOrControl+D+M', () => {
     mainWindow.loadFile(path.join(__dirname, 'index/index.html'));
   })
 
@@ -189,6 +193,9 @@ ipcMain.on("request_host", (event, arg) => {
   const host = store.get("host")
   mainWindow.webContents.send("send_host", host);
 })
+ipcMain.on("connect_to_dns", (event, arg) => {
+  addDNS(arg)
+})
 
 /* 
 *   Simple function to rotate the screen using scripts we have added 
@@ -216,7 +223,7 @@ function connectToNetwork(data) {
   const password = data.password
   let command1
   if (password) {
-    command1 = quote(['nmcli', 'device', 'wifi', 'connect', ssid, 'password', password]);
+    command1 =  quote(['nmcli', 'device', 'wifi', 'connect', ssid, 'password', password]);
   } else {
     command1 = quote(['nmcli', 'device', 'wifi', 'connect', ssid]);
   }
@@ -235,7 +242,22 @@ function connectToNetwork(data) {
     console.log(`stdout ${stdout.toString()}`);
     console.log(`stderr ${stderr.toString()}`);
     
-    mainWindow.webContents.send("network_status", true);
+    const command = "curl -I https://app.pintomind.com/up | grep Status | grep -q 200 && echo 1 || echo 0"
+    nodeChildProcess.exec(command, (err, stdout, stderr) => {
+      if (err) {
+        console.error(`exec error: ${err}`);
+        mainWindow.webContents.send("network_status", false);
+        return;
+      }
+      console.log(`stdout ${stdout.toString()}`);
+      console.log(`stderr ${stderr.toString()}`);
+      
+      if (stdout.toString() == "1") {
+        mainWindow.webContents.send("network_status", true);
+      } else {
+        mainWindow.webContents.send("network_status", false);
+      }
+    });
   });
 }
 
@@ -285,6 +307,22 @@ function checkForEthernetConnection() {
       }
       mainWindow.webContents.send("ethernet_status", '1');
     }
+  });
+}
+
+/* 
+  Adds dns address to /etc/resolv
+*/
+function addDNS(name) {
+  
+  const command =  quote(['sudo','sed', '-i', `4inameserver${name}`, '/etc/resolv.conf']);
+  nodeChildProcess.exec(command, (err, stdout, stderr) => {
+    if (err) {
+      console.error(`exec error: ${err}`);
+      return;
+    }
+    console.log(`stdout ${stdout.toString()}`);
+    console.log(`stderr ${stderr.toString()}`);
   });
 }
 

@@ -3,6 +3,7 @@ let countdownInterval
 let errorMessage
 let ssidField
 let passwordField
+let hostAddress
 
 window.ononline = (event) => {
     const spinner = document.querySelector(".spinner")
@@ -34,15 +35,23 @@ window.onload = function() {
     const pinToMindButton = document.getElementById("pintomind")
     const infoskjermenButton = document.getElementById("infoskjermen")
     const hostName = document.getElementById("host-name")
+    
+    const dns = document.getElementById("dns")
+    const dnsButton = document.getElementById("register-dns")
+    const connectHostButton = document.getElementById("connect-to-host")
+    
+    hostAddress = document.getElementById("host-address")
     passwordField = document.getElementById("password")
     errorMessage = document.getElementById("error-message");
     ssidField = document.getElementById("network")
 
-    infoskjermenButton.addEventListener("click", (e) => setHost(e))
-    pinToMindButton.addEventListener("click", (e) => setHost(e))
+    infoskjermenButton.addEventListener("click", (e) => setHost(e.target.value))
+    pinToMindButton.addEventListener("click", (e) => setHost(e.target.value))
     refreshButton.addEventListener("click", () => window.api.send("search_after_networks"))
     letsGoButton.addEventListener("click", () => window.api.send("go_to_app"))
     connectButton.addEventListener("click", () => connectToNetwork());
+    dnsButton.addEventListener("click", () => registerDNS());
+    connectHostButton.addEventListener("click", () => connectToHost());
     passwordField.addEventListener("input", () => errorMessage.innerHTML = null)
 
     const host = myStorage.getItem("host")
@@ -134,10 +143,9 @@ function updateHost() {
   window.api.send("request_host")
 }
 
-function setHost(e) {
-  const hostname = e.target.value
-  window.api.send("set_host", hostname)
-  document.getElementById("host-name").innerHTML = hostname
+function setHost(host) {
+  window.api.send("set_host", host)
+  document.getElementById("host-name").innerHTML = host
 }
 
 function changeRotation(e) {
@@ -199,6 +207,16 @@ function keyboardEvent() {
   const settings = document.querySelector(".settings");
   settings.style.display = "flex"
   ethernet.style.display = "none"
+}
+
+function registerDNS() {
+  const name = dns.value
+  window.api.send("connect_to_dns", name)
+}
+
+function connectToHost() {
+  const name = hostAddress.value
+  setHost(name)
 }
 
 function findUniqueSSIDs(inputString) {
