@@ -6,6 +6,8 @@ const io = require("socket.io-client");
 let pjson = require('../package.json');
 let fs = require('fs');
 const quote = require('shell-quote/quote');
+const si = require('systeminformation');
+const QRCode = require('qrcode')
 
 const Store = require('electron-store');
 const store = new Store();
@@ -13,6 +15,7 @@ const store = new Store();
 let bleSocket = io("ws://127.0.0.1:3333");
 
 let mainWindow 
+let systemStatsStream
 
 let host = "http://app.pintomind.com"
 
@@ -37,7 +40,7 @@ const createWindow = () => {
       enableRemoteModule: false,
       preload: path.join(__dirname, "preload.js")
     },
-    frame: false,
+    frame: true,
     icon: path.join(__dirname, '../assets/icon/png/logo256.png')
   });
   
@@ -80,7 +83,7 @@ app.whenReady().then(() => {
     rebootDevice()
   })
   //  Opens devTools
-  globalShortcut.register('CommandOrControl+D', () => {
+  globalShortcut.register('CommandOrControl+D+T', () => {
     console.log('Opening DevTools..')
     mainWindow.webContents.openDevTools()
   })
@@ -117,6 +120,18 @@ app.whenReady().then(() => {
     console.log('Enabling BLE support..')
     enableBLE()
   })
+  // Switches to local
+  globalShortcut.register('CommandOrControl+D+M', () => {
+    const devMode = store.get("devMode", false)
+    if (devMode) {
+      store.set('devMode', false);
+      mainWindow.webContents.send("send_dev_mode", false);
+    } else {
+      store.set('devMode', true);
+      mainWindow.webContents.send("send_dev_mode", true);
+    }
+  })
+
 });
 
 app.on('ready', () => {
@@ -171,6 +186,19 @@ ipcMain.on("upgrade_firmware", (event, arg) => {
 ipcMain.on("update_app", (event, arg) => {
   updateApp()
 })
+ipcMain.on("request_system_stats", (event, arg) => {
+  if (arg.interval) {
+    if (systemStatsStream) {
+      clearInterval(systemStatsStream)
+    } 
+
+    systemStatsStream = setInterval(() => {
+      getSystemStats()
+    }, arg.interval)
+  }
+
+  getSystemStats()
+})
 
 /* 
   Listeners from settings page.
@@ -195,6 +223,30 @@ ipcMain.on("set_host", (event, arg) => {
 ipcMain.on("request_host", (event, arg) => {
   const host = store.get("host")
   mainWindow.webContents.send("send_host", host);
+})
+ipcMain.on("connect_to_dns", (event, arg) => {
+  addDNS(arg)
+})
+ipcMain.on("get_dev_mode", (event, arg) => {
+  const devMode = store.get("devMode", false)
+  mainWindow.webContents.send("send_dev_mode", devMode);
+})
+ipcMain.on("get_qr_code", (event, arg) => {
+  const host = store.get("host")
+  const qrcodeURI = host + "/connect"
+  var opts = {
+    errorCorrectionLevel: 'H',
+    type: 'image/jpeg',
+    quality: 0.8,
+    margin: 1,
+    color: {
+      light:"#000000",
+      dark:"#828282"
+    }
+  }
+  QRCode.toDataURL(qrcodeURI, opts, function (err, url) {
+    mainWindow.webContents.send("send_qr_code", url);
+  })
 })
 
 /* 
@@ -223,7 +275,7 @@ function connectToNetwork(data) {
   const password = data.password
   let command1
   if (password) {
-    command1 = quote(['nmcli', 'device', 'wifi', 'connect', ssid, 'password', password]);
+    command1 =  quote(['nmcli', 'device', 'wifi', 'connect', ssid, 'password', password]);
   } else {
     command1 = quote(['nmcli', 'device', 'wifi', 'connect', ssid]);
   }
@@ -242,8 +294,48 @@ function connectToNetwork(data) {
     console.log(`stdout ${stdout.toString()}`);
     console.log(`stderr ${stderr.toString()}`);
     
-    mainWindow.webContents.send("network_status", true);
+    const command = "curl -I https://app.pintomind.com/up | grep Status | grep -q 200 && echo 1 || echo 0"
+    nodeChildProcess.exec(command, (err, stdout, stderr) => {
+      if (err) {
+        console.error(`exec error: ${err}`);
+        mainWindow.webContents.send("network_status", false);
+        return;
+      }
+      console.log(`stdout ${stdout.toString()}`);
+      console.log(`stderr ${stderr.toString()}`);
+      
+      if (stdout.toString() == "1") {
+        mainWindow.webContents.send("network_status", true);
+      } else {
+        mainWindow.webContents.send("network_status", false);
+      }
+    });
   });
+}
+
+/* 
+* get system stats
+*/
+async function getSystemStats() {
+    var stats = {}
+
+    const cpuLoad = await si.currentLoad()
+    stats["cpu_load"] = cpuLoad.currentLoad
+
+    const memory = await si.mem()
+    stats["total_memory"] = memory.total
+    stats["active_memory"] = memory.active
+
+    const cpuTemp = await si.cpuTemperature()
+    stats["cpu_temp"] = cpuTemp.main
+
+    const cpuSpeed = await si.cpuCurrentSpeed()
+    stats["cpu_speed"] = cpuSpeed.avg
+
+    const time = await si.time()
+    stats["uptime"] = time.uptime
+
+    mainWindow.webContents.send("recieve_system_stats", stats);
 }
 
 /* 
@@ -292,6 +384,22 @@ function checkForEthernetConnection() {
       }
       mainWindow.webContents.send("ethernet_status", '1');
     }
+  });
+}
+
+/* 
+  Adds dns address to /etc/resolv
+*/
+function addDNS(name) {
+  
+  const command =  quote(['sudo','sed', '-i', `3inameserver${name}`, '/etc/resolv.conf']);
+  nodeChildProcess.exec(command, (err, stdout, stderr) => {
+    if (err) {
+      console.error(`exec error: ${err}`);
+      return;
+    }
+    console.log(`stdout ${stdout.toString()}`);
+    console.log(`stderr ${stderr.toString()}`);
   });
 }
 
