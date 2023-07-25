@@ -25,6 +25,7 @@ body[data-dev-mode="true"] #dev-mode {display: block;}
 #bottom-left {position: absolute;bottom: 0;left: 0;padding: 1vw;height: 50%;}
 #top-right {position: absolute;top: 0;right: 0;padding: 1vw;height: 16%;}
 #bottom-right {position: absolute;bottom: 0;right: 0;padding: 1vw; font-size: 2vw;}
+#canvas {position: absolute; bottom: 10vh; right: 1em;}
 
 .center-flex {  display: -webkit-flex;  display: flex;  justify-content: center;  align-items: center;}
 .message {  font-size: 0.7em;  margin-right: 0.7em;}

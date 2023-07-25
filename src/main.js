@@ -6,6 +6,7 @@ let pjson = require('../package.json');
 let fs = require('fs');
 const quote = require('shell-quote/quote');
 const si = require('systeminformation');
+const QRCode = require('qrcode')
 
 const Store = require('electron-store');
 const store = new Store();
@@ -60,7 +61,6 @@ const createWindow = () => {
   })
 
   autoUpdater.checkForUpdates()
-
 };
 
 /*
@@ -222,6 +222,23 @@ ipcMain.on("connect_to_dns", (event, arg) => {
 ipcMain.on("get_dev_mode", (event, arg) => {
   const devMode = store.get("devMode", false)
   mainWindow.webContents.send("send_dev_mode", devMode);
+})
+ipcMain.on("get_qr_code", (event, arg) => {
+  const host = store.get("host")
+  const qrcodeURI = host + "/connect"
+  var opts = {
+    errorCorrectionLevel: 'H',
+    type: 'image/jpeg',
+    quality: 0.8,
+    margin: 1,
+    color: {
+      light:"#000000",
+      dark:"#828282"
+    }
+  }
+  QRCode.toDataURL(qrcodeURI, opts, function (err, url) {
+    mainWindow.webContents.send("send_qr_code", url);
+  })
 })
 
 /* 

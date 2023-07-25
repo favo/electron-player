@@ -1,9 +1,11 @@
-let myStorage
-let countdownInterval
-let errorMessage
-let ssidField
-let passwordField
-let hostAddress
+var myStorage
+var countdownInterval
+var errorMessage
+var ssidField
+var passwordField
+var hostAddress
+var spinner
+var canvas
 
 window.ononline = (event) => {
     const spinner = document.querySelector(".spinner")
@@ -26,7 +28,6 @@ window.onload = function() {
 
     updateShowNetworkSettings()
     
-    const spinner = document.querySelector(".spinner")
     const refreshButton = document.getElementById("refresh-button");
     const letsGoButton = document.getElementById("lets-go-button");
     const connectButton = document.getElementById("connect-button");
@@ -39,11 +40,13 @@ window.onload = function() {
     const dns = document.getElementById("dns")
     const dnsButton = document.getElementById("register-dns")
     const connectHostButton = document.getElementById("connect-to-host")
-    
+
+    spinner = document.querySelector(".spinner")
     hostAddress = document.getElementById("host-address")
     passwordField = document.getElementById("password")
     errorMessage = document.getElementById("error-message");
     ssidField = document.getElementById("network")
+    canvas = document.getElementById('canvas')
 
     infoskjermenButton.addEventListener("click", (e) => setHost(e.target.value))
     pinToMindButton.addEventListener("click", (e) => setHost(e.target.value))
@@ -62,6 +65,7 @@ window.onload = function() {
     }
 
     window.api.send("get_dev_mode");
+    window.api.send("get_qr_code");
 
     [...rotationButtons].forEach(button => {
         button.addEventListener(("click"), changeRotation)
@@ -77,7 +81,6 @@ window.onload = function() {
     });
 
     window.api.receive("send_dev_mode", (data) => {
-      console.log(data);
       window.document.body.dataset.devMode = data
     });
 
@@ -89,6 +92,11 @@ window.onload = function() {
           ethernet.style.display = "flex"
           startCountdown()
         }
+    });
+
+    window.api.receive("send_qr_code", (data) => {
+      console.log(data);
+       canvas.src = data
     });
     
     window.api.receive("network_status", (data) => {
@@ -103,6 +111,8 @@ window.onload = function() {
       }
       spinner.classList.remove("spin")
     });
+
+
 }
 
 function connectToNetwork() {
