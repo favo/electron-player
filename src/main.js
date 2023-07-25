@@ -5,11 +5,13 @@ const path = require('path');
 let pjson = require('../package.json');
 let fs = require('fs');
 const quote = require('shell-quote/quote');
+const si = require('systeminformation');
 
 const Store = require('electron-store');
 const store = new Store();
 
 let mainWindow 
+let systemStatsStream
 
 let host = "http://app.pintomind.com"
 
@@ -34,7 +36,7 @@ const createWindow = () => {
       enableRemoteModule: false,
       preload: path.join(__dirname, "preload.js")
     },
-    frame: false,
+    frame: true,
     icon: path.join(__dirname, '../assets/icon/png/logo256.png')
   });
   
@@ -58,6 +60,7 @@ const createWindow = () => {
   })
 
   autoUpdater.checkForUpdates()
+
 };
 
 /*
@@ -175,6 +178,19 @@ ipcMain.on("upgrade_firmware", (event, arg) => {
 ipcMain.on("update_app", (event, arg) => {
   updateApp()
 })
+ipcMain.on("request_system_stats", (event, arg) => {
+  if (arg.interval) {
+    if (systemStatsStream) {
+      clearInterval(systemStatsStream)
+    } 
+
+    systemStatsStream = setInterval(() => {
+      getSystemStats()
+    }, arg.interval)
+  }
+
+  getSystemStats()
+})
 
 /* 
   Listeners from settings page.
@@ -270,6 +286,31 @@ function connectToNetwork(data) {
       }
     });
   });
+}
+
+/* 
+* get system stats
+*/
+async function getSystemStats() {
+    var stats = {}
+
+    const cpuLoad = await si.currentLoad()
+    stats["cpu_load"] = cpuLoad.currentLoad
+
+    const memory = await si.mem()
+    stats["total_memory"] = memory.total
+    stats["active_memory"] = memory.active
+
+    const cpuTemp = await si.cpuTemperature()
+    stats["cpu_temp"] = cpuTemp.main
+
+    const cpuSpeed = await si.cpuCurrentSpeed()
+    stats["cpu_speed"] = cpuSpeed.avg
+
+    const time = await si.time()
+    stats["uptime"] = time.uptime
+
+    mainWindow.webContents.send("recieve_system_stats", stats);
 }
 
 /* 

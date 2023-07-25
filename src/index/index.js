@@ -26,13 +26,19 @@ window.onload = function() {
             webviewReady = true
         }
 
+        window.api.receive("recieve_system_stats", (data) => {
+            webview.contentWindow.postMessage({action: "system_stats", stats: data}, "*");
+        });
+
     });
 
     /*
     *   Listener from server
     */
-    window.addEventListener("message", function(e) {
-        var request = JSON.parse(e.data);
+    window.addEventListener("message", (e) => {
+
+        var request = e.data
+        
         switch (request.action) {
             case "request_device_info": 
                 requestDeviceInfo()
@@ -43,20 +49,19 @@ window.onload = function() {
                     playerReadyInterval = null
                 }
                 break;
-            case "reboot": 
-                window.api.send("reboot_device")
+            case "reboot":
+                sendMessageToMain("reboot_device")
                 break;
             case "restart":
-                window.api.send("restart_app")
+                sendMessageToMain("restart_app")
                 break;
             case "update_app":
-                window.api.send("update_app")
+                sendMessageToMain("update_app")
                 break;
             case "upgrade_firmware":
-                window.api.send("upgrade_firmware")
+                sendMessageToMain("upgrade_firmware")
                 break;
             case "current_physical_id":
-                console.log("current_physical_id");
                 myStorage = window.localStorage;
                 physicalID = myStorage.getItem("physicalID") 
                 if (physicalID == null) {
@@ -72,16 +77,23 @@ window.onload = function() {
                     myStorage.setItem("physicalID", request.physicalID)
                 }
                 break;
+            case "request_system_stats":
+                sendMessageToMain("request_system_stats", request.options)
+                break;
         }
 
     })
+
+    function sendMessageToMain(action, data = {}) {
+        window.api.send(action, data)
+    }
 
     function requestDeviceInfo() {
         window.api.receive("send_device_info", (data) => {
             webview.contentWindow.postMessage({action: "device_info", info: data}, "*");
         });
 
-        window.api.send("request_device_info")
+        sendMessageToMain("request_device_info")
     }
 
     function sendPhysicalID() {
@@ -95,7 +107,7 @@ window.onload = function() {
             myStorage.setItem("host", host)
         });
       
-        window.api.send("request_host")
+        sendMessageToMain("request_host")
       }
 
 }
