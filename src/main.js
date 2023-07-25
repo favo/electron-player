@@ -2,12 +2,15 @@ const { app, BrowserWindow, ipcMain, globalShortcut } = require('electron');
 const nodeChildProcess = require('child_process');
 const { autoUpdater } = require("electron-updater")
 const path = require('path');
+const io = require("socket.io-client");
 let pjson = require('../package.json');
 let fs = require('fs');
 const quote = require('shell-quote/quote');
 
 const Store = require('electron-store');
 const store = new Store();
+
+let bleSocket = io("ws://127.0.0.1:3333");
 
 let mainWindow 
 
@@ -109,7 +112,11 @@ app.whenReady().then(() => {
   globalShortcut.register('CommandOrControl+P', () => {
     mainWindow.loadFile(path.join(__dirname, 'index/index.html'));
   })
-
+  // Enables experimental BLE support
+  globalShortcut.register('CommandOrControl+L', () => {
+    console.log('Enabling BLE support..')
+    enableBLE()
+  })
 });
 
 app.on('ready', () => {
@@ -300,6 +307,26 @@ function updateFirmware() {
 */
 function updateApp() {
   autoUpdater.checkForUpdates()
+}
+
+/*
+*  Enables BLE by connecting to the local BLE bridge, and registers listeners for BLE events
+*/
+function enableBLE() {
+  bleSocket.on("ble-enabled", () => {
+    console.log("BLE enabled");
+  });
+  bleSocket.on("rotation", (rotation) => {
+    setRotation(rotation);
+  });
+  bleSocket.on("wifi", (data) => {
+    connectToNetwork(JSON.parse(data));
+  });
+  setTimeout(() => {
+    // Disable BLE after 10 minutes to prevent someone from changing the Wi-Fi
+    bleSocket.emit("ble-disable");
+  }, 60*1000*10);
+  bleSocket.emit("ble-enable");
 }
 
 /*
