@@ -9,6 +9,8 @@ var canvas
 
 window.ononline = (event) => {
     const spinner = document.querySelector(".spinner")
+    spinner.classList.remove("error")
+    spinner.classList.remove("success")
     spinner.classList.remove("spin")
     updateShowNetworkSettings()
     setStatusMessage("Connected!")
@@ -95,11 +97,14 @@ window.onload = function() {
     });
 
     window.api.receive("send_qr_code", (data) => {
-      console.log(data);
-       canvas.src = data
+      canvas.src = data
     });
     
     window.api.receive("network_status", (data) => {
+      spinner.classList.remove("error")
+      spinner.classList.remove("success")
+      spinner.classList.remove("spin")
+      console.log("network_status: data: ", data);
       if (data == true) {
         setStatusMessage("Connected!")
         spinner.classList.add("success")
@@ -109,7 +114,6 @@ window.onload = function() {
         spinner.classList.add("error")
         setStatusMessage("Could not connect.")
       }
-      spinner.classList.remove("spin")
     });
 
 
@@ -126,12 +130,12 @@ function connectToNetwork() {
   spinner.classList.remove("success")
 
   if (security.includes("WPA") && passwordstring) {
-    /* Case 2: Password field is filled, network network requires it and we try to connect */
+    /* Case 1: Password field is filled, network network requires it and we try to connect */
     spinner.classList.add("spin")
     setStatusMessage("Connecting...")
     window.api.send("connect_to_network", {ssid: ssid, password: passwordstring})
   } else if (security.includes("WPA") && !passwordstring) {
-    /* Case 1: Password field is empty and network requires it */
+    /* Case 2: Password field is empty and network requires it */
     errorMessage.innerHTML = "* This network requires a password"
   } else if (!security) {
     /* Case 3: Network has no security */

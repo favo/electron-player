@@ -1,5 +1,28 @@
 const { app, BrowserWindow, ipcMain, globalShortcut } = require('electron');
+
 const nodeChildProcess = require('child_process');
+const { promisify } = require('util');
+const execAsync = promisify(nodeChildProcess.exec);
+async function executeCommand(command) {
+  try {
+    const { stdout, stderr } = await execAsync(command); 
+    const result = {
+      success: true,
+      stdout: stdout.trim(),
+      stderr: stderr.trim()
+    }
+    return result;
+  } catch (error) {
+    const result = {
+      success: false,
+      stdout: stdout.trim(),
+      stderr: stderr.trim(),
+      error: error
+    }
+    return result
+  }
+}
+
 const { autoUpdater } = require("electron-updater")
 const path = require('path');
 const io = require("socket.io-client");
@@ -33,22 +56,23 @@ const createWindow = () => {
     alwaysOnTop: false,
     width: 1920,
     height: 1080,
-    kiosk: false,
+    kiosk: true,
     webPreferences: { 
       nodeIntegration: false, 
       contextIsolation: true, 
       enableRemoteModule: false,
       preload: path.join(__dirname, "preload.js")
     },
-    frame: true,
+    frame: false,
     icon: path.join(__dirname, '../assets/icon/png/logo256.png')
   });
   
   if (! store.has('firstTime')) {
     mainWindow.loadFile(path.join(__dirname, 'settings/settings.html'));
+    ethernetInterval = setInterval(() => checkForEthernetConnection(), 2000)
+    enableBLE()
   } else {
     mainWindow.loadFile(path.join(__dirname, 'index/index.html'));
-    ethernetInterval = setInterval(() => checkForEthernetConnection(), 2000)
   }
 
   if (!store.has('host')) {
@@ -64,6 +88,7 @@ const createWindow = () => {
   })
 
   autoUpdater.checkForUpdates()
+ 
 };
 
 /*
@@ -114,11 +139,6 @@ app.whenReady().then(() => {
   // Opens player page
   globalShortcut.register('CommandOrControl+P', () => {
     mainWindow.loadFile(path.join(__dirname, 'index/index.html'));
-  })
-  // Enables experimental BLE support
-  globalShortcut.register('CommandOrControl+L', () => {
-    console.log('Enabling BLE support..')
-    enableBLE()
   })
   // Switches to local
   globalShortcut.register('CommandOrControl+D+M', () => {
@@ -252,25 +272,18 @@ ipcMain.on("get_qr_code", (event, arg) => {
 /* 
 *   Simple function to rotate the screen using scripts we have added 
 */
-function setRotation(rotation) {
+async function setRotation(rotation) {
   fs.writeFileSync("./rotation", rotation);
 
   const command = "/home/pi/.adjust_video.sh"
 
-  nodeChildProcess.exec(command, (err, stdout, stderr) => {
-    if (err) {
-      console.error(`exec error: ${err}`);
-      return;
-    }
-    console.log(`stdout ${stdout.toString()}`);
-    console.log(`stderr ${stderr.toString()}`);
-  });
+  const result = await executeCommand(command);
 }
 
 /* 
 *   Function for connection to a network
 */
-function connectToNetwork(data) {
+async function connectToNetwork(data) {
   const ssid = data.ssid
   const password = data.password
   let command1
@@ -282,35 +295,35 @@ function connectToNetwork(data) {
   let command2 = quote(['grep', '-q', 'activated']);
 
   let fullCommand = command1 + ' | ' + command2;
-
-  console.log(fullCommand);
   
-  nodeChildProcess.exec(fullCommand, (err, stdout, stderr) => {
-    if (err) {
-      console.error(`exec error: ${err}`);
-      mainWindow.webContents.send("network_status", false);
-      return;
+  const result = await executeCommand(fullCommand);
+  if (result.success) {
+    const connection = await checkConnectionToServer()
+    mainWindow.webContents.send("network_status", connection);
+  } else {
+    mainWindow.webContents.send("network_status", false);
+  }
+}
+
+async function checkConnectionToServer() {
+  const host = store.get("host")
+
+  const command = `curl -I https://${host}/up | grep Status | grep -q 200 && echo 1 || echo 0`
+  
+  const result = await executeCommand(command);
+
+  if (result.success && result.stdout.toString() == "1") {
+    bleSocket.emit("ble-disable");
+    /* TODO: turn off io socket */
+    if (ethernetInterval) {
+      clearInterval(ethernetInterval)
+      ethernetInterval = null
     }
-    console.log(`stdout ${stdout.toString()}`);
-    console.log(`stderr ${stderr.toString()}`);
-    
-    const command = "curl -I https://app.pintomind.com/up | grep Status | grep -q 200 && echo 1 || echo 0"
-    nodeChildProcess.exec(command, (err, stdout, stderr) => {
-      if (err) {
-        console.error(`exec error: ${err}`);
-        mainWindow.webContents.send("network_status", false);
-        return;
-      }
-      console.log(`stdout ${stdout.toString()}`);
-      console.log(`stderr ${stderr.toString()}`);
-      
-      if (stdout.toString() == "1") {
-        mainWindow.webContents.send("network_status", true);
-      } else {
-        mainWindow.webContents.send("network_status", false);
-      }
-    });
-  });
+    return true
+  } else {
+    return false
+  }
+
 }
 
 /* 
@@ -341,73 +354,50 @@ async function getSystemStats() {
 /* 
 *   Function for searching after local networks
 */
-function searchNetwork() {
+async function searchNetwork() {
   const command = "nmcli --fields SSID,SECURITY --terse --mode multiline dev wifi list"
+  
+  const result = await executeCommand(command);
 
-  nodeChildProcess.exec(command, (err, stdout, stderr) => {
-    if (err) {
-      console.error(`exec error: ${err}`);
-      return;
-    }
-    console.log(`stdout ${stdout.toString()}`);
-    console.log(`stderr ${stderr.toString()}`);
-    
-    mainWindow.webContents.send("list_of_networks", stdout.toString());
-  });
+  mainWindow.webContents.send("list_of_networks", result.stdout.toString());
 }
 
-function checkForEthernetConnection() {
+async function checkForEthernetConnection() {
   const command = "nmcli device status | grep ethernet | grep -q connected && echo 1 || echo 0"
 
-  nodeChildProcess.exec(command, (err, stdout, stderr) => {
-    if (err) {
-      console.error(`exec error: ${err}`);
-      if (ethernetInterval) {
-        clearInterval(ethernetInterval)
-        ethernetInterval = null
-      }
-      return;
+  const result = await executeCommand(command);
+
+  if (result.success && result.stdout == "1") {
+    if (ethernetInterval) {
+      clearInterval(ethernetInterval)
+      ethernetInterval = null
     }
-    console.log(`stdout ${stdout.toString()}`);
-    console.log(`stderr ${stderr.toString()}`);
-    /* TODO REMOVE ELSE */
-    if (stdout == "1") {
-      if (ethernetInterval) {
-        clearInterval(ethernetInterval)
-        ethernetInterval = null
-      }
-      mainWindow.webContents.send("ethernet_status", stdout.toString());
-    } else {
-      if (ethernetInterval) {
-        clearInterval(ethernetInterval)
-        ethernetInterval = null
-      }
-      mainWindow.webContents.send("ethernet_status", '1');
-    }
-  });
+    mainWindow.webContents.send("ethernet_status", stdout.toString());
+  }
 }
 
 /* 
   Adds dns address to /etc/resolv
 */
-function addDNS(name) {
-  
+async function addDNS(name) {
   const command =  quote(['sudo','sed', '-i', `3inameserver${name}`, '/etc/resolv.conf']);
-  nodeChildProcess.exec(command, (err, stdout, stderr) => {
-    if (err) {
-      console.error(`exec error: ${err}`);
-      return;
-    }
-    console.log(`stdout ${stdout.toString()}`);
-    console.log(`stderr ${stderr.toString()}`);
-  });
+
+  const result = await executeCommand(command);
+
+  console.log("adding dns", result);
 }
 
 /*
 *   Updates Firmware
 */
-function updateFirmware() {
-  console.log("NOT IMPLEMENTED");
+async function updateFirmware() {
+  const command = "/home/pi/.system-upgrade.sh"
+
+  const result = await executeCommand(command);
+
+  if (result.success) {
+    rebootDevice()
+  }
 }
 
 /*
@@ -421,6 +411,8 @@ function updateApp() {
 *  Enables BLE by connecting to the local BLE bridge, and registers listeners for BLE events
 */
 function enableBLE() {
+  console.log('Enabling BLE support..')
+
   bleSocket.on("ble-enabled", () => {
     console.log("BLE enabled");
   });
