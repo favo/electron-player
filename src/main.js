@@ -441,13 +441,20 @@ function rebootDevice() {
 /*
 *   Sends device info
 */
-function sendDeviceInfo() {
+async function sendDeviceInfo() {
+
+  const system = await si.system()
+  const osInfo = await si.osInfo()
 
   var options = {}
   options["Host"] = host
   options["App-version"] = pjson.version
   options["Platform"] = "Electron"
-  
+  options["Manufacturer"] = system.manufacturer
+  options["Model"] = system.model
+  options["Firmware"] = osInfo.release
+  options["Codename"] = osInfo.codename
+    
   mainWindow.webContents.send("send_device_info", options);
 }
 

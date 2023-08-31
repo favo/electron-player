@@ -70,16 +70,16 @@ window.onload = function() {
     const host = myStorage.getItem("host")
     if (host) {
       hostName.innerHTML = host
-      hostAddress.placeholder = host
+      hostAddress.value = host
     } else {
       updateHost()
     }
 
     const dnsAddress = myStorage.getItem("dns")
     if (dnsAddress) {
-      dns.placeholder = dnsAddress
+      dns.value = dnsAddress
     } else {
-      dns.placeholder = "Your IP Address"
+      dns.value = "Your IP Address"
     }
 
     window.api.send("get_dev_mode");
@@ -124,10 +124,11 @@ window.onload = function() {
         setStatusMessage("Connected!")
         spinner.classList.add("success")
         window.document.body.dataset.hasHadConnection = "true"
+        updateShowNetworkSettings()
         myStorage.setItem("has-had-connection", "true")
       } else {
         spinner.classList.add("error")
-        errorMessage.innerHTML = "Could not connect to the network"
+        errorMessage.innerHTML = "Could not connect to the network. Are you sure that you've entered your password correctly"
         setStatusMessage("Not connected..")
       }
     });
@@ -177,7 +178,7 @@ function updateShowNetworkSettings() {
 function updateHost() {
   window.api.receive("send_host", (data) => {
     document.getElementById("host-name").innerHTML = data
-    hostAddress.placeholder = data
+    hostAddress.value = data
     myStorage.setItem("host", data)
   });
 
@@ -187,7 +188,7 @@ function updateHost() {
 function setHost(host) {
   window.api.send("set_host", host)
   document.getElementById("host-name").innerHTML = host
-  hostAddress.placeholder = host
+  hostAddress.value = host
 }
 
 function changeRotation(e) {
