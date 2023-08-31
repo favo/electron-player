@@ -6,23 +6,22 @@ var passwordField
 var hostAddress
 var spinner
 var canvas
+var dns
 
 window.ononline = (event) => {
-    const spinner = document.querySelector(".spinner")
-    spinner.classList.remove("error")
-    spinner.classList.remove("success")
-    spinner.classList.remove("spin")
+    resetSpinner()
     updateShowNetworkSettings()
     setStatusMessage("Connected!")
   };
 window.onoffline = (event) => {
+    resetSpinner()
     updateShowNetworkSettings()
     setStatusMessage("Not connected..")
 };
 
 window.onload = function() {
     const isOnline = window.navigator.onLine
-    isOnline ? setStatusMessage("Connected!") : setStatusMessage("No network!")
+    isOnline ? setStatusMessage("Connected!") : setStatusMessage("Not connected..")
 
     myStorage = window.localStorage;
     const hasHadConnection =  myStorage.getItem("has-had-connection")
@@ -30,6 +29,9 @@ window.onload = function() {
 
     updateShowNetworkSettings()
     
+    /* 
+      Queryies all elemets neeeded
+    */
     const refreshButton = document.getElementById("refresh-button");
     const letsGoButton = document.getElementById("lets-go-button");
     const connectButton = document.getElementById("connect-button");
@@ -38,18 +40,24 @@ window.onload = function() {
     const pinToMindButton = document.getElementById("pintomind")
     const infoskjermenButton = document.getElementById("infoskjermen")
     const hostName = document.getElementById("host-name")
-    
-    const dns = document.getElementById("dns")
     const dnsButton = document.getElementById("register-dns")
     const connectHostButton = document.getElementById("connect-to-host")
 
+    /* 
+      Queryies elements needed also later
+    */
     spinner = document.querySelector(".spinner")
     hostAddress = document.getElementById("host-address")
     passwordField = document.getElementById("password")
     errorMessage = document.getElementById("error-message");
     ssidField = document.getElementById("network")
     canvas = document.getElementById('canvas')
+    dns = document.getElementById("dns")
 
+
+    /* 
+      Adds events in elements
+    */
     infoskjermenButton.addEventListener("click", (e) => setHost(e.target.value))
     pinToMindButton.addEventListener("click", (e) => setHost(e.target.value))
     refreshButton.addEventListener("click", () => window.api.send("search_after_networks"))
@@ -62,8 +70,16 @@ window.onload = function() {
     const host = myStorage.getItem("host")
     if (host) {
       hostName.innerHTML = host
+      hostAddress.placeholder = host
     } else {
       updateHost()
+    }
+
+    const dnsAddress = myStorage.getItem("dns")
+    if (dnsAddress) {
+      dns.placeholder = dnsAddress
+    } else {
+      dns.placeholder = "Your IP Address"
     }
 
     window.api.send("get_dev_mode");
@@ -97,13 +113,12 @@ window.onload = function() {
     });
 
     window.api.receive("send_qr_code", (data) => {
-      canvas.src = data
+      //canvas.src = data
     });
+
     
     window.api.receive("network_status", (data) => {
-      spinner.classList.remove("error")
-      spinner.classList.remove("success")
-      spinner.classList.remove("spin")
+      resetSpinner()
       console.log("network_status: data: ", data);
       if (data == true) {
         setStatusMessage("Connected!")
@@ -112,11 +127,16 @@ window.onload = function() {
         myStorage.setItem("has-had-connection", "true")
       } else {
         spinner.classList.add("error")
-        setStatusMessage("Could not connect.")
+        errorMessage.innerHTML = "Could not connect to the network"
+        setStatusMessage("Not connected..")
       }
     });
+}
 
-
+function resetSpinner() {
+  spinner.classList.remove("error")
+  spinner.classList.remove("success")
+  spinner.classList.remove("spin")
 }
 
 function connectToNetwork() {
@@ -126,8 +146,7 @@ function connectToNetwork() {
   const ssid = ssidField.value
   const security = ssidField.options[ssidField.selectedIndex].dataset.security
 
-  spinner.classList.remove("error")
-  spinner.classList.remove("success")
+  resetSpinner()
 
   if (security.includes("WPA") && passwordstring) {
     /* Case 1: Password field is filled, network network requires it and we try to connect */
@@ -158,6 +177,7 @@ function updateShowNetworkSettings() {
 function updateHost() {
   window.api.receive("send_host", (data) => {
     document.getElementById("host-name").innerHTML = data
+    hostAddress.placeholder = data
     myStorage.setItem("host", data)
   });
 
@@ -167,6 +187,7 @@ function updateHost() {
 function setHost(host) {
   window.api.send("set_host", host)
   document.getElementById("host-name").innerHTML = host
+  hostAddress.placeholder = host
 }
 
 function changeRotation(e) {
@@ -231,8 +252,29 @@ function keyboardEvent() {
 }
 
 function registerDNS() {
+  const delay = Date.now()
+  window.api.receive("dns_registred", (data) => {
+      const waitTime = Date.now() - delay
+      if (waitTime) {
+        setInterval(() => {
+          if (data == true) {
+            setStatusMessage("DNS registred")
+          } else {
+            setStatusMessage("Could not register DNS")
+          }
+          resetSpinner()
+        }, waitTime)
+      }
+  });
+
   const name = dns.value
+  dns.placeholder = name
+  setStatusMessage("Registring DNS..")
+  spinner.classList.add("spin")
+
+  myStorage.setItem("dns", name)
   window.api.send("connect_to_dns", name)
+
 }
 
 function connectToHost() {

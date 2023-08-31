@@ -15,8 +15,8 @@ async function executeCommand(command) {
   } catch (error) {
     const result = {
       success: false,
-      stdout: stdout.trim(),
-      stderr: stderr.trim(),
+      stdout: null,
+      stderr: null,
       error: error
     }
     return result
@@ -140,7 +140,7 @@ app.whenReady().then(() => {
   globalShortcut.register('CommandOrControl+P', () => {
     mainWindow.loadFile(path.join(__dirname, 'index/index.html'));
   })
-  // Switches to local
+  // Enables devmode
   globalShortcut.register('CommandOrControl+D+M', () => {
     const devMode = store.get("devMode", false)
     if (devMode) {
@@ -286,6 +286,7 @@ async function setRotation(rotation) {
 async function connectToNetwork(data) {
   const ssid = data.ssid
   const password = data.password
+
   let command1
   if (password) {
     command1 =  quote(['nmcli', 'device', 'wifi', 'connect', ssid, 'password', password]);
@@ -372,7 +373,7 @@ async function checkForEthernetConnection() {
       clearInterval(ethernetInterval)
       ethernetInterval = null
     }
-    mainWindow.webContents.send("ethernet_status", stdout.toString());
+    mainWindow.webContents.send("ethernet_status", result.stdout.toString());
   }
 }
 
@@ -380,11 +381,12 @@ async function checkForEthernetConnection() {
   Adds dns address to /etc/resolv
 */
 async function addDNS(name) {
-  const command =  quote(['sudo','sed', '-i', `3inameserver${name}`, '/etc/resolv.conf']);
+  const command =  quote(['sudo','sed', '-i', `3inameserver ${name}`, '/etc/resolv.conf']);
 
   const result = await executeCommand(command);
 
-  console.log("adding dns", result);
+  console.log(result);
+  mainWindow.webContents.send("dns_registred", result.success)
 }
 
 /*
