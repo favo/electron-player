@@ -37,6 +37,8 @@ body[data-dev-mode="true"] #dev-mode {display: flex; flex-direction: column; gap
 #bottom-right {position: absolute;bottom: 0;right: 0;padding: 1vw; font-size: 2vw;}
 #canvas {position: absolute; bottom: 10vh; right: 1em;}
 
+#error-message {font-size: 0.8em;}
+
 .center-flex {  display: -webkit-flex;  display: flex;  justify-content: center;  align-items: center;}
 .message {  font-size: 0.7em;  margin-right: 0.7em;}
 .spinner {  width: 1.5em;  height: 1.5em;  padding: 0;}

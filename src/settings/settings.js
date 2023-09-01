@@ -147,7 +147,6 @@ window.onload = function() {
     
     window.api.receive("network_status", (data) => {
       resetSpinner()
-      refreshButton.dataset.status = null
       console.log("network_status: data: ", data);
       if (data == true) {
         setStatusMessage("Connected!")
@@ -232,6 +231,7 @@ function changeRotation(e) {
 function displayListOfNetworks(data) {
   const select = document.getElementById("network")
   select.innerHTML = ""
+  refreshButton.dataset.status = null
   
   const list = findUniqueSSIDs(data)
   

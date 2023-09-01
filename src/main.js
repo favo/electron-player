@@ -174,20 +174,24 @@ app.on('activate', () => {
 
 autoUpdater.on('checking-for-update', (info) => {
   console.log(info);
-  mainWindow.webContents.send("open_toaster", "checking-for-update")
+  mainWindow.webContents.send("open_toaster", "Checking for update")
+}) 
+autoUpdater.on('update-not-available', (info) => {
+  console.log(info);
+  mainWindow.webContents.send("open_toaster", "No updates available")
 }) 
 autoUpdater.on('update-available', (info) => {
   autoUpdater.downloadUpdate()
-  mainWindow.webContents.send("open_toaster", "checking-for-update")
+  mainWindow.webContents.send("open_toaster", "Apdate available")
   console.log(info);
 }) 
 autoUpdater.on('download-progress', (info) => {
   console.log(info);
-  mainWindow.webContents.send("open_toaster", `download-progress ${info}`)
+  mainWindow.webContents.send("open_toaster", `Download progress ${info}`)
 }) 
 autoUpdater.on('update-downloaded', (info) => {
   autoUpdater.quitAndInstall()
-  mainWindow.webContents.send("open_toaster", "update-downloaded")
+  mainWindow.webContents.send("open_toaster", "Update downloaded")
 }) 
 
 
@@ -291,10 +295,11 @@ async function connectToNetwork(data) {
   const ssid = data.ssid
   const password = data.password
 
+
   let command1
   if (password) {
     if (data.security.includes("WPA3")) {
-      command1 =  quote(['nmcli', 'connection', 'add', 'type', 'wifi', 'ifname', 'wlan0', 'con-name', ssid, '--', 'wifi-sec.key-mgmt', 'wpa-psk', 'wifi-sec.psk', password]);
+      command1 =  quote(['nmcli', 'connection', 'add', 'type', 'wifi', 'ifname', 'wlan0', 'con-name', ssid, 'ssid', ssid, '--', 'wifi-sec.key-mgmt', 'wpa-psk', 'wifi-sec.psk', password]);
     } else {
       command1 =  quote(['nmcli', 'device', 'wifi', 'connect', ssid, 'password', password]);
     }
@@ -304,8 +309,9 @@ async function connectToNetwork(data) {
   let command2 = quote(['grep', '-q', 'activated']);
 
   let fullCommand = command1 + ' | ' + command2;
-  
+
   const result = await executeCommand(fullCommand);
+  console.log(result);
   if (result.success) {
     const connection = await checkConnectionToServer()
     mainWindow.webContents.send("network_status", connection);
@@ -320,7 +326,7 @@ async function checkConnectionToServer() {
   const command = `curl -I https://${host}/up | grep Status | grep -q 200 && echo 1 || echo 0`
   
   const result = await executeCommand(command);
-
+  console.log(result);
   if (result.success && result.stdout.toString() == "1") {
     bleSocket.emit("ble-disable");
     /* TODO: turn off io socket */
@@ -449,19 +455,13 @@ function rebootDevice() {
 /*
 *   Sends device info
 */
-async function sendDeviceInfo() {
-
-  const system = await si.system()
-  const osInfo = await si.osInfo()
-
+function sendDeviceInfo() {
+  
   var options = {}
   options["Host"] = host
   options["App-version"] = pjson.version
   options["Platform"] = "Electron"
-  options["Manufacturer"] = system.manufacturer
-  options["Model"] = system.model
-  options["Firmware"] = osInfo.release
-  options["Codename"] = osInfo.codename
+  options["App-name"] = pjson.name
     
   mainWindow.webContents.send("send_device_info", options);
 }
