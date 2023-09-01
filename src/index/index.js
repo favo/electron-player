@@ -1,13 +1,15 @@
 let myStorage
 let webview
 let webviewReady = false;
-
+let toaster
+let toasterInterval
 
 window.onload = function() {
     
     myStorage = window.localStorage;
     host = myStorage.getItem("host")
     webview = document.getElementById("iframe");
+    toaster = document.getElementById('toaster');
 
     requestHost()
 
@@ -28,6 +30,10 @@ window.onload = function() {
 
         window.api.receive("recieve_system_stats", (data) => {
             webview.contentWindow.postMessage({action: "system_stats", stats: data}, "*");
+        });
+
+        window.api.receive("open_toaster", (data) => {
+            openToaster(data)
         });
 
     });
@@ -108,6 +114,35 @@ window.onload = function() {
         });
       
         sendMessageToMain("request_host")
-      }
+    }
+
+    
+
+    function showToaster() {
+        if (toasterInterval) {
+            clearInterval(toasterInterval)
+            toasterInterval = null
+        }
+
+        toaster.classList.add('active');
+
+        toasterInterval = setInterval(() => {
+            hideToaster()
+        }, 4000)
+    }
+
+    function hideToaster() {
+        toaster.classList.remove('active');
+    }
+
+    function setToasterText(text) {
+        toaster.innerHTML = text
+    }
+
+    function openToaster(text) {
+        setToasterText(text)
+        showToaster()
+    }
+
 
 }

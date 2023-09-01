@@ -174,16 +174,20 @@ app.on('activate', () => {
 
 autoUpdater.on('checking-for-update', (info) => {
   console.log(info);
+  mainWindow.webContents.send("open_toaster", "checking-for-update")
 }) 
 autoUpdater.on('update-available', (info) => {
   autoUpdater.downloadUpdate()
+  mainWindow.webContents.send("open_toaster", "checking-for-update")
   console.log(info);
 }) 
 autoUpdater.on('download-progress', (info) => {
   console.log(info);
+  mainWindow.webContents.send("open_toaster", `download-progress ${info}`)
 }) 
 autoUpdater.on('update-downloaded', (info) => {
   autoUpdater.quitAndInstall()
+  mainWindow.webContents.send("open_toaster", "update-downloaded")
 }) 
 
 
@@ -289,7 +293,11 @@ async function connectToNetwork(data) {
 
   let command1
   if (password) {
-    command1 =  quote(['nmcli', 'device', 'wifi', 'connect', ssid, 'password', password]);
+    if (data.security.includes("WPA3")) {
+      command1 =  quote(['nmcli', 'connection', 'add', 'type', 'wifi', 'ifname', 'wlan0', 'con-name', ssid, '--', 'wifi-sec.key-mgmt', 'wpa-psk', 'wifi-sec.psk', password]);
+    } else {
+      command1 =  quote(['nmcli', 'device', 'wifi', 'connect', ssid, 'password', password]);
+    }
   } else {
     command1 = quote(['nmcli', 'device', 'wifi', 'connect', ssid]);
   }

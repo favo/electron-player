@@ -1,9 +1,10 @@
-var myStorage
 var countdownInterval
-var errorMessage
-var ssidField
+let refreshButton
 var passwordField
+var errorMessage
 var hostAddress
+var ssidField
+var myStorage
 var spinner
 var canvas
 var dns
@@ -32,7 +33,6 @@ window.onload = function() {
     /* 
       Queryies all elemets neeeded
     */
-    const refreshButton = document.getElementById("refresh-button");
     const letsGoButton = document.getElementById("lets-go-button");
     const connectButton = document.getElementById("connect-button");
     const rotationButtons = document.getElementById("rotation-buttons").querySelectorAll("button");
@@ -42,10 +42,12 @@ window.onload = function() {
     const hostName = document.getElementById("host-name")
     const dnsButton = document.getElementById("register-dns")
     const connectHostButton = document.getElementById("connect-to-host")
+    const toggleButton = document.getElementById('toggleButton');
 
     /* 
       Queryies elements needed also later
     */
+    refreshButton = document.getElementById("refresh-button");
     spinner = document.querySelector(".spinner")
     hostAddress = document.getElementById("host-address")
     passwordField = document.getElementById("password")
@@ -58,9 +60,35 @@ window.onload = function() {
     /* 
       Adds events in elements
     */
-    infoskjermenButton.addEventListener("click", (e) => setHost(e.target.value))
-    pinToMindButton.addEventListener("click", (e) => setHost(e.target.value))
-    refreshButton.addEventListener("click", () => window.api.send("search_after_networks"))
+    infoskjermenButton.addEventListener("click", (e) => {
+      Array.from(e.target.parentElement.children).forEach(el => {
+        el.classList.remove("selected")
+      })
+      e.target.classList.add("selected")
+      setHost(e.target.value)
+    })
+    pinToMindButton.addEventListener("click", (e) => {
+      Array.from(e.target.parentElement.children).forEach(el => {
+        el.classList.remove("selected")
+      })
+      e.target.classList.add("selected")
+      setHost(e.target.value)
+    })
+    toggleButton.addEventListener('click', () => {
+      if (passwordField.type === 'password') {
+        passwordField.type = 'text';
+      } else {
+        passwordField.type = 'password';
+      }
+    });
+
+    refreshButton.addEventListener("click", () => {
+      window.api.send("search_after_networks")
+      refreshButton.dataset.status = "pending"
+      setInterval(() => {
+        refreshButton.dataset.status = null
+      }, 5000)
+    })
     letsGoButton.addEventListener("click", () => window.api.send("go_to_app"))
     connectButton.addEventListener("click", () => connectToNetwork());
     dnsButton.addEventListener("click", () => registerDNS());
@@ -119,6 +147,7 @@ window.onload = function() {
     
     window.api.receive("network_status", (data) => {
       resetSpinner()
+      refreshButton.dataset.status = null
       console.log("network_status: data: ", data);
       if (data == true) {
         setStatusMessage("Connected!")
@@ -153,7 +182,7 @@ function connectToNetwork() {
     /* Case 1: Password field is filled, network network requires it and we try to connect */
     spinner.classList.add("spin")
     setStatusMessage("Connecting...")
-    window.api.send("connect_to_network", {ssid: ssid, password: passwordstring})
+    window.api.send("connect_to_network", {ssid: ssid, password: passwordstring, security: security})
   } else if (security.includes("WPA") && !passwordstring) {
     /* Case 2: Password field is empty and network requires it */
     errorMessage.innerHTML = "* This network requires a password"
@@ -193,6 +222,10 @@ function setHost(host) {
 
 function changeRotation(e) {
   const orientation = e.target.value
+  Array.from(e.target.parentElement.children).forEach(el => {
+    el.classList.remove("selected")
+  })
+  e.target.classList.add("selected")
   window.api.send("change_rotation", orientation)
 }
 
