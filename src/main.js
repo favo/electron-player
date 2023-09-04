@@ -182,12 +182,12 @@ autoUpdater.on('update-not-available', (info) => {
 }) 
 autoUpdater.on('update-available', (info) => {
   autoUpdater.downloadUpdate()
-  mainWindow.webContents.send("open_toaster", "Apdate available")
+  mainWindow.webContents.send("open_toaster", "Update available")
   console.log(info);
 }) 
 autoUpdater.on('download-progress', (info) => {
   console.log(info);
-  mainWindow.webContents.send("open_toaster", `Download progress ${info}`)
+  mainWindow.webContents.send("open_toaster", `Download progress ${info.percent.toFixed(2)}%`)
 }) 
 autoUpdater.on('update-downloaded', (info) => {
   autoUpdater.quitAndInstall()
