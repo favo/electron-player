@@ -251,6 +251,7 @@ ipcMain.on("set_host", (event, arg) => {
 ipcMain.on("request_host", (event, arg) => {
   const host = store.get("host")
   mainWindow.webContents.send("send_host", host);
+  mainWindow.webContents.sendInputEvent({type: 'mouseMove', x: 100, y: 100})
 })
 ipcMain.on("connect_to_dns", (event, arg) => {
   addDNS(arg)

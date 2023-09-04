@@ -89,6 +89,7 @@ window.onload = function() {
         refreshButton.dataset.status = null
       }, 5000)
     })
+
     letsGoButton.addEventListener("click", () => window.api.send("go_to_app"))
     connectButton.addEventListener("click", () => connectToNetwork());
     dnsButton.addEventListener("click", () => registerDNS());
@@ -99,6 +100,12 @@ window.onload = function() {
     if (host) {
       hostName.innerHTML = host
       hostAddress.value = host
+
+      if (host == "app.infoskjermen.no") {
+        infoskjermenButton.classList.add("selected")
+      } else if (host == "app.pintomind.com") {
+        pinToMindButton.classList.add("selected")
+      }
     } else {
       updateHost()
     }
@@ -208,6 +215,11 @@ function updateHost() {
     document.getElementById("host-name").innerHTML = data
     hostAddress.value = data
     myStorage.setItem("host", data)
+    if (data == "app.infoskjermen.no") {
+      infoskjermenButton.classList.add("selected")
+    } else if (data == "app.pintomind.com") {
+      pinToMindButton.classList.add("selected")
+    }
   });
 
   window.api.send("request_host")
