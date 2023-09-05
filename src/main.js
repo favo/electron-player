@@ -40,6 +40,8 @@ let bleSocket = io("ws://127.0.0.1:3333");
 let mainWindow 
 let systemStatsStream
 
+let ethernetInterval = null
+
 let host = "http://app.pintomind.com"
 
 autoUpdater.autoDownload = false
@@ -296,29 +298,113 @@ async function connectToNetwork(data) {
   const ssid = data.ssid
   const password = data.password
 
-
-  let command1
   if (password) {
     if (data.security.includes("WPA3")) {
-      command1 =  quote(['nmcli', 'connection', 'add', 'type', 'wifi', 'ifname', 'wlan0', 'con-name', ssid, 'ssid', ssid, '--', 'wifi-sec.key-mgmt', 'wpa-psk', 'wifi-sec.psk', password]);
+      connectToWPA3Network(ssid, password)
+      return
     } else {
-      command1 =  quote(['nmcli', 'device', 'wifi', 'connect', ssid, 'password', password]);
+      connectToWPANetwork(ssid, password)
     }
   } else {
-    command1 = quote(['nmcli', 'device', 'wifi', 'connect', ssid]);
+    connectToUnsecureNetwork(ssid)
   }
-  let command2 = quote(['grep', '-q', 'activated']);
+}
 
-  let fullCommand = command1 + ' | ' + command2;
+async function connectToUnsecureNetwork(ssid) {
+  const connectCommand = quote(['nmcli', 'device', 'wifi', 'connect', ssid]);
+  const grepCommand = quote(['grep', '-q', 'activated']);
+  const fullCommand = connectCommand + ' | ' + grepCommand;
 
   const result = await executeCommand(fullCommand);
-  console.log(result);
+
   if (result.success) {
     const connection = await checkConnectionToServer()
     mainWindow.webContents.send("network_status", connection);
   } else {
     mainWindow.webContents.send("network_status", false);
   }
+}
+
+async function connectToWPANetwork(ssid, password) {
+  const connectCommand = quote(['nmcli', 'device', 'wifi', 'connect', ssid, 'password', password]);
+  const grepCommand = quote(['grep', '-q', 'activated']);
+  const fullCommand = connectCommand + ' | ' + grepCommand;
+
+  const result = await executeCommand(fullCommand);
+  
+  if (result.success) {
+    const connection = await checkConnectionToServer()
+    mainWindow.webContents.send("network_status", connection);
+  } else {
+    mainWindow.webContents.send("network_status", false);
+  }
+}
+
+async function connectToWPA3Network(ssid, password) {
+  const connectCommand =  quote(['nmcli', 'connection', 'add', 'type', 'wifi', 'ifname', 'wlan0', 'con-name', ssid, 'ssid', ssid, '--', 'wifi-sec.key-mgmt', 'wpa-psk', 'wifi-sec.psk', password]);
+  
+  const connect = await executeCommand(connectCommand);
+  console.log("connect",connect);
+
+  if (connect.success) {
+    /* Connection succesful added */
+    console.log("case 1");
+    /* Checks if connection is active */
+    const activeConnectionCommand =  quote(['nmcli', 'connection', 'show', '--active']);
+    const activeConnection = await executeCommand(activeConnectionCommand);
+    
+    if (activeConnection.success && activeConnection.stdout.includes(ssid)) {
+      console.log("case 3");
+      /* Connection is active, and attepts to ping server up to 10 times */
+      const serverConnectionResult = await attemptServerConnection()
+      if (serverConnectionResult) {
+        console.log("case 4");
+        /* Successfully pings server */
+        mainWindow.webContents.send("network_status", true);
+      } else {
+        console.log("case 5");
+        /* cant connect to server, may be wrong password */
+        const deleteResult = deleteConnectionBySSID(ssid)
+        mainWindow.webContents.send("network_status", false);
+      }
+    } else {
+      console.log("case 6");
+      /* Connection is not active, deletes connection */
+      const deleteResult = deleteConnectionBySSID(ssid)
+      mainWindow.webContents.send("network_status", false);
+    }
+  } else {
+    console.log("case 2");
+    /* Connection unsuccesful added */
+    mainWindow.webContents.send("network_status", false);
+  }
+
+}
+
+async function attemptServerConnection() {
+  let attempts = 0
+  while (attempts < 10) {
+    const connection = await checkConnectionToServer()
+    console.log(connection);
+
+    if (connection) {
+      console.log("Operation successful!");
+      return true;
+    } else {
+      attempts++;
+      console.log(`Attempt ${attempts} failed. Retrying in 1 second...`);
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Wait for 1 second before retrying
+    }
+  }
+
+  console.log("Exceeded maximum attempts. Operation failed.");
+  return false;
+}
+
+async function deleteConnectionBySSID(ssid) {
+  const deleteCommand =  quote(['nmcli', 'connection', 'delete', ssid]);
+  const deleteResult = await executeCommand(deleteCommand);
+  return deleteResult.success
 }
 
 async function checkConnectionToServer() {
