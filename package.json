@@ -1,6 +1,6 @@
 {
   "name": "pintomind-player",
-  "version": "0.5.4",
+  "version": "0.6.4",
   "description": "Player app for PinToMind",
   "main": "src/main.js",
   "scripts": {
@@ -59,6 +59,7 @@
     "i": "^0.3.7",
     "qrcode": "^1.5.3",
     "shell-quote": "^1.8.1",
+    "socket.io-client": "^4.7.1",
     "systeminformation": "^5.18.7"
   }
 }

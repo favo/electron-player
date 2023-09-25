@@ -1,26 +1,28 @@
-var myStorage
 var countdownInterval
-var errorMessage
-var ssidField
+let refreshButton
 var passwordField
+var errorMessage
 var hostAddress
+var ssidField
+var myStorage
 var spinner
 var canvas
+var dns
 
 window.ononline = (event) => {
-    const spinner = document.querySelector(".spinner")
-    spinner.classList.remove("spin")
+    resetSpinner()
     updateShowNetworkSettings()
     setStatusMessage("Connected!")
   };
 window.onoffline = (event) => {
+    resetSpinner()
     updateShowNetworkSettings()
     setStatusMessage("Not connected..")
 };
 
 window.onload = function() {
     const isOnline = window.navigator.onLine
-    isOnline ? setStatusMessage("Connected!") : setStatusMessage("No network!")
+    isOnline ? setStatusMessage("Connected!") : setStatusMessage("Not connected..")
 
     myStorage = window.localStorage;
     const hasHadConnection =  myStorage.getItem("has-had-connection")
@@ -28,7 +30,9 @@ window.onload = function() {
 
     updateShowNetworkSettings()
     
-    const refreshButton = document.getElementById("refresh-button");
+    /* 
+      Queryies all elemets neeeded
+    */
     const letsGoButton = document.getElementById("lets-go-button");
     const connectButton = document.getElementById("connect-button");
     const rotationButtons = document.getElementById("rotation-buttons").querySelectorAll("button");
@@ -36,21 +40,56 @@ window.onload = function() {
     const pinToMindButton = document.getElementById("pintomind")
     const infoskjermenButton = document.getElementById("infoskjermen")
     const hostName = document.getElementById("host-name")
-    
-    const dns = document.getElementById("dns")
     const dnsButton = document.getElementById("register-dns")
     const connectHostButton = document.getElementById("connect-to-host")
+    const toggleButton = document.getElementById('toggleButton');
 
+    /* 
+      Queryies elements needed also later
+    */
+    refreshButton = document.getElementById("refresh-button");
     spinner = document.querySelector(".spinner")
     hostAddress = document.getElementById("host-address")
     passwordField = document.getElementById("password")
     errorMessage = document.getElementById("error-message");
     ssidField = document.getElementById("network")
     canvas = document.getElementById('canvas')
+    dns = document.getElementById("dns")
 
-    infoskjermenButton.addEventListener("click", (e) => setHost(e.target.value))
-    pinToMindButton.addEventListener("click", (e) => setHost(e.target.value))
-    refreshButton.addEventListener("click", () => window.api.send("search_after_networks"))
+
+    /* 
+      Adds events in elements
+    */
+    infoskjermenButton.addEventListener("click", (e) => {
+      Array.from(e.target.parentElement.children).forEach(el => {
+        el.classList.remove("selected")
+      })
+      e.target.classList.add("selected")
+      setHost(e.target.value)
+    })
+    pinToMindButton.addEventListener("click", (e) => {
+      Array.from(e.target.parentElement.children).forEach(el => {
+        el.classList.remove("selected")
+      })
+      e.target.classList.add("selected")
+      setHost(e.target.value)
+    })
+    toggleButton.addEventListener('click', () => {
+      if (passwordField.type === 'password') {
+        passwordField.type = 'text';
+      } else {
+        passwordField.type = 'password';
+      }
+    });
+
+    refreshButton.addEventListener("click", () => {
+      window.api.send("search_after_networks")
+      refreshButton.dataset.status = "pending"
+      setInterval(() => {
+        refreshButton.dataset.status = null
+      }, 5000)
+    })
+
     letsGoButton.addEventListener("click", () => window.api.send("go_to_app"))
     connectButton.addEventListener("click", () => connectToNetwork());
     dnsButton.addEventListener("click", () => registerDNS());
@@ -60,8 +99,22 @@ window.onload = function() {
     const host = myStorage.getItem("host")
     if (host) {
       hostName.innerHTML = host
+      hostAddress.value = host
+
+      if (host == "app.infoskjermen.no") {
+        infoskjermenButton.classList.add("selected")
+      } else if (host == "app.pintomind.com") {
+        pinToMindButton.classList.add("selected")
+      }
     } else {
       updateHost()
+    }
+
+    const dnsAddress = myStorage.getItem("dns")
+    if (dnsAddress) {
+      dns.value = dnsAddress
+    } else {
+      dns.value = "Your IP Address"
     }
 
     window.api.send("get_dev_mode");
@@ -95,24 +148,31 @@ window.onload = function() {
     });
 
     window.api.receive("send_qr_code", (data) => {
-      console.log(data);
-       canvas.src = data
+      //canvas.src = data
     });
+
     
     window.api.receive("network_status", (data) => {
+      resetSpinner()
+      console.log("network_status: data: ", data);
       if (data == true) {
         setStatusMessage("Connected!")
         spinner.classList.add("success")
         window.document.body.dataset.hasHadConnection = "true"
+        updateShowNetworkSettings()
         myStorage.setItem("has-had-connection", "true")
       } else {
         spinner.classList.add("error")
-        setStatusMessage("Could not connect.")
+        errorMessage.innerHTML = "Could not connect to the network. Are you sure that you've entered your password correctly"
+        setStatusMessage("Not connected..")
       }
-      spinner.classList.remove("spin")
     });
+}
 
-
+function resetSpinner() {
+  spinner.classList.remove("error")
+  spinner.classList.remove("success")
+  spinner.classList.remove("spin")
 }
 
 function connectToNetwork() {
@@ -122,16 +182,15 @@ function connectToNetwork() {
   const ssid = ssidField.value
   const security = ssidField.options[ssidField.selectedIndex].dataset.security
 
-  spinner.classList.remove("error")
-  spinner.classList.remove("success")
+  resetSpinner()
 
   if (security.includes("WPA") && passwordstring) {
-    /* Case 2: Password field is filled, network network requires it and we try to connect */
+    /* Case 1: Password field is filled, network network requires it and we try to connect */
     spinner.classList.add("spin")
     setStatusMessage("Connecting...")
-    window.api.send("connect_to_network", {ssid: ssid, password: passwordstring})
+    window.api.send("connect_to_network", {ssid: ssid, password: passwordstring, security: security})
   } else if (security.includes("WPA") && !passwordstring) {
-    /* Case 1: Password field is empty and network requires it */
+    /* Case 2: Password field is empty and network requires it */
     errorMessage.innerHTML = "* This network requires a password"
   } else if (!security) {
     /* Case 3: Network has no security */
@@ -154,7 +213,13 @@ function updateShowNetworkSettings() {
 function updateHost() {
   window.api.receive("send_host", (data) => {
     document.getElementById("host-name").innerHTML = data
+    hostAddress.value = data
     myStorage.setItem("host", data)
+    if (data == "app.infoskjermen.no") {
+      infoskjermenButton.classList.add("selected")
+    } else if (data == "app.pintomind.com") {
+      pinToMindButton.classList.add("selected")
+    }
   });
 
   window.api.send("request_host")
@@ -163,16 +228,22 @@ function updateHost() {
 function setHost(host) {
   window.api.send("set_host", host)
   document.getElementById("host-name").innerHTML = host
+  hostAddress.value = host
 }
 
 function changeRotation(e) {
   const orientation = e.target.value
+  Array.from(e.target.parentElement.children).forEach(el => {
+    el.classList.remove("selected")
+  })
+  e.target.classList.add("selected")
   window.api.send("change_rotation", orientation)
 }
 
 function displayListOfNetworks(data) {
   const select = document.getElementById("network")
   select.innerHTML = ""
+  refreshButton.dataset.status = null
   
   const list = findUniqueSSIDs(data)
   
@@ -227,8 +298,29 @@ function keyboardEvent() {
 }
 
 function registerDNS() {
+  const delay = Date.now()
+  window.api.receive("dns_registred", (data) => {
+      const waitTime = Date.now() - delay
+      if (waitTime) {
+        setInterval(() => {
+          if (data == true) {
+            setStatusMessage("DNS registred")
+          } else {
+            setStatusMessage("Could not register DNS")
+          }
+          resetSpinner()
+        }, waitTime)
+      }
+  });
+
   const name = dns.value
+  dns.placeholder = name
+  setStatusMessage("Registring DNS..")
+  spinner.classList.add("spin")
+
+  myStorage.setItem("dns", name)
   window.api.send("connect_to_dns", name)
+
 }
 
 function connectToHost() {

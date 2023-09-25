@@ -38,20 +38,20 @@
       <div class="settings">
             <h1>Let's go!</h1>
           
-            <label>Choose language</label>
+            <label>Select product</label>
             <div class="button-container branding">
-              <button id="pintomind" value="app.pintomind.com">PinToMind 🇬🇧</button>
-              <button id="infoskjermen" value="app.infoskjermen.no">Infoskjermen 🇳🇴</button>
+              <button id="pintomind" value="app.pintomind.com">PinToMind</button>
+              <button id="infoskjermen" value="app.infoskjermen.no">Infoskjermen</button>
             </div>
 
             <br><br>
 
-            <label>Choose screen rotation</label>
+            <label>Select screen rotation</label>
             <div id="rotation-buttons" class="button-container rotation">
-                <button value="normal"><img src="../../assets/monitor.svg" alt=""></button>
-                <button value="right"><img src="../../assets/monitor.svg" style="transform: rotate(90deg);" alt=""></button>
-                <button value="inverted"><img src="../../assets/monitor.svg" style="transform: rotate(180deg);" alt=""></button>
-                <button value="left"><img src="../../assets/monitor.svg" style="transform: rotate(270deg);" alt=""></button>
+                <button class="selected" value="normal"><img src="../../assets/monitor.svg" alt=""></button>
+                <button class="" value="right"><img src="../../assets/monitor.svg" style="transform: rotate(90deg);" alt=""></button>
+                <button class="" value="inverted"><img src="../../assets/monitor.svg" style="transform: rotate(180deg);" alt=""></button>
+                <button class="" value="left"><img src="../../assets/monitor.svg" style="transform: rotate(270deg);" alt=""></button>
             </div>
 
             <br><br>
@@ -62,36 +62,46 @@
             </div>
 
             <div class="network-settings">
-              <label for="">Chose a network</label>
-              <div class="networks">
-                <label for="" style="display: inline-flex;">SSID</label>
-                <select name="" id="network"></select>
-                <button id="refresh-button">
-                  Refresh
-                  <img src="../../assets/arrow-clockwise.svg" alt="">
-                </button>
-              </div>
-              <div class="password-box">
-                <label for="" style="display: inline-flex;">Password</label>
-                <input id="password" type="text">
-                <button id="connect-button">Connect</button>
+              <label for="" style="display: flex;justify-content: center;">Select network</label>
+              <div>
+                <div class="networks">
+                  <label class="small" for="" style="display: block;">SSID</label>
+                  <div class="flex">
+                    <select name="" id="network" style="display: inline-flex;"></select>
+                    <button id="refresh-button" style="display: inline-flex;">
+                      Refresh
+                      <img src="../../assets/arrow-clockwise.svg" alt="">
+                    </button>
+                  </div>
+                </div>
+                <div class="password-box" style="width: 100%;">
+                  <label class="small" for="" style="display: block;">Password</label>
+                  <div class="multibutton">
+                    <input id="password" type="password" placeholder="Enter password" style="display: inline-flex;">
+                    <button id="toggleButton" style="display: inline-flex;"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><path d="M128,56C48,56,16,128,16,128s32,72,112,72,112-72,112-72S208,56,128,56Z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><circle cx="128" cy="128" r="40" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg></button>
+                    <button id="connect-button" style="display: inline-flex;">Connect</button>
+                  </div>
+                </div>
               </div>
             </div>
 
             <p id="error-message"></p>
 
             <div id="dev-mode">
-              <br><br>
+              <label for="" style="display: flex;justify-content: center;">Dev Mode</label>
               <div>
-                <label for="" style="display: inline-flex; min-width: 5em;">DNS-server</label>
-                <input id="dns" type="text">
-                <button id="register-dns">Register DNS</button>
+                <label class="small" for="" style="display: block; min-width: 5em;">DNS-server</label>
+                <div class="multibutton">
+                  <input id="dns" type="text">
+                  <button id="register-dns">Register DNS</button>
+                </div>
               </div>
-              <br>
               <div>
-                <label for="" style="display: inline-flex; min-width: 5em;">Host</label>
-                <input id="host-address" type="text" placeholder="local.infoskjermen.no">
-                <button id="connect-to-host">Connect to host</button>
+                <label class="small" for="" style="display: block; min-width: 5em;">Host</label>
+                <div class="multibutton">
+                  <input id="host-address" type="text" placeholder="local.infoskjermen.no">
+                  <button id="connect-to-host">Connect to host</button>
+                </div>
               </div>
               
             </div>

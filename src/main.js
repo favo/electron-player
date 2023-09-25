@@ -1,7 +1,31 @@
 const { app, BrowserWindow, ipcMain, globalShortcut } = require('electron');
+
 const nodeChildProcess = require('child_process');
+const { promisify } = require('util');
+const execAsync = promisify(nodeChildProcess.exec);
+async function executeCommand(command) {
+  try {
+    const { stdout, stderr } = await execAsync(command); 
+    const result = {
+      success: true,
+      stdout: stdout.trim(),
+      stderr: stderr.trim()
+    }
+    return result;
+  } catch (error) {
+    const result = {
+      success: false,
+      stdout: null,
+      stderr: null,
+      error: error
+    }
+    return result
+  }
+}
+
 const { autoUpdater } = require("electron-updater")
 const path = require('path');
+const io = require("socket.io-client");
 let pjson = require('../package.json');
 let fs = require('fs');
 const quote = require('shell-quote/quote');
@@ -11,8 +35,12 @@ const QRCode = require('qrcode')
 const Store = require('electron-store');
 const store = new Store();
 
+let bleSocket = io("ws://127.0.0.1:3333");
+
 let mainWindow 
 let systemStatsStream
+
+let ethernetInterval = null
 
 let host = "http://app.pintomind.com"
 
@@ -30,22 +58,23 @@ const createWindow = () => {
     alwaysOnTop: false,
     width: 1920,
     height: 1080,
-    kiosk: false,
+    kiosk: true,
     webPreferences: { 
       nodeIntegration: false, 
       contextIsolation: true, 
       enableRemoteModule: false,
       preload: path.join(__dirname, "preload.js")
     },
-    frame: true,
+    frame: false,
     icon: path.join(__dirname, '../assets/icon/png/logo256.png')
   });
   
   if (! store.has('firstTime')) {
     mainWindow.loadFile(path.join(__dirname, 'settings/settings.html'));
+    ethernetInterval = setInterval(() => checkForEthernetConnection(), 2000)
+    enableBLE()
   } else {
     mainWindow.loadFile(path.join(__dirname, 'index/index.html'));
-    ethernetInterval = setInterval(() => checkForEthernetConnection(), 2000)
   }
 
   if (!store.has('host')) {
@@ -61,6 +90,7 @@ const createWindow = () => {
   })
 
   autoUpdater.checkForUpdates()
+ 
 };
 
 /*
@@ -112,7 +142,7 @@ app.whenReady().then(() => {
   globalShortcut.register('CommandOrControl+P', () => {
     mainWindow.loadFile(path.join(__dirname, 'index/index.html'));
   })
-  // Switches to local
+  // Enables devmode
   globalShortcut.register('CommandOrControl+D+M', () => {
     const devMode = store.get("devMode", false)
     if (devMode) {
@@ -146,16 +176,24 @@ app.on('activate', () => {
 
 autoUpdater.on('checking-for-update', (info) => {
   console.log(info);
+  mainWindow.webContents.send("open_toaster", "Checking for update")
+}) 
+autoUpdater.on('update-not-available', (info) => {
+  console.log(info);
+  mainWindow.webContents.send("open_toaster", "No updates available")
 }) 
 autoUpdater.on('update-available', (info) => {
   autoUpdater.downloadUpdate()
+  mainWindow.webContents.send("open_toaster", "Update available")
   console.log(info);
 }) 
 autoUpdater.on('download-progress', (info) => {
   console.log(info);
+  mainWindow.webContents.send("open_toaster", `Download progress ${info.percent.toFixed(2)}%`)
 }) 
 autoUpdater.on('update-downloaded', (info) => {
   autoUpdater.quitAndInstall()
+  mainWindow.webContents.send("open_toaster", "Update downloaded")
 }) 
 
 
@@ -215,6 +253,7 @@ ipcMain.on("set_host", (event, arg) => {
 ipcMain.on("request_host", (event, arg) => {
   const host = store.get("host")
   mainWindow.webContents.send("send_host", host);
+  mainWindow.webContents.sendInputEvent({type: 'mouseMove', x: 100, y: 100})
 })
 ipcMain.on("connect_to_dns", (event, arg) => {
   addDNS(arg)
@@ -244,65 +283,143 @@ ipcMain.on("get_qr_code", (event, arg) => {
 /* 
 *   Simple function to rotate the screen using scripts we have added 
 */
-function setRotation(rotation) {
+async function setRotation(rotation) {
   fs.writeFileSync("./rotation", rotation);
 
   const command = "/home/pi/.adjust_video.sh"
 
-  nodeChildProcess.exec(command, (err, stdout, stderr) => {
-    if (err) {
-      console.error(`exec error: ${err}`);
-      return;
-    }
-    console.log(`stdout ${stdout.toString()}`);
-    console.log(`stderr ${stderr.toString()}`);
-  });
+  const result = await executeCommand(command);
 }
 
 /* 
 *   Function for connection to a network
 */
-function connectToNetwork(data) {
+async function connectToNetwork(data) {
   const ssid = data.ssid
   const password = data.password
-  let command1
+
   if (password) {
-    command1 =  quote(['nmcli', 'device', 'wifi', 'connect', ssid, 'password', password]);
-  } else {
-    command1 = quote(['nmcli', 'device', 'wifi', 'connect', ssid]);
-  }
-  let command2 = quote(['grep', '-q', 'activated']);
-
-  let fullCommand = command1 + ' | ' + command2;
-
-  console.log(fullCommand);
-  
-  nodeChildProcess.exec(fullCommand, (err, stdout, stderr) => {
-    if (err) {
-      console.error(`exec error: ${err}`);
-      mainWindow.webContents.send("network_status", false);
-      return;
+    if (data.security.includes("WPA3")) {
+      connectToWPA3Network(ssid, password)
+      return
+    } else {
+      connectToWPANetwork(ssid, password)
     }
-    console.log(`stdout ${stdout.toString()}`);
-    console.log(`stderr ${stderr.toString()}`);
+  } else {
+    connectToUnsecureNetwork(ssid)
+  }
+}
+
+async function connectToUnsecureNetwork(ssid) {
+  const connectCommand = quote(['nmcli', 'device', 'wifi', 'connect', ssid]);
+  const grepCommand = quote(['grep', '-q', 'activated']);
+  const fullCommand = connectCommand + ' | ' + grepCommand;
+
+  const result = await executeCommand(fullCommand);
+
+  if (result.success) {
+    const connection = await checkConnectionToServer()
+    mainWindow.webContents.send("network_status", connection);
+  } else {
+    mainWindow.webContents.send("network_status", false);
+  }
+}
+
+async function connectToWPANetwork(ssid, password) {
+  const connectCommand = quote(['nmcli', 'device', 'wifi', 'connect', ssid, 'password', password]);
+  const grepCommand = quote(['grep', '-q', 'activated']);
+  const fullCommand = connectCommand + ' | ' + grepCommand;
+
+  const result = await executeCommand(fullCommand);
+  
+  if (result.success) {
+    const connection = await checkConnectionToServer()
+    mainWindow.webContents.send("network_status", connection);
+  } else {
+    mainWindow.webContents.send("network_status", false);
+  }
+}
+
+async function connectToWPA3Network(ssid, password) {
+  const connectCommand =  quote(['nmcli', 'connection', 'add', 'type', 'wifi', 'ifname', 'wlan0', 'con-name', ssid, 'ssid', ssid, '--', 'wifi-sec.key-mgmt', 'wpa-psk', 'wifi-sec.psk', password]);
+  
+  const connect = await executeCommand(connectCommand);
+  console.log("connect",connect);
+
+  if (connect.success) {
+    /* Connection succesful added */
+    /* Checks if connection is active */
+    const activeConnectionCommand =  quote(['nmcli', 'connection', 'show', '--active']);
+    const activeConnection = await executeCommand(activeConnectionCommand);
     
-    const command = "curl -I https://app.pintomind.com/up | grep Status | grep -q 200 && echo 1 || echo 0"
-    nodeChildProcess.exec(command, (err, stdout, stderr) => {
-      if (err) {
-        console.error(`exec error: ${err}`);
-        mainWindow.webContents.send("network_status", false);
-        return;
-      }
-      console.log(`stdout ${stdout.toString()}`);
-      console.log(`stderr ${stderr.toString()}`);
-      
-      if (stdout.toString() == "1") {
+    if (activeConnection.success && activeConnection.stdout.includes(ssid)) {
+      /* Connection is active, and attepts to ping server up to 10 times */
+      const serverConnectionResult = await attemptServerConnection()
+      if (serverConnectionResult) {
+        /* Successfully pings server */
         mainWindow.webContents.send("network_status", true);
       } else {
+        /* cant connect to server, may be wrong password */
+        const deleteResult = deleteConnectionBySSID(ssid)
         mainWindow.webContents.send("network_status", false);
       }
-    });
-  });
+    } else {
+      /* Connection is not active, deletes connection */
+      const deleteResult = deleteConnectionBySSID(ssid)
+      mainWindow.webContents.send("network_status", false);
+    }
+  } else {
+    /* Connection unsuccesful added */
+    mainWindow.webContents.send("network_status", false);
+  }
+
+}
+
+async function attemptServerConnection() {
+  let attempts = 0
+  while (attempts < 10) {
+    const connection = await checkConnectionToServer()
+    console.log(connection);
+
+    if (connection) {
+      console.log("Operation successful!");
+      return true;
+    } else {
+      attempts++;
+      console.log(`Attempt ${attempts} failed. Retrying in 1 second...`);
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Wait for 1 second before retrying
+    }
+  }
+
+  console.log("Exceeded maximum attempts. Operation failed.");
+  return false;
+}
+
+async function deleteConnectionBySSID(ssid) {
+  const deleteCommand =  quote(['nmcli', 'connection', 'delete', ssid]);
+  const deleteResult = await executeCommand(deleteCommand);
+  return deleteResult.success
+}
+
+async function checkConnectionToServer() {
+  const host = store.get("host")
+
+  const command = `curl -I https://${host}/up | grep Status | grep -q 200 && echo 1 || echo 0`
+  
+  const result = await executeCommand(command);
+  console.log(result);
+  if (result.success && result.stdout.toString() == "1") {
+    bleSocket.emit("ble-disable");
+    /* TODO: turn off io socket */
+    if (ethernetInterval) {
+      clearInterval(ethernetInterval)
+      ethernetInterval = null
+    }
+    return true
+  } else {
+    return false
+  }
+
 }
 
 /* 
@@ -333,73 +450,51 @@ async function getSystemStats() {
 /* 
 *   Function for searching after local networks
 */
-function searchNetwork() {
+async function searchNetwork() {
   const command = "nmcli --fields SSID,SECURITY --terse --mode multiline dev wifi list"
+  
+  const result = await executeCommand(command);
 
-  nodeChildProcess.exec(command, (err, stdout, stderr) => {
-    if (err) {
-      console.error(`exec error: ${err}`);
-      return;
-    }
-    console.log(`stdout ${stdout.toString()}`);
-    console.log(`stderr ${stderr.toString()}`);
-    
-    mainWindow.webContents.send("list_of_networks", stdout.toString());
-  });
+  mainWindow.webContents.send("list_of_networks", result.stdout.toString());
 }
 
-function checkForEthernetConnection() {
+async function checkForEthernetConnection() {
   const command = "nmcli device status | grep ethernet | grep -q connected && echo 1 || echo 0"
 
-  nodeChildProcess.exec(command, (err, stdout, stderr) => {
-    if (err) {
-      console.error(`exec error: ${err}`);
-      if (ethernetInterval) {
-        clearInterval(ethernetInterval)
-        ethernetInterval = null
-      }
-      return;
+  const result = await executeCommand(command);
+
+  if (result.success && result.stdout == "1") {
+    if (ethernetInterval) {
+      clearInterval(ethernetInterval)
+      ethernetInterval = null
     }
-    console.log(`stdout ${stdout.toString()}`);
-    console.log(`stderr ${stderr.toString()}`);
-    /* TODO REMOVE ELSE */
-    if (stdout == "1") {
-      if (ethernetInterval) {
-        clearInterval(ethernetInterval)
-        ethernetInterval = null
-      }
-      mainWindow.webContents.send("ethernet_status", stdout.toString());
-    } else {
-      if (ethernetInterval) {
-        clearInterval(ethernetInterval)
-        ethernetInterval = null
-      }
-      mainWindow.webContents.send("ethernet_status", '1');
-    }
-  });
+    mainWindow.webContents.send("ethernet_status", result.stdout.toString());
+  }
 }
 
 /* 
   Adds dns address to /etc/resolv
 */
-function addDNS(name) {
-  
-  const command =  quote(['sudo','sed', '-i', `3inameserver${name}`, '/etc/resolv.conf']);
-  nodeChildProcess.exec(command, (err, stdout, stderr) => {
-    if (err) {
-      console.error(`exec error: ${err}`);
-      return;
-    }
-    console.log(`stdout ${stdout.toString()}`);
-    console.log(`stderr ${stderr.toString()}`);
-  });
+async function addDNS(name) {
+  const command =  quote(['sudo','sed', '-i', `3inameserver ${name}`, '/etc/resolv.conf']);
+
+  const result = await executeCommand(command);
+
+  console.log(result);
+  mainWindow.webContents.send("dns_registred", result.success)
 }
 
 /*
 *   Updates Firmware
 */
-function updateFirmware() {
-  console.log("NOT IMPLEMENTED");
+async function updateFirmware() {
+  const command = "/home/pi/.system-upgrade.sh"
+
+  const result = await executeCommand(command);
+
+  if (result.success) {
+    rebootDevice()
+  }
 }
 
 /*
@@ -407,6 +502,28 @@ function updateFirmware() {
 */
 function updateApp() {
   autoUpdater.checkForUpdates()
+}
+
+/*
+*  Enables BLE by connecting to the local BLE bridge, and registers listeners for BLE events
+*/
+function enableBLE() {
+  console.log('Enabling BLE support..')
+
+  bleSocket.on("ble-enabled", () => {
+    console.log("BLE enabled");
+  });
+  bleSocket.on("rotation", (rotation) => {
+    setRotation(rotation);
+  });
+  bleSocket.on("wifi", (data) => {
+    connectToNetwork(JSON.parse(data));
+  });
+  setTimeout(() => {
+    // Disable BLE after 10 minutes to prevent someone from changing the Wi-Fi
+    bleSocket.emit("ble-disable");
+  }, 60*1000*10);
+  bleSocket.emit("ble-enable");
 }
 
 /*
@@ -420,12 +537,13 @@ function rebootDevice() {
 *   Sends device info
 */
 function sendDeviceInfo() {
-
+  
   var options = {}
   options["Host"] = host
   options["App-version"] = pjson.version
   options["Platform"] = "Electron"
-  
+  options["App-name"] = pjson.name
+    
   mainWindow.webContents.send("send_device_info", options);
 }
 
