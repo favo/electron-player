@@ -348,33 +348,27 @@ async function connectToWPA3Network(ssid, password) {
 
   if (connect.success) {
     /* Connection succesful added */
-    console.log("case 1");
     /* Checks if connection is active */
     const activeConnectionCommand =  quote(['nmcli', 'connection', 'show', '--active']);
     const activeConnection = await executeCommand(activeConnectionCommand);
     
     if (activeConnection.success && activeConnection.stdout.includes(ssid)) {
-      console.log("case 3");
       /* Connection is active, and attepts to ping server up to 10 times */
       const serverConnectionResult = await attemptServerConnection()
       if (serverConnectionResult) {
-        console.log("case 4");
         /* Successfully pings server */
         mainWindow.webContents.send("network_status", true);
       } else {
-        console.log("case 5");
         /* cant connect to server, may be wrong password */
         const deleteResult = deleteConnectionBySSID(ssid)
         mainWindow.webContents.send("network_status", false);
       }
     } else {
-      console.log("case 6");
       /* Connection is not active, deletes connection */
       const deleteResult = deleteConnectionBySSID(ssid)
       mainWindow.webContents.send("network_status", false);
     }
   } else {
-    console.log("case 2");
     /* Connection unsuccesful added */
     mainWindow.webContents.send("network_status", false);
   }
