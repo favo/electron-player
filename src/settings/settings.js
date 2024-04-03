@@ -33,7 +33,11 @@ window.onload = function() {
 
     myStorage = window.localStorage;
     const hasHadConnection =  myStorage.getItem("has-had-connection")
-    hasHadConnection || isOnline ? window.document.body.dataset.hasHadConnection = "true" : window.document.body.dataset.hasHadConnection = "false"
+    if (hasHadConnection || isOnline) {
+      window.document.body.dataset.hasHadConnection = "true"
+    } else {
+      window.document.body.dataset.hasHadConnection = "false"
+    } 
 
     updateShowNetworkSettings()
     
@@ -69,10 +73,7 @@ window.onload = function() {
     } else {
       setStatusMessage("Not connected..")
       spinner.classList.add("error")
-    
     }
-
-
 
     /* 
       Adds events in elements
@@ -150,6 +151,17 @@ window.onload = function() {
         displayListOfNetworks(data)
     });
 
+    window.api.receive("send_connection_status", (data) => {
+      resetSpinner();
+      if (data) {
+        setStatusMessage("Connected!")
+        spinner.classList.add("success")
+      } else {
+        setStatusMessage("Not connected..")
+        spinner.classList.add("error")
+      }
+    });
+
     window.api.receive("send_dev_mode", (data) => {
       window.document.body.dataset.devMode = data
     });
@@ -185,6 +197,8 @@ window.onload = function() {
         setStatusMessage("Not connected..")
       }
     });
+
+    window.api.send("check_server_connection")
 }
 
 function resetSpinner() {
