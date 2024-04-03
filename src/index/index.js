@@ -70,6 +70,7 @@ window.onload = function() {
             case "current_physical_id":
                 myStorage = window.localStorage;
                 physicalID = myStorage.getItem("physicalID") 
+                console.log(physicalID);
                 if (physicalID == null) {
                     myStorage.setItem("physicalID", request.physicalID)
                 } else {

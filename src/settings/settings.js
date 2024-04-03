@@ -1,4 +1,5 @@
 var countdownInterval
+var isConnecting = false
 let refreshButton
 var passwordField
 var errorMessage
@@ -10,19 +11,25 @@ var canvas
 var dns
 
 window.ononline = (event) => {
+  if (! isConnecting) {
     resetSpinner()
     updateShowNetworkSettings()
+    spinner.classList.add("success")
     setStatusMessage("Connected!")
-  };
+  }
+};
+
 window.onoffline = (event) => {
+  if (! isConnecting) {
     resetSpinner()
     updateShowNetworkSettings()
+    spinner.classList.add("error")
     setStatusMessage("Not connected..")
+  }
 };
 
 window.onload = function() {
     const isOnline = window.navigator.onLine
-    isOnline ? setStatusMessage("Connected!") : setStatusMessage("Not connected..")
 
     myStorage = window.localStorage;
     const hasHadConnection =  myStorage.getItem("has-had-connection")
@@ -55,6 +62,16 @@ window.onload = function() {
     ssidField = document.getElementById("network")
     canvas = document.getElementById('canvas')
     dns = document.getElementById("dns")
+
+    if (isOnline) {
+      setStatusMessage("Connected!")
+      spinner.classList.add("success")
+    } else {
+      setStatusMessage("Not connected..")
+      spinner.classList.add("error")
+    
+    }
+
 
 
     /* 
@@ -154,6 +171,7 @@ window.onload = function() {
     
     window.api.receive("network_status", (data) => {
       resetSpinner()
+      isConnecting = false
       console.log("network_status: data: ", data);
       if (data == true) {
         setStatusMessage("Connected!")
@@ -176,6 +194,7 @@ function resetSpinner() {
 }
 
 function connectToNetwork() {
+  isConnecting = true 
   errorMessage.innerHTML = null
 
   const passwordstring = passwordField.value;

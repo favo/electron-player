@@ -32,9 +32,9 @@ body[data-show-network-settings="true"] .connected-network {display: none; }
 body[data-has-had-connection="false"] #lets-go-button {display: none;}
 body[data-dev-mode="true"] #dev-mode {display: flex; flex-direction: column; gap: 0.3em;}
 
-#bottom-left {position: absolute;bottom: 0;left: 0;padding: 1vw;height: 50%;}
-#top-right {position: absolute;top: 0;right: 0;padding: 1vw;height: 16%;}
-#bottom-right {position: absolute;bottom: 0;right: 0;padding: 1vw; font-size: 2vw;}
+#bottom-left {position: absolute;bottom: 0;left: 0;padding: 1vw;height: 50%; pointer-events: none;}
+#top-right {position: absolute;top: 0;right: 0;padding: 1vw;height: 16%; pointer-events: none;}
+#bottom-right {position: absolute;bottom: 0;right: 0;padding: 1vw; font-size: 2vw; pointer-events: none;}
 #canvas {position: absolute; bottom: 10vh; right: 1em;}
 
 #error-message {font-size: 0.8em;}
