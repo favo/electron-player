@@ -1,48 +1,23 @@
-const { app, BrowserWindow, ipcMain, globalShortcut } = require('electron');
+const Utils = require('./utils')
+const NetworkManager = require("./networkManager")
 
+const { app, BrowserWindow, ipcMain, globalShortcut } = require('electron');
 const nodeChildProcess = require('child_process');
-const { promisify } = require('util');
-const execAsync = promisify(nodeChildProcess.exec);
-async function executeCommand(command) {
-  try {
-    const { stdout, stderr } = await execAsync(command); 
-    const result = {
-      success: true,
-      stdout: stdout.trim(),
-      stderr: stderr.trim()
-    }
-    return result;
-  } catch (error) {
-    const result = {
-      success: false,
-      stdout: null,
-      stderr: null,
-      error: error
-    }
-    return result
-  }
-}
 
 const { autoUpdater } = require("electron-updater")
+
 const path = require('path');
-const io = require("socket.io-client");
-let pjson = require('../package.json');
-let fs = require('fs');
-const quote = require('shell-quote/quote');
-const si = require('systeminformation');
+
 const QRCode = require('qrcode')
 
 const Store = require('electron-store');
 const store = new Store();
 
-let bleSocket = io("ws://127.0.0.1:3333");
-
+let host = "http://app.pintomind.com"
+let utils
+let networkManager
 let mainWindow 
 let systemStatsStream
-
-let ethernetInterval = null
-
-let host = "http://app.pintomind.com"
 
 autoUpdater.autoDownload = false
 autoUpdater.autoInstallOnAppQuit = true
@@ -53,12 +28,12 @@ app.commandLine.appendSwitch("disable-gpu-driver-workarounds")
 app.commandLine.appendSwitch("ignore-gpu-blacklist")
 
 const createWindow = () => {
-  // Create the browser window.
+
   mainWindow = new BrowserWindow({
     alwaysOnTop: false,
     width: 1920,
     height: 1080,
-    kiosk: true,
+    kiosk: false,
     webPreferences: { 
       nodeIntegration: false, 
       contextIsolation: true, 
@@ -68,11 +43,14 @@ const createWindow = () => {
     frame: false,
     icon: path.join(__dirname, '../assets/icon/png/logo256.png')
   });
+
+  networkManager = new NetworkManager(mainWindow, store)
+  utils = new Utils(mainWindow)
   
   if (! store.has('firstTime')) {
     mainWindow.loadFile(path.join(__dirname, 'settings/settings.html'));
-    ethernetInterval = setInterval(() => checkForEthernetConnection(), 2000)
-    enableBLE()
+    networkManager.checkForEthernetConnection()
+    networkManager.enableBLE()
   } else {
     mainWindow.loadFile(path.join(__dirname, 'index/index.html'));
   }
@@ -89,8 +67,11 @@ const createWindow = () => {
     mainWindow = null
   })
 
-  autoUpdater.checkForUpdates()
- 
+  try {
+    autoUpdater.checkForUpdates()
+  } catch(err) {
+    console.log(err);
+  }
 };
 
 /*
@@ -107,7 +88,7 @@ app.whenReady().then(() => {
   //  reboot device
   globalShortcut.register('CommandOrControl+A', () => {
     console.log('Rebooting device..')
-    rebootDevice()
+    utils.rebootDevice()
   })
   //  Opens devTools
   globalShortcut.register('CommandOrControl+D+T', () => {
@@ -122,7 +103,7 @@ app.whenReady().then(() => {
   // Updates app
   globalShortcut.register('CommandOrControl+U', () => {
     console.log('Checking and Updating App..')
-    updateApp()
+    utils.updateApp(autoUpdater)
   })
 /*   // Updates Firmware
   globalShortcut.register('CommandOrControl+F', () => {
@@ -159,8 +140,6 @@ app.whenReady().then(() => {
 app.on('ready', () => {
   createWindow()
 });
-
-
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
@@ -174,6 +153,13 @@ app.on('activate', () => {
   }
 });
 
+
+/*
+*   AutoUpdater callbacks
+*/
+autoUpdater.on('error', (error) => {
+  console.log(error);
+}) 
 autoUpdater.on('checking-for-update', (info) => {
   console.log(info);
   mainWindow.webContents.send("open_toaster", "Checking for update")
@@ -183,15 +169,16 @@ autoUpdater.on('update-not-available', (info) => {
   mainWindow.webContents.send("open_toaster", "No updates available")
 }) 
 autoUpdater.on('update-available', (info) => {
+  console.log(info);
   autoUpdater.downloadUpdate()
   mainWindow.webContents.send("open_toaster", "Update available")
-  console.log(info);
 }) 
 autoUpdater.on('download-progress', (info) => {
   console.log(info);
   mainWindow.webContents.send("open_toaster", `Download progress ${info.percent.toFixed(2)}%`)
 }) 
 autoUpdater.on('update-downloaded', (info) => {
+  console.log(info);
   autoUpdater.quitAndInstall()
   mainWindow.webContents.send("open_toaster", "Update downloaded")
 }) 
@@ -201,20 +188,24 @@ autoUpdater.on('update-downloaded', (info) => {
 *   Listeners from renderer. Called when server sends message
 */
 ipcMain.on("reboot_device", (event, arg) => {
-  rebootDevice()
+  utils.rebootDevice()
 })
 ipcMain.on("restart_app", (event, arg) => {
   app.relaunch()
   app.exit()
 })
 ipcMain.on("request_device_info", (event, arg) => {
-  sendDeviceInfo()
+  utils.sendDeviceInfo(host)
 })
 ipcMain.on("upgrade_firmware", (event, arg) => {
-  updateFirmware()
+  utils.updateFirmware()
 })
 ipcMain.on("update_app", (event, arg) => {
-  updateApp()
+  utils.updateApp()
+})
+ipcMain.on("check_server_connection", async (event, arg) => {
+  const status = await networkManager.checkConnectionToServer();
+  mainWindow.webContents.send("send_connection_status", status);
 })
 ipcMain.on("request_system_stats", (event, arg) => {
   if (arg.interval) {
@@ -223,24 +214,24 @@ ipcMain.on("request_system_stats", (event, arg) => {
     } 
 
     systemStatsStream = setInterval(() => {
-      getSystemStats()
+      utils.getSystemStats()
     }, arg.interval)
   }
 
-  getSystemStats()
+  utils.getSystemStats()
 })
 
 /* 
   Listeners from settings page.
 */
 ipcMain.on("change_rotation", (event, arg) => {
-  setRotation(arg)
+  utils.setRotation(arg)
 })
 ipcMain.on("search_after_networks", (event, arg) => {
-  searchNetwork()
+  networkManager.searchNetwork()
 })
 ipcMain.on("connect_to_network", (event, arg) => {
-  connectToNetwork(arg)
+  networkManager.connectToNetwork(arg)
 })
 ipcMain.on("go_to_app", (event, arg) => {
   store.set('firstTime', 'false');
@@ -256,7 +247,7 @@ ipcMain.on("request_host", (event, arg) => {
   mainWindow.webContents.sendInputEvent({type: 'mouseMove', x: 100, y: 100})
 })
 ipcMain.on("connect_to_dns", (event, arg) => {
-  addDNS(arg)
+  networkManager.addDNS(arg)
 })
 ipcMain.on("get_dev_mode", (event, arg) => {
   const devMode = store.get("devMode", false)
@@ -279,288 +270,3 @@ ipcMain.on("get_qr_code", (event, arg) => {
     mainWindow.webContents.send("send_qr_code", url);
   })
 })
-
-/* 
-*   Simple function to rotate the screen using scripts we have added 
-*/
-async function setRotation(rotation) {
-  fs.writeFileSync("./rotation", rotation);
-
-  const command = "/home/pi/.adjust_video.sh"
-
-  const result = await executeCommand(command);
-}
-
-/* 
-*   Function for connection to a network
-*/
-async function connectToNetwork(data) {
-  const ssid = data.ssid
-  const password = data.password
-
-  if (password) {
-    if (data.security.includes("WPA3")) {
-      connectToWPA3Network(ssid, password)
-      return
-    } else {
-      connectToWPANetwork(ssid, password)
-    }
-  } else {
-    connectToUnsecureNetwork(ssid)
-  }
-}
-
-async function connectToUnsecureNetwork(ssid) {
-  const connectCommand = quote(['nmcli', 'device', 'wifi', 'connect', ssid]);
-  const grepCommand = quote(['grep', '-q', 'activated']);
-  const fullCommand = connectCommand + ' | ' + grepCommand;
-
-  const result = await executeCommand(fullCommand);
-
-  if (result.success) {
-    const connection = await checkConnectionToServer()
-    mainWindow.webContents.send("network_status", connection);
-  } else {
-    mainWindow.webContents.send("network_status", false);
-  }
-}
-
-async function connectToWPANetwork(ssid, password) {
-  const connectCommand = quote(['nmcli', 'device', 'wifi', 'connect', ssid, 'password', password]);
-  const grepCommand = quote(['grep', '-q', 'activated']);
-  const fullCommand = connectCommand + ' | ' + grepCommand;
-
-  const result = await executeCommand(fullCommand);
-  
-  if (result.success) {
-    const connection = await checkConnectionToServer()
-    mainWindow.webContents.send("network_status", connection);
-  } else {
-    mainWindow.webContents.send("network_status", false);
-  }
-}
-
-async function connectToWPA3Network(ssid, password) {
-  const connectCommand =  quote(['nmcli', 'connection', 'add', 'type', 'wifi', 'ifname', 'wlan0', 'con-name', ssid, 'ssid', ssid, '--', 'wifi-sec.key-mgmt', 'wpa-psk', 'wifi-sec.psk', password]);
-  
-  const connect = await executeCommand(connectCommand);
-  console.log("connect",connect);
-
-  if (connect.success) {
-    /* Connection succesful added */
-    /* Checks if connection is active */
-    const activeConnectionCommand =  quote(['nmcli', 'connection', 'show', '--active']);
-    const activeConnection = await executeCommand(activeConnectionCommand);
-    
-    if (activeConnection.success && activeConnection.stdout.includes(ssid)) {
-      /* Connection is active, and attepts to ping server up to 10 times */
-      const serverConnectionResult = await attemptServerConnection()
-      if (serverConnectionResult) {
-        /* Successfully pings server */
-        mainWindow.webContents.send("network_status", true);
-      } else {
-        /* cant connect to server, may be wrong password */
-        const deleteResult = deleteConnectionBySSID(ssid)
-        mainWindow.webContents.send("network_status", false);
-      }
-    } else {
-      /* Connection is not active, deletes connection */
-      const deleteResult = deleteConnectionBySSID(ssid)
-      mainWindow.webContents.send("network_status", false);
-    }
-  } else {
-    /* Connection unsuccesful added */
-    mainWindow.webContents.send("network_status", false);
-  }
-
-}
-
-async function attemptServerConnection() {
-  let attempts = 0
-  while (attempts < 10) {
-    const connection = await checkConnectionToServer()
-    console.log(connection);
-
-    if (connection) {
-      console.log("Operation successful!");
-      return true;
-    } else {
-      attempts++;
-      console.log(`Attempt ${attempts} failed. Retrying in 1 second...`);
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Wait for 1 second before retrying
-    }
-  }
-
-  console.log("Exceeded maximum attempts. Operation failed.");
-  return false;
-}
-
-async function deleteConnectionBySSID(ssid) {
-  const deleteCommand =  quote(['nmcli', 'connection', 'delete', ssid]);
-  const deleteResult = await executeCommand(deleteCommand);
-  return deleteResult.success
-}
-
-async function checkConnectionToServer() {
-  const host = store.get("host")
-
-  const command = `curl -I https://${host}/up | grep Status | grep -q 200 && echo 1 || echo 0`
-  
-  const result = await executeCommand(command);
-  console.log(result);
-  if (result.success && result.stdout.toString() == "1") {
-    bleSocket.emit("ble-disable");
-    /* TODO: turn off io socket */
-    if (ethernetInterval) {
-      clearInterval(ethernetInterval)
-      ethernetInterval = null
-    }
-    return true
-  } else {
-    return false
-  }
-
-}
-
-/* 
-* get system stats
-*/
-async function getSystemStats() {
-    var stats = {}
-
-    const cpuLoad = await si.currentLoad()
-    stats["cpu_load"] = cpuLoad.currentLoad
-
-    const memory = await si.mem()
-    stats["total_memory"] = memory.total
-    stats["active_memory"] = memory.active
-
-    const cpuTemp = await si.cpuTemperature()
-    stats["cpu_temp"] = cpuTemp.main
-
-    const cpuSpeed = await si.cpuCurrentSpeed()
-    stats["cpu_speed"] = cpuSpeed.avg
-
-    const time = await si.time()
-    stats["uptime"] = time.uptime
-
-    mainWindow.webContents.send("recieve_system_stats", stats);
-}
-
-/* 
-*   Function for searching after local networks
-*/
-async function searchNetwork() {
-  const command = "nmcli --fields SSID,SECURITY --terse --mode multiline dev wifi list"
-  
-  const result = await executeCommand(command);
-
-  mainWindow.webContents.send("list_of_networks", result.stdout.toString());
-}
-
-async function checkForEthernetConnection() {
-  const command = "nmcli device status | grep ethernet | grep -q connected && echo 1 || echo 0"
-
-  const result = await executeCommand(command);
-
-  if (result.success && result.stdout == "1") {
-    if (ethernetInterval) {
-      clearInterval(ethernetInterval)
-      ethernetInterval = null
-    }
-    mainWindow.webContents.send("ethernet_status", result.stdout.toString());
-  }
-}
-
-/* 
-  Adds dns address to /etc/resolv
-*/
-async function addDNS(name) {
-  const command =  quote(['sudo','sed', '-i', `3inameserver ${name}`, '/etc/resolv.conf']);
-
-  const result = await executeCommand(command);
-
-  console.log(result);
-  mainWindow.webContents.send("dns_registred", result.success)
-}
-
-/*
-*   Updates Firmware
-*/
-async function updateFirmware() {
-  const command = "/home/pi/.system-upgrade.sh"
-
-  const result = await executeCommand(command);
-
-  if (result.success) {
-    rebootDevice()
-  }
-}
-
-/*
-*   Updates Player App
-*/
-function updateApp() {
-  autoUpdater.checkForUpdates()
-}
-
-/*
-*  Enables BLE by connecting to the local BLE bridge, and registers listeners for BLE events
-*/
-function enableBLE() {
-  console.log('Enabling BLE support..')
-
-  bleSocket.on("ble-enabled", () => {
-    console.log("BLE enabled");
-  });
-  bleSocket.on("rotation", (rotation) => {
-    setRotation(rotation);
-  });
-  bleSocket.on("wifi", (data) => {
-    connectToNetwork(JSON.parse(data));
-  });
-  setTimeout(() => {
-    // Disable BLE after 10 minutes to prevent someone from changing the Wi-Fi
-    bleSocket.emit("ble-disable");
-  }, 60*1000*10);
-  bleSocket.emit("ble-enable");
-}
-
-/*
-*   Reboots device
-*/
-function rebootDevice() {
-  nodeChildProcess.execSync("sudo reboot");
-}
-
-/*
-*   Sends device info
-*/
-function sendDeviceInfo() {
-  
-  var options = {}
-  options["Host"] = host
-  options["App-version"] = pjson.version
-  options["Platform"] = "Electron"
-  options["App-name"] = pjson.name
-    
-  mainWindow.webContents.send("send_device_info", options);
-}
-
-function screenShot() {
-  mainWindow.webContents.capturePage({
-    x: 0,
-    y: 0,
-    width: mainWindow.webContents.width,
-    height: mainWindow.webContents.height,
-  })
-  .then((img) => {
-    fs.writeFile("./screenshots/shot.png", img.toPNG(), "base64", function (err) {
-      if (err) throw err;
-      console.log("Saved!");
-    });
-  })
-  .catch((err) => {
-    console.log(err);
-  });
-}

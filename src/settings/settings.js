@@ -1,6 +1,7 @@
 var countdownInterval
 var isConnecting = false
-let refreshButton
+var statusMessage
+var refreshButton
 var passwordField
 var errorMessage
 var hostAddress
@@ -10,37 +11,8 @@ var spinner
 var canvas
 var dns
 
-window.ononline = (event) => {
-  if (! isConnecting) {
-    resetSpinner()
-    updateShowNetworkSettings()
-    spinner.classList.add("success")
-    setStatusMessage("Connected!")
-  }
-};
-
-window.onoffline = (event) => {
-  if (! isConnecting) {
-    resetSpinner()
-    updateShowNetworkSettings()
-    spinner.classList.add("error")
-    setStatusMessage("Not connected..")
-  }
-};
 
 window.onload = function() {
-    const isOnline = window.navigator.onLine
-
-    myStorage = window.localStorage;
-    const hasHadConnection =  myStorage.getItem("has-had-connection")
-    if (hasHadConnection || isOnline) {
-      window.document.body.dataset.hasHadConnection = "true"
-    } else {
-      window.document.body.dataset.hasHadConnection = "false"
-    } 
-
-    updateShowNetworkSettings()
-    
     /* 
       Queryies all elemets neeeded
     */
@@ -54,52 +26,35 @@ window.onload = function() {
     const dnsButton = document.getElementById("register-dns")
     const connectHostButton = document.getElementById("connect-to-host")
     const toggleButton = document.getElementById('toggleButton');
-
+    
     /* 
-      Queryies elements needed also later
+    Queryies elements needed also later
     */
+    statusMessage = document.getElementById("status-message");
     refreshButton = document.getElementById("refresh-button");
-    spinner = document.querySelector(".spinner")
+    errorMessage = document.getElementById("error-message");
     hostAddress = document.getElementById("host-address")
     passwordField = document.getElementById("password")
-    errorMessage = document.getElementById("error-message");
     ssidField = document.getElementById("network")
+    spinner = document.querySelector(".spinner")
     canvas = document.getElementById('canvas')
     dns = document.getElementById("dns")
-
-    if (isOnline) {
-      setStatusMessage("Connected!")
-      spinner.classList.add("success")
-    } else {
-      setStatusMessage("Not connected..")
-      spinner.classList.add("error")
-    }
+    myStorage = window.localStorage;
 
     /* 
       Adds events in elements
     */
     infoskjermenButton.addEventListener("click", (e) => {
-      Array.from(e.target.parentElement.children).forEach(el => {
-        el.classList.remove("selected")
-      })
-      e.target.classList.add("selected")
+      Array.from(e.target.parentElement.children).forEach(el => el.classList.toggle("selected", el == e.target))
       setHost(e.target.value)
     })
     pinToMindButton.addEventListener("click", (e) => {
-      Array.from(e.target.parentElement.children).forEach(el => {
-        el.classList.remove("selected")
-      })
-      e.target.classList.add("selected")
+      Array.from(e.target.parentElement.children).forEach(el => el.classList.toggle("selected", el == e.target))
       setHost(e.target.value)
     })
     toggleButton.addEventListener('click', () => {
-      if (passwordField.type === 'password') {
-        passwordField.type = 'text';
-      } else {
-        passwordField.type = 'password';
-      }
+      passwordField.type === 'password' ? passwordField.type = 'text' : passwordField.type = 'password';
     });
-
     refreshButton.addEventListener("click", () => {
       window.api.send("search_after_networks")
       refreshButton.dataset.status = "pending"
@@ -113,6 +68,7 @@ window.onload = function() {
     dnsButton.addEventListener("click", () => registerDNS());
     connectHostButton.addEventListener("click", () => connectToHost());
     passwordField.addEventListener("input", () => errorMessage.innerHTML = null)
+
 
     const host = myStorage.getItem("host")
     if (host) {
@@ -137,6 +93,7 @@ window.onload = function() {
 
     window.api.send("get_dev_mode");
     window.api.send("get_qr_code");
+    checkServerConnection();
 
     [...rotationButtons].forEach(button => {
         button.addEventListener(("click"), changeRotation)
@@ -149,17 +106,6 @@ window.onload = function() {
 
     window.api.receive("list_of_networks", (data) => {
         displayListOfNetworks(data)
-    });
-
-    window.api.receive("send_connection_status", (data) => {
-      resetSpinner();
-      if (data) {
-        setStatusMessage("Connected!")
-        spinner.classList.add("success")
-      } else {
-        setStatusMessage("Not connected..")
-        spinner.classList.add("error")
-      }
     });
 
     window.api.receive("send_dev_mode", (data) => {
@@ -177,10 +123,23 @@ window.onload = function() {
     });
 
     window.api.receive("send_qr_code", (data) => {
-      //canvas.src = data
+      canvas.src = data
     });
 
-    
+    window.api.receive("send_connection_status", (data) => {
+      resetSpinner();
+      if (data == true) {
+        setStatusMessage("Connected!")
+        spinner.classList.add("success")
+        window.document.body.dataset.showNetworkSettings = false
+      } else {
+        setStatusMessage("Not connected..")
+        spinner.classList.add("error")
+        window.document.body.dataset.showNetworkSettings = true
+        window.api.send("search_after_networks")
+      }
+    });
+
     window.api.receive("network_status", (data) => {
       resetSpinner()
       isConnecting = false
@@ -198,7 +157,6 @@ window.onload = function() {
       }
     });
 
-    window.api.send("check_server_connection")
 }
 
 function resetSpinner() {
@@ -234,13 +192,10 @@ function connectToNetwork() {
   }
 }
 
-function updateShowNetworkSettings() {
-  if (window.navigator.onLine) {
-    window.document.body.dataset.showNetworkSettings = false
-  } else {
-    window.document.body.dataset.showNetworkSettings = true
-    window.api.send("search_after_networks")
-  }
+function checkServerConnection() {
+  spinner.classList.add("spin")
+  setStatusMessage("Connecting...")
+  window.api.send("check_server_connection")
 }
 
 function updateHost() {
@@ -267,9 +222,8 @@ function setHost(host) {
 function changeRotation(e) {
   const orientation = e.target.value
   Array.from(e.target.parentElement.children).forEach(el => {
-    el.classList.remove("selected")
+    el.classList.toggle("selected", el == e.target)
   })
-  e.target.classList.add("selected")
   window.api.send("change_rotation", orientation)
 }
 
@@ -290,7 +244,6 @@ function displayListOfNetworks(data) {
 }
 
 function setStatusMessage(message) {
-    const statusMessage = document.getElementById("status-message")
     statusMessage.innerHTML = message
 }
 
@@ -362,26 +315,14 @@ function connectToHost() {
 }
 
 function findUniqueSSIDs(inputString) {
-    // Split the input string into an array of lines
     const lines = inputString.split('\n');
-  
-    // Create an empty array to store unique SSID objects
     const uniqueSSIDs = [];
-  
-    // Create a set to track unique SSID names
     const uniqueSSIDNames = new Set();
-  
-    // Iterate over each line
+
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
-  
-      // Check if the line starts with "SSID:"
       if (line.trim().startsWith('SSID:')) {
-        // Extract the SSID value by removing "SSID:" and trimming any whitespace
         const ssid = line.replace('SSID:', '').trim();
-  
-
-        // Find the next line that contains "SECURITY:"
         let securityLine;
         for (let j = i + 1; j < lines.length; j++) {
           if (lines[j].trim().startsWith('SECURITY:')) {
@@ -390,26 +331,19 @@ function findUniqueSSIDs(inputString) {
           }
         }
   
-        // Extract the security value by removing "SECURITY:" and trimming any whitespace
         const security = securityLine ? securityLine.replace('SECURITY:', '').trim() : '';
   
-        // Check if the SSID is unique and ssid is not empty string
         if (!uniqueSSIDNames.has(ssid) && ssid) {
-          // Add the SSID name to the set of unique SSIDs
           uniqueSSIDNames.add(ssid);
   
-          // Create a JSON object with ssid and security properties
           const ssidObject = {
             ssid: ssid,
             security: security
           };
   
-          // Add the SSID object to the array
           uniqueSSIDs.push(ssidObject);
         }
       }
     }
-  
-    // Return the array containing unique SSID objects
     return uniqueSSIDs;
   }
