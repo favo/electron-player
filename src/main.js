@@ -4,6 +4,9 @@ const NetworkManager = require("./networkManager")
 const { app, BrowserWindow, ipcMain, globalShortcut } = require('electron');
 const nodeChildProcess = require('child_process');
 
+const Appsignal = require("@appsignal/javascript").default
+const appsignal = new Appsignal({ key: "b2bdf969-f795-467e-b710-6b735163281f" })
+
 const { autoUpdater } = require("electron-updater")
 
 const path = require('path');
@@ -12,6 +15,8 @@ const QRCode = require('qrcode')
 
 const Store = require('electron-store');
 const store = new Store();
+
+const pjson = require('../package.json');
 
 let host = "http://app.pintomind.com"
 let utils
@@ -33,7 +38,7 @@ const createWindow = () => {
     alwaysOnTop: false,
     width: 1920,
     height: 1080,
-    kiosk: false,
+    kiosk: true,
     webPreferences: { 
       nodeIntegration: false, 
       contextIsolation: true, 
@@ -44,13 +49,14 @@ const createWindow = () => {
     icon: path.join(__dirname, '../assets/icon/png/logo256.png')
   });
 
-  networkManager = new NetworkManager(mainWindow, store)
+  networkManager = new NetworkManager(mainWindow, store, goToApp)
   utils = new Utils(mainWindow)
   
+  //TODO: DENNE SKAL PÅ INNSIDEN IGJEN
+  networkManager.enableBLE()
   if (! store.has('firstTime')) {
     mainWindow.loadFile(path.join(__dirname, 'settings/settings.html'));
     networkManager.checkForEthernetConnection()
-    networkManager.enableBLE()
   } else {
     mainWindow.loadFile(path.join(__dirname, 'index/index.html'));
   }
@@ -72,6 +78,7 @@ const createWindow = () => {
   } catch(err) {
     console.log(err);
   }
+
 };
 
 /*
@@ -83,7 +90,13 @@ app.whenReady().then(() => {
     console.log('Restarting app..')
     /* app.relaunch()
     app.exit() */
-    nodeChildProcess.execSync("killall xinit");
+    try {
+      nodeChildProcess.execSync("killall xinit");
+    } catch(error) {
+      appsignal.sendError(error, (span) => {
+        span.setTags({ host: host, version: pjson.version });
+      });
+    }
   })
   //  reboot device
   globalShortcut.register('CommandOrControl+A', () => {
@@ -227,15 +240,19 @@ ipcMain.on("request_system_stats", (event, arg) => {
 ipcMain.on("change_rotation", (event, arg) => {
   utils.setRotation(arg)
 })
-ipcMain.on("search_after_networks", (event, arg) => {
-  networkManager.searchNetwork()
+ipcMain.on("search_after_networks", async (event, arg) => {
+  const result = await networkManager.searchNetwork()
+
+  if (result.success) {
+    mainWindow.webContents.send("list_of_networks", result.stdout.toString());
+  }
 })
-ipcMain.on("connect_to_network", (event, arg) => {
-  networkManager.connectToNetwork(arg)
+ipcMain.on("connect_to_network", async (_event, arg) => {
+  const result = await networkManager.connectToNetwork(arg)
+  mainWindow.webContents.send("network_status", result);
 })
 ipcMain.on("go_to_app", (event, arg) => {
-  store.set('firstTime', 'false');
-  mainWindow.loadFile(path.join(__dirname, 'index/index.html'));
+  goToApp()
 })
 ipcMain.on("set_host", (event, arg) => {
   console.log("Settings host to:", arg);
@@ -270,3 +287,8 @@ ipcMain.on("get_qr_code", (event, arg) => {
     mainWindow.webContents.send("send_qr_code", url);
   })
 })
+
+function goToApp() {
+  store.set('firstTime', 'false');
+  mainWindow.loadFile(path.join(__dirname, 'index/index.html'));
+}

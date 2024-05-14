@@ -1,17 +1,21 @@
 const quote = require('shell-quote/quote');
 const { executeCommand } = require('./executeCommand.js');
+const { setRotation } = require('./utils.js');
+const fs = require('fs');
 
 const io = require("socket.io-client");
 let bleSocket = io("ws://127.0.0.1:3333");
 
-
+// TODO: Slette eksisterende nettverk hvis man kobler til et nytt et. 
 
 class NetworkManager {
 
-    constructor(mainWindow, store) {
+    //TODO Fjerne classe og heller bruke export.modules funksjoner..
+    constructor(mainWindow, store, goToApp) {
         this.mainWindow = mainWindow
         this.store = store
         this.ethernetInterval = null
+        this.goToApp = goToApp
     }
 
     /* 
@@ -20,11 +24,7 @@ class NetworkManager {
     async searchNetwork() {
         const command = "nmcli --fields SSID,SECURITY --terse --mode multiline dev wifi list"
         
-        const result = await executeCommand(command);
-    
-        if (result.success) {
-            this.mainWindow.webContents.send("list_of_networks", result.stdout.toString());
-        }
+        return await executeCommand(command);
     }
 
     /* 
@@ -34,16 +34,19 @@ class NetworkManager {
     async connectToNetwork(data) {
         const ssid = data.ssid
         const password = data.password
+        var result
 
         if (password) {
             if (data.security.includes("WPA3")) {
-                this.connectToWPA3Network(ssid, password)
+                result = this.connectToWPA3Network(ssid, password)
             } else {
-                this.connectToWPANetwork(ssid, password)
+                result = this.connectToWPANetwork(ssid, password)
             }
         } else {
-                this.connectToUnsecureNetwork(ssid)
+                result = this.connectToUnsecureNetwork(ssid)
         }
+
+        return result
     }
 
 
@@ -59,10 +62,9 @@ class NetworkManager {
         const result = await executeCommand(fullCommand);
 
         if (result.success) {
-            const connection = await this.checkConnectionToServer()
-            this.mainWindow.webContents.send("network_status", connection);
+            return await this.checkConnectionToServer()
         } else {
-            this.mainWindow.webContents.send("network_status", false);
+            return false
         }
     }
 
@@ -79,10 +81,9 @@ class NetworkManager {
         const result = await executeCommand(fullCommand);
 
         if (result.success) {
-            const connection = await this.checkConnectionToServer()
-            this.mainWindow.webContents.send("network_status", connection);
+            return await this.checkConnectionToServer()
         } else {
-            this.mainWindow.webContents.send("network_status", false);
+            return false
         }
     }
 
@@ -99,10 +100,9 @@ class NetworkManager {
         const result = await executeCommand(fullCommand);
 
         if (result.success) {
-            const connection = await this.checkConnectionToServer()
-            this.mainWindow.webContents.send("network_status", connection);
+            return await this.checkConnectionToServer()
         } else {
-            this.mainWindow.webContents.send("network_status", false);
+            return false
         }
     }
 
@@ -115,7 +115,6 @@ class NetworkManager {
         const connectCommand =  quote(['nmcli', 'connection', 'add', 'type', 'wifi', 'ifname', 'wlan0', 'con-name', ssid, 'ssid', ssid, '--', 'wifi-sec.key-mgmt', 'wpa-psk', 'wifi-sec.psk', password]);
 
         const connect = await executeCommand(connectCommand);
-        console.log("connect",connect);
 
         if (connect.success) {
             /* Connection succesful added */
@@ -128,20 +127,20 @@ class NetworkManager {
                 const serverConnectionResult = await this.attemptServerConnection()
                 if (serverConnectionResult) {
                     /* Successfully pings server */
-                    this.mainWindow.webContents.send("network_status", true);
+                    return true
                 } else {
                     /* cant connect to server, may be wrong password */
                     const deleteResult = this.deleteConnectionBySSID(ssid)
-                    this.mainWindow.webContents.send("network_status", false);
+                    return false
                 }
             } else {
                 /* Connection is not active, deletes connection */
                 const deleteResult = this.deleteConnectionBySSID(ssid)
-                this.mainWindow.webContents.send("network_status", false);
+                return false
             }
         } else {
             /* Connection unsuccesful added */
-            this.mainWindow.webContents.send("network_status", false);
+            return false
         }
     }
 
@@ -153,7 +152,7 @@ class NetworkManager {
         const deleteCommand =  quote(['nmcli', 'connection', 'delete', ssid]);
         const deleteResult = await executeCommand(deleteCommand);
         return deleteResult.success
-    }
+    }  
 
     /* 
     *   Checks connection to server
@@ -233,25 +232,90 @@ class NetworkManager {
     *  Enables BLE by connecting to the local BLE bridge, and registers listeners for BLE events
     */
     enableBLE() {
+        console.log("Enabeling bluetooth");
         bleSocket.on("ble-enabled", () => {
             console.log("BLE enabled");
         });
 
         bleSocket.on("rotation", (rotation) => {
-            setRotation(rotation);
+            this.setRotation(rotation);
         });
 
-        bleSocket.on("wifi", (data) => {
-            this.connectToNetwork(JSON.parse(data));
+        bleSocket.on("wifi", async (data) => {
+            console.log(data);
+            const result = await this.connectToNetwork(JSON.parse(data));
+            bleSocket.emit("network-connection-result", result)
         });
 
-        setTimeout(() => {
-            // Disable BLE after 10 minutes to prevent someone from changing the Wi-Fi
-            bleSocket.emit("ble-disable");
-        }, 60*1000*10);
+        bleSocket.on("host", (host) => {
+            // TODO SET HOST
+        });
 
-        bleSocket.emit("ble-enable");
+        bleSocket.on("finish-setup", () => {
+           this.goToApp() 
+        });
+
+        bleSocket.on("get-network-list", async () => {
+            const result = await this.searchNetwork()
+
+            if (result.success) {
+                const networkList = this.findUniqueSSIDs(result.stdout.toString())
+                bleSocket.emit("list-of-networks", networkList)
+            }
+        })
+
+        // setTimeout(() => {
+        //     // Disable BLE after 10 minutes to prevent someone from changing the Wi-Fi
+        //     bleSocket.emit("ble-disable");
+        // }, 60*1000*10);
+
+        bleSocket.emit("ble-enable", "pintomind player - abc123");
     }
+
+    /* 
+    *   Simple to rotate the screen using scripts we have added 
+    */
+     async setRotation(rotation) {
+        fs.writeFileSync("./rotation", rotation);
+    
+        const command = "/home/pi/.adjust_video.sh"
+    
+        const result = await executeCommand(command);
+    }
+
+    findUniqueSSIDs(inputString) {
+        const lines = inputString.split('\n');
+        const uniqueSSIDs = [];
+        const uniqueSSIDNames = new Set();
+    
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i];
+          if (line.trim().startsWith('SSID:')) {
+            const ssid = line.replace('SSID:', '').trim();
+            let securityLine;
+            for (let j = i + 1; j < lines.length; j++) {
+              if (lines[j].trim().startsWith('SECURITY:')) {
+                securityLine = lines[j];
+                break;
+              }
+            }
+      
+            const security = securityLine ? securityLine.replace('SECURITY:', '').trim() : '';
+      
+            if (!uniqueSSIDNames.has(ssid) && ssid) {
+              uniqueSSIDNames.add(ssid);
+      
+              const ssidObject = {
+                ssid: ssid,
+                security: security
+              };
+      
+              uniqueSSIDs.push(ssidObject);
+            }
+          }
+        }
+        return uniqueSSIDs;
+      }
 }
 
 module.exports = NetworkManager;
