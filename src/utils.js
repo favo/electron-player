@@ -1,108 +1,185 @@
-const { executeCommand } = require('./executeCommand.js');
-const nodeChildProcess = require('child_process');
-const pjson = require('../package.json');
-const si = require('systeminformation');
-const fs = require('fs');
+const nodeChildProcess = require("child_process");
+const pjson = require("../package.json");
+const si = require("systeminformation");
+const fs = require("fs");
 
-class Utils {
+const { promisify } = require("util");
+const execAsync = promisify(nodeChildProcess.exec);
 
-    constructor(mainWindow) {
-        this.mainWindow = mainWindow
-    }
+const Appsignal = require("@appsignal/javascript").default;
+const appsignal = new Appsignal({
+    key: "b2bdf969-f795-467e-b710-6b735163281f",
+});
 
-    /* 
-    * Get system stats and send back to mainWindow
-    */
-    async getSystemStats() {
-        var stats = {}
-
-        const cpuLoad = await si.currentLoad()
-        stats["cpu_load"] = cpuLoad.currentLoad
-
-        const memory = await si.mem()
-        stats["total_memory"] = memory.total
-        stats["active_memory"] = memory.active
-
-        const cpuTemp = await si.cpuTemperature()
-        stats["cpu_temp"] = cpuTemp.main
-
-        const cpuSpeed = await si.cpuCurrentSpeed()
-        stats["cpu_speed"] = cpuSpeed.avg
-
-        const time = await si.time()
-        stats["uptime"] = time.uptime
-
-        this.mainWindow.webContents.send("recieve_system_stats", stats);
-    }
-
+const utils = (module.exports = {
     /*
-    *  Function for updating firmware
-    */
-    async updateFirmware() {
-        const command = "/home/pi/.system-upgrade.sh"
-    
-        const result = await executeCommand(command);
-    
-        if (result.success) {
-            rebootDevice()
+     * Helper function: runs command and returns object with success, stout, stderr and error
+     */
+    async executeCommand(command) {
+        try {
+            const { stdout, stderr } = await execAsync(command);
+            const result = {
+                success: true,
+                stdout: stdout.trim(),
+                stderr: stderr.trim(),
+            };
+            return result;
+        } catch (error) {
+            appsignal.sendError(error, (span) => {
+                span.setTags({ version: pjson.version });
+            });
+            const result = {
+                success: false,
+                stdout: null,
+                stderr: null,
+                error: error,
+            };
+            return result;
         }
-    }
+    },
 
     /*
-    *   Reboots device
-    */
+     * Get system stats and send back to mainWindow
+     */
+    async getSystemStats() {
+        var stats = {};
+
+        const cpuLoad = await si.currentLoad();
+        stats["cpu_load"] = cpuLoad.currentLoad;
+
+        const memory = await si.mem();
+        stats["total_memory"] = memory.total;
+        stats["active_memory"] = memory.active;
+
+        const cpuTemp = await si.cpuTemperature();
+        stats["cpu_temp"] = cpuTemp.main;
+
+        const cpuSpeed = await si.cpuCurrentSpeed();
+        stats["cpu_speed"] = cpuSpeed.avg;
+
+        const time = await si.time();
+        stats["uptime"] = time.uptime;
+
+        return stats;
+    },
+
+    /*
+     *  Function for updating firmware
+     */
+    async updateFirmware() {
+        const command = "/home/pi/.system-upgrade.sh";
+
+        const result = await utils.executeCommand(command);
+
+        if (result.success) {
+            rebootDevice();
+        }
+    },
+
+    /*
+     *   Reboots device
+     */
     rebootDevice() {
-        nodeChildProcess.execSync("sudo reboot");
-    }
-    
-    /*
-    *   Sends device info to mainWindow
-    */
-    sendDeviceInfo(host) {
-        
-        var options = {}
-        options["Host"] = host
-        options["App-version"] = pjson.version
-        options["Platform"] = "Electron"
-        options["App-name"] = pjson.name
-        
-        this.mainWindow.webContents.send("send_device_info", options);
-    }
-    
-    /*
-    *   Updates Player App
-    */
-    updateApp(autoUpdater) {
-        autoUpdater.checkForUpdates()
-    }
+        try {
+            nodeChildProcess.execSync("sudo reboot");
+        } catch (error) {
+            appsignal.sendError(error, (span) => {
+                span.setTags({ version: pjson.version });
+            });
+        }
+    },
 
-    /* 
-    *   Simple to rotate the screen using scripts we have added 
-    */
+    /*
+     *   Sends device info to mainWindow
+     */
+    sendDeviceInfo(host) {
+        var options = {};
+        options["Host"] = host;
+        options["App-version"] = pjson.version;
+        options["Platform"] = "Electron";
+        options["App-name"] = pjson.name;
+
+        return options;
+    },
+
+    /*
+     *   Updates Player App
+     */
+    updateApp(autoUpdater) {
+        try {
+            autoUpdater.checkForUpdates();
+        } catch (error) {
+            appsignal.sendError(error, (span) => {
+                span.setTags({ version: pjson.version });
+            });
+        }
+    },
+
+    /*
+     *   Simple to rotate the screen using scripts we have added
+     */
     async setRotation(rotation) {
         fs.writeFileSync("./rotation", rotation);
-    
-        const command = "/home/pi/.adjust_video.sh"
-    
-        const result = await executeCommand(command);
-    }
+
+        const command = "/home/pi/.adjust_video.sh";
+
+        const result = await utils.executeCommand(command);
+    },
 
     /*
-    *   Screenshots mainWindow
-    */
+     *   Screenshots mainWindow
+     */
     screenShot() {
-        this.mainWindow.webContents.capturePage({
-            x: 0,   
-            y: 0,
-            width: this.mainWindow.webContents.width,
-            height: this.mainWindow.webContents.height,
-        }).then((img) => {
-            fs.writeFile("./screenshots/shot.png", img.toPNG(), "base64", function (err) {
-                if (err) throw err;
-                console.log("Saved!");
-            });
-        }).catch((err) => console.log(err));
-    }
-}
+        mainWindow.webContents
+            .capturePage({
+                x: 0,
+                y: 0,
+                width: this.mainWindow.webContents.width,
+                height: this.mainWindow.webContents.height,
+            })
+            .then((img) => {
+                fs.writeFile("./screenshots/shot.png", img.toPNG(), "base64", function (err) {
+                    if (err) throw err;
+                    console.log("Saved!");
+                });
+            })
+            .catch((err) => console.log(err));
+    },
 
-module.exports = Utils;
+    /*
+     *   Helper function for finding unique SSIDs and returning a list of jsons
+     */
+    findUniqueSSIDs(inputString) {
+        const lines = inputString.split("\n");
+        const uniqueSSIDs = [];
+        const uniqueSSIDNames = new Set();
+
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            if (line.trim().startsWith("SSID:")) {
+                const ssid = line.replace("SSID:", "").trim();
+                let securityLine;
+                for (let j = i + 1; j < lines.length; j++) {
+                    if (lines[j].trim().startsWith("SECURITY:")) {
+                        securityLine = lines[j];
+                        break;
+                    }
+                }
+
+                const security = securityLine ? securityLine.replace("SECURITY:", "").trim() : "";
+
+                if (!uniqueSSIDNames.has(ssid) && ssid) {
+                    uniqueSSIDNames.add(ssid);
+
+                    const ssidObject = {
+                        ssid: ssid,
+                        security: security,
+                    };
+
+                    uniqueSSIDs.push(ssidObject);
+                }
+            }
+        }
+        return uniqueSSIDs;
+    },
+});
