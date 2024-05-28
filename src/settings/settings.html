@@ -61,23 +61,31 @@
               <button id="connect-another-button">Connect to another network</button>
             </div>
 
-            <div class="network-settings">
+            <div class="network-settings" data-hidden-ssid="0">
               <label for="" style="display: flex;justify-content: center;">Select network</label>
               <div>
                 <div class="networks">
                   <label class="small" for="" style="display: block;">SSID</label>
-                  <div class="flex">
-                    <select name="" id="network" style="display: inline-flex;"></select>
+                  <div class="flex ssid">
+                    <select name="" id="network" style="display: inline-flex;">
+                      <option value="Skuggedal" data-security="WPA3">Skuggedal</option>
+                    </select>
                     <button id="refresh-button" style="display: inline-flex;">
                       Refresh
                       <img src="../../assets/arrow-clockwise.svg" alt="">
                     </button>
                   </div>
+                  <div class="flex hidden">
+                    <input type="text" id="hidden-network" style="display: inline-flex; width: 100%;">
+                  </div>
                 </div>
+
+                <button id="hidden-network-button">Hidden network?</button>
+                
                 <div class="password-box" style="width: 100%;">
                   <label class="small" for="" style="display: block;">Password</label>
                   <div class="multibutton">
-                    <input id="password" type="password" placeholder="Enter password" style="display: inline-flex;">
+                    <input id="password" type="password" placeholder="Enter password" style="display: inline-flex; ">
                     <button id="toggleButton" style="display: inline-flex;"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><path d="M128,56C48,56,16,128,16,128s32,72,112,72,112-72,112-72S208,56,128,56Z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><circle cx="128" cy="128" r="40" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg></button>
                     <button id="connect-button" style="display: inline-flex;">Connect</button>
                   </div>

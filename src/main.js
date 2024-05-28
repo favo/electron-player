@@ -46,9 +46,8 @@ const createWindow = () => {
         icon: path.join(__dirname, "../assets/icon/png/logo256.png"),
     });
 
-    //TODO: DENNE SKAL PÅ INNSIDEN IGJEN
-    NetworkManager.enableBLE();
     if (!store.has("firstTime")) {
+        NetworkManager.enableBLE();
         mainWindow.loadFile(path.join(__dirname, "settings/settings.html"));
         checkEthernetConnection();
     } else {
@@ -111,11 +110,11 @@ app.whenReady().then(() => {
         console.log("Checking and Updating App..");
         updateApp(autoUpdater);
     });
-    /*   // Updates Firmware
-  globalShortcut.register('CommandOrControl+F', () => {
-    console.log('Updating firmware...')
-    updateFirmware()
-  }) */
+    //Updates firmware
+    globalShortcut.register("CommandOrControl+F", () => {
+        console.log("Updating firmware...");
+        updateFirmware();
+    });
     /*   // Takes screenshot
   globalShortcut.register('CommandOrControl+P', () => {
     screenShot()
@@ -222,7 +221,20 @@ ipcMain.on("update_app", (event, arg) => {
 
 ipcMain.on("check_server_connection", async (event, arg) => {
     const status = await NetworkManager.checkConnectionToServer();
-    mainWindow.webContents.send("send_connection_status", status);
+    mainWindow.webContents.send("connect_to_network_status", status);
+});
+
+ipcMain.on("connect_to_network", async (_event, arg) => {
+    const result = await NetworkManager.connectToNetwork(arg);
+    mainWindow.webContents.send("connect_to_network_status", result);
+});
+
+ipcMain.on("search_after_networks", async (event, arg) => {
+    const result = await NetworkManager.searchNetwork();
+
+    if (result.success) {
+        mainWindow.webContents.send("list_of_networks", result.stdout.toString());
+    }
 });
 
 ipcMain.on("request_system_stats", (event, arg) => {
@@ -246,19 +258,6 @@ ipcMain.on("request_system_stats", (event, arg) => {
 */
 ipcMain.on("change_rotation", (event, arg) => {
     setRotation(arg);
-});
-
-ipcMain.on("search_after_networks", async (event, arg) => {
-    const result = await NetworkManager.searchNetwork();
-
-    if (result.success) {
-        mainWindow.webContents.send("list_of_networks", result.stdout.toString());
-    }
-});
-
-ipcMain.on("connect_to_network", async (_event, arg) => {
-    const result = await NetworkManager.connectToNetwork(arg);
-    mainWindow.webContents.send("network_status", result);
 });
 
 ipcMain.on("go_to_app", (_event, _arg) => {

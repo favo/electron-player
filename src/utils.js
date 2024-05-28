@@ -15,10 +15,11 @@ const utils = (module.exports = {
     /*
      * Helper function: runs command and returns object with success, stout, stderr and error
      */
-    async executeCommand(command) {
+    async executeCommand(command, type = null) {
         try {
             const { stdout, stderr } = await execAsync(command);
             const result = {
+                type: type,
                 success: true,
                 stdout: stdout.trim(),
                 stderr: stderr.trim(),
@@ -29,6 +30,7 @@ const utils = (module.exports = {
                 span.setTags({ version: pjson.version });
             });
             const result = {
+                type: type,
                 success: false,
                 stdout: null,
                 stderr: null,

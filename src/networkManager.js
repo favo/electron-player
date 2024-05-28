@@ -1,5 +1,5 @@
 const quote = require("shell-quote/quote");
-const { setRotation, executeCommand } = require("./utils.js");
+const { setRotation, executeCommand, findUniqueSSIDs } = require("./utils.js");
 const fs = require("fs");
 
 const io = require("socket.io-client");
@@ -10,11 +10,12 @@ const { ipcMain } = require("electron");
 const Store = require("electron-store");
 const store = new Store();
 
-// TODO: Slette eksisterende nettverk hvis man kobler til et nytt et.
+let lastConnectionSSID;
 
 const networkManager = (module.exports = {
     /*
-     *   Function for searching after local networks
+     *  Function for searching after local networks
+     *  return {String} string with ssid and security
      */
     async searchNetwork() {
         const command = "nmcli --fields SSID,SECURITY --terse --mode multiline dev wifi list";
@@ -29,58 +30,92 @@ const networkManager = (module.exports = {
     async connectToNetwork(data) {
         const ssid = data.ssid;
         const password = data.password;
-        let result = false;
+        const security = data.security || "";
+        const options = data.options || {};
 
-        if (password) {
-            if (data.security.includes("WPA3")) {
-                result = networkManager.connectToWPA3Network(ssid, password);
-            } else {
-                result = networkManager.connectToWPANetwork(ssid, password);
-            }
-        } else {
-            result = networkManager.connectToUnsecureNetwork(ssid);
+        if (lastConnectionSSID != null) {
+            await networkManager.deleteConnectionBySSID(lastConnectionSSID);
         }
 
-        return result;
+        lastConnectionSSID = ssid;
+
+        if (options.hidden) {
+            return await networkManager.connectToHiddenNetwork(ssid, password);
+        }
+
+        if (security.includes("WPA") && password) {
+            return await networkManager.connectToWPANetwork(ssid, password);
+        } else {
+            return await networkManager.connectToUnsecureNetwork(ssid);
+        }
+    },
+
+    /*
+     * Function for resolving a connection attempt
+     * @param {JSONObject} connection
+     * @param {String} ssid
+     * return {JSONObject}
+     */
+    async resolveNetworkConnection(connection, ssid) {
+        console.log("resolveNetworkConnection", connection);
+        if (connection.success) {
+            /* Connection succesful added */
+
+            /* Checks and wait if connection is active */
+            const activeConnection = await networkManager.waitForActiveConnection(ssid);
+
+            if (activeConnection) {
+                /* Connection is active */
+
+                /* Attemps to connect to server */
+                const serverConnectionResult = await networkManager.attemptServerConnection();
+
+                if (serverConnectionResult.success && serverConnectionResult.stdout.toString() == "1") {
+                    /* Successfully pings server */
+                    return serverConnectionResult;
+                } else {
+                    /* cant connect to server, may be wrong password */
+                    networkManager.deleteConnectionBySSID(ssid);
+
+                    return serverConnectionResult;
+                }
+            } else {
+                /* Connection is not active, deletes connection */
+                networkManager.deleteConnectionBySSID(ssid);
+
+                return activeConnection;
+            }
+        } else {
+            /* Connection unsuccesful added */
+            return connection;
+        }
     },
 
     /*
      * Function for connection to a unsecure network
      * @param {String} ssid
-     * return {Boolean}
+     * return {JSONObject}
      */
     async connectToUnsecureNetwork(ssid) {
         const connectCommand = quote(["nmcli", "device", "wifi", "connect", ssid]);
-        const grepCommand = quote(["grep", "-q", "activated"]);
-        const fullCommand = connectCommand + " | " + grepCommand;
 
-        const result = await executeCommand(fullCommand);
+        const connection = await executeCommand(connectCommand, "Unsecure network connection");
 
-        if (result.success) {
-            return await networkManager.checkConnectionToServer();
-        } else {
-            return false;
-        }
+        return await networkManager.resolveNetworkConnection(connection, ssid);
     },
 
     /*
-     * Function for connection to a WPA network
+     * Function for connection to a WPA3 network
      * @param {String} ssid
      * @param {String} password
-     * return {Boolean}
+     * return {JSONObject}
      */
     async connectToWPANetwork(ssid, password) {
-        const connectCommand = quote(["nmcli", "device", "wifi", "connect", ssid, "password", password]);
-        const grepCommand = quote(["grep", "-q", "activated"]);
-        const fullCommand = connectCommand + " | " + grepCommand;
+        const connectCommand = quote(["nmcli", "connection", "add", "type", "wifi", "ifname", "wlan0", "con-name", ssid, "ssid", ssid, "--", "wifi-sec.key-mgmt", "wpa-psk", "wifi-sec.psk", password]);
 
-        const result = await executeCommand(fullCommand);
+        const connection = await executeCommand(connectCommand, "WPA network connection");
 
-        if (result.success) {
-            return await networkManager.checkConnectionToServer();
-        } else {
-            return false;
-        }
+        return await networkManager.resolveNetworkConnection(connection, ssid);
     },
 
     /*
@@ -90,66 +125,72 @@ const networkManager = (module.exports = {
      * return {Boolean}
      */
     async connectToHiddenNetwork(ssid, password) {
-        const connectCommand = quote(["nmcli", "device", "wifi", "connect", ssid, "password", password, "hidden", "yes"]);
-        const grepCommand = quote(["grep", "-q", "activated"]);
-        const fullCommand = connectCommand + " | " + grepCommand;
+        const addConnectionCommand = quote(["nmcli", "conn", "add", "type", "wifi", "ifname", "wlan0", "con-name", ssid, "ssid", ssid, "--", "wifi-sec.key-mgmt", "wpa-psk", "wifi-sec.psk", password]);
 
-        const result = await executeCommand(fullCommand);
+        const connectionResult = await executeCommand(addConnectionCommand, "Network connection");
 
-        if (result.success) {
-            return await networkManager.checkConnectionToServer();
-        } else {
-            return false;
-        }
-    },
+        console.log("connectionResult", connectionResult);
+        if (connectionResult.success && connectionResult.stdout.includes("successfully added")) {
+            const connectCommand = quote(["nmcli", "conn", "up", ssid]);
 
-    /*
-     * Function for connection to a WPA3 network
-     * @param {String} ssid
-     * @param {String} password
-     * return {Boolean}
-     */
-    async connectToWPA3Network(ssid, password) {
-        const connectCommand = quote(["nmcli", "connection", "add", "type", "wifi", "ifname", "wlan0", "con-name", ssid, "ssid", ssid, "--", "wifi-sec.key-mgmt", "wpa-psk", "wifi-sec.psk", password]);
+            const connectResult = await executeCommand(connectCommand);
 
-        const connect = await executeCommand(connectCommand);
-
-        if (connect.success) {
-            /* Connection succesful added */
-            /* Checks if connection is active */
-            const activeConnectionCommand = quote(["nmcli", "connection", "show", "--active"]);
-            const activeConnection = await executeCommand(activeConnectionCommand);
-
-            if (activeConnection.success && activeConnection.stdout.includes(ssid)) {
-                /* Connection is active, and attepts to ping server up to 10 times */
+            console.log("connectResult", connectResult);
+            if (connectResult.success && connectResult.stdout.includes("Connection successfully activated")) {
+                /* Attemps to connect to server */
                 const serverConnectionResult = await networkManager.attemptServerConnection();
-                if (serverConnectionResult) {
+
+                if (serverConnectionResult.success && serverConnectionResult.stdout.toString() == "1") {
                     /* Successfully pings server */
-                    return true;
+                    return serverConnectionResult;
                 } else {
                     /* cant connect to server, may be wrong password */
-                    const deleteResult = networkManager.deleteConnectionBySSID(ssid);
-                    return false;
+                    networkManager.deleteConnectionBySSID(ssid);
+
+                    return serverConnectionResult;
                 }
             } else {
-                /* Connection is not active, deletes connection */
-                const deleteResult = networkManager.deleteConnectionBySSID(ssid);
-                return false;
+                /* Connection not successfully activated, possible wrong password */
+
+                networkManager.deleteConnectionBySSID(ssid);
+                return connectResult;
             }
         } else {
-            /* Connection unsuccesful added */
-            return false;
+            return connectionResult;
         }
     },
 
     /*
-     * Deletes ssid connection by SSID
-     * @param {String} ssid
+     *   Checks and waits for connection to be activated
+     *   @param {String} ssid
+     *   return {Boolean}
      */
-    async deleteConnectionBySSID(ssid) {
-        const deleteCommand = quote(["nmcli", "connection", "delete", ssid]);
-        const deleteResult = await executeCommand(deleteCommand);
-        return deleteResult.success;
+    async waitForActiveConnection(ssid) {
+        const connectionStateCommand = quote(["nmcli", "-f", "GENERAL.STATE", "connection", "show", ssid]);
+
+        let attempts = 0;
+        let connectionState;
+        while (attempts < 50) {
+            connectionState = await executeCommand(connectionStateCommand);
+
+            console.log("waitForActiveConnection", connectionState);
+            if (connectionState.success && connectionState.stdout.includes("activated")) {
+                return true;
+            } else if (connectionState.success && connectionState.stdout.includes("activating")) {
+                attempts++;
+                console.log(`waitForActiveConnection: Attempt ${attempts} failed. Retrying in 0.5 second...`);
+                await new Promise((resolve) => setTimeout(resolve, 500));
+            } else if (connectionState.success && connectionState.stdout.includes("deactivated")) {
+                return false;
+            } else {
+                attempts++;
+                console.log(`waitForActiveConnection: Attempt ${attempts} failed. Retrying in 0.5 second...`);
+                await new Promise((resolve) => setTimeout(resolve, 500));
+            }
+        }
+
+        console.log("Exceeded maximum attempts. Operation failed.");
+        return false;
     },
 
     /*
@@ -160,19 +201,7 @@ const networkManager = (module.exports = {
 
         const command = `curl -I https://${host}/up | grep Status | grep -q 200 && echo 1 || echo 0`;
 
-        const result = await executeCommand(command);
-
-        if (result.success && result.stdout.toString() == "1") {
-            bleSocket.emit("ble-disable");
-            /* TODO: turn off io socket */
-            if (this.ethernetInterval) {
-                clearInterval(this.ethernetInterval);
-                this.ethernetInterval = null;
-            }
-            return true;
-        } else {
-            return false;
-        }
+        return await executeCommand(command, "server connection");
     },
 
     /*
@@ -180,20 +209,35 @@ const networkManager = (module.exports = {
      */
     async attemptServerConnection() {
         let attempts = 0;
-        while (attempts < 10) {
-            const connection = await networkManager.checkConnectionToServer();
+        let connection;
 
-            if (connection) {
-                return true;
+        while (attempts < 20) {
+            connection = await networkManager.checkConnectionToServer();
+
+            if (connection.success && connection.stdout.toString() == "1") {
+                return connection;
             } else {
                 attempts++;
                 console.log(`Attempt ${attempts} failed. Retrying in 0.5 second...`);
-                await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait for 1 second before retrying
+                await new Promise((resolve) => setTimeout(resolve, 500)); // Wait for 1 second before retrying
             }
         }
 
         console.log("Exceeded maximum attempts. Operation failed.");
-        return false;
+        return connection;
+    },
+
+    /*
+     * Deletes ssid connection by SSID
+     * @param {String} ssid
+     */
+    async deleteConnectionBySSID(ssid) {
+        console.log("Deleting connection:", ssid);
+        const deleteCommand = quote(["nmcli", "connection", "delete", ssid]);
+        const deleteResult = await executeCommand(deleteCommand, "delete ssid");
+        lastConnectionSSID = null;
+        console.log("Connection deleted:", deleteResult);
+        return deleteResult.success;
     },
 
     /*
@@ -227,7 +271,7 @@ const networkManager = (module.exports = {
         });
 
         bleSocket.on("wifi", async (data) => {
-            const result = await connectToNetwork(JSON.parse(data));
+            const result = await networkManager.connectToNetwork(JSON.parse(data));
             bleSocket.emit("network-connection-result", result);
         });
 
@@ -243,7 +287,7 @@ const networkManager = (module.exports = {
             const result = await networkManager.searchNetwork();
 
             if (result.success) {
-                const networkList = networkManager.findUniqueSSIDs(result.stdout.toString());
+                const networkList = findUniqueSSIDs(result.stdout.toString());
                 bleSocket.emit("list-of-networks", networkList);
             }
         });
@@ -253,8 +297,6 @@ const networkManager = (module.exports = {
         //     bleSocket.emit("ble-disable");
         // }, 60*1000*10);
 
-        bleSocket.emit("ble-enable", "pintomind player - abc123");
+        bleSocket.emit("ble-enable");
     },
 });
-
-// TODO: kommunikasjon tilbake til main

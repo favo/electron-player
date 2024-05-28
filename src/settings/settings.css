@@ -19,6 +19,12 @@ input, select { min-width: 15em; }
 .network-settings {display: none;}
 #dev-mode {display: none;}
 .ethernet-connected {position: absolute; display: none; justify-content: center; align-items: center; height: 100%; width: 100%; flex-direction: column;}
+#hidden-network-button {font-size: 0.7em; text-align: center; padding: 0; border: 0; display: inline-flex; margin-bottom: 0.3em;}
+
+.network-settings[data-hidden-ssid="1"] .ssid {display: none;}
+.network-settings[data-hidden-ssid="1"] .hidden {display: flex;}
+.network-settings[data-hidden-ssid="0"] .ssid {display: flex;}
+.network-settings[data-hidden-ssid="0"] .hidden {display: none;}
 
 .multibutton {display: inline-flex; width: 100%;}
 .multibutton input {border-right: none; border-bottom-right-radius: 0; border-top-right-radius: 0; flex-grow: 1;}
