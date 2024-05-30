@@ -1,6 +1,8 @@
 var countdownInterval;
 var isConnecting = false;
 var statusMessage;
+var pinToMindButton;
+var infoskjermenButton;
 var refreshButton;
 var passwordField;
 var errorMessage;
@@ -20,14 +22,12 @@ window.onload = function () {
     const connectButton = document.getElementById("connect-button");
     const rotationButtons = document.getElementById("rotation-buttons").querySelectorAll("button");
     const connectAnotherButton = document.getElementById("connect-another-button");
-    const pinToMindButton = document.getElementById("pintomind");
-    const infoskjermenButton = document.getElementById("infoskjermen");
     const hostName = document.getElementById("host-name");
     const dnsButton = document.getElementById("register-dns");
     const connectHostButton = document.getElementById("connect-to-host");
     const toggleButton = document.getElementById("toggleButton");
     const hiddenNetworkButton = document.getElementById("hidden-network-button");
-
+    
     /* 
     Queryies elements needed also later
     */
@@ -35,6 +35,8 @@ window.onload = function () {
     statusMessage = document.getElementById("status-message");
     refreshButton = document.getElementById("refresh-button");
     errorMessage = document.getElementById("error-message");
+    infoskjermenButton = document.getElementById("infoskjermen");
+    pinToMindButton = document.getElementById("pintomind");
     hostAddress = document.getElementById("host-address");
     passwordField = document.getElementById("password");
     ssidField = document.getElementById("network");
@@ -151,11 +153,14 @@ window.onload = function () {
             window.document.body.dataset.showNetworkSettings = true;
             window.api.send("search_after_networks");
 
-            if (data.error && data.error.included("802-11-wireless-security.psk")) {
+            if (isWrongPassword(data)) {
                 errorMessage.innerHTML = "Could not connect to the network. Are you sure that you've entered your password correctly";
             }
         }
     });
+
+    const hasHadConnection = myStorage.getItem("has-had-connection", "false");
+    window.document.body.dataset.hasHadConnection = hasHadConnection;
 };
 
 function resetSpinner() {
@@ -230,6 +235,7 @@ function updateHost() {
 
 function setHost(host) {
     window.api.send("set_host", host);
+    myStorage.setItem("host", host);
     document.getElementById("host-name").innerHTML = host;
     hostAddress.value = host;
 }
@@ -375,4 +381,9 @@ function findUniqueSSIDs(inputString) {
         }
     }
     return uniqueSSIDs;
+}
+
+function isWrongPassword(data) {
+    if (data.type == "802-11-wireless-security.psk" || (data.error && data.error.toString().includes("802-11-wireless-security.psk"))) return true
+    return false
 }

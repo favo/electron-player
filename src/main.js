@@ -1,4 +1,4 @@
-const { rebootDevice, sendDeviceInfo, updateApp, updateFirmware, getSystemStats, setRotation } = require("./utils");
+const { rebootDevice, sendDeviceInfo, updateApp, updateFirmware, getSystemStats, setRotation, deleteRotationFile } = require("./utils");
 const NetworkManager = require("./networkManager");
 
 const { app, BrowserWindow, ipcMain, globalShortcut } = require("electron");
@@ -10,6 +10,7 @@ const appsignal = new Appsignal({ key: "b2bdf969-f795-467e-b710-6b735163281f" })
 const { autoUpdater } = require("electron-updater");
 
 const path = require("path");
+const fs = require("fs");
 
 const QRCode = require("qrcode");
 
@@ -24,6 +25,7 @@ let systemStatsStream;
 
 autoUpdater.autoDownload = false;
 autoUpdater.autoInstallOnAppQuit = true;
+autoUpdater.allowPrerelease = false
 
 app.commandLine.appendSwitch("use-vulkan");
 app.commandLine.appendSwitch("enable-features", "Vulkan");
@@ -47,7 +49,7 @@ const createWindow = () => {
     });
 
     if (!store.has("firstTime")) {
-        NetworkManager.enableBLE();
+        //NetworkManager.enableBLE();
         mainWindow.loadFile(path.join(__dirname, "settings/settings.html"));
         checkEthernetConnection();
     } else {
@@ -138,6 +140,19 @@ app.whenReady().then(() => {
             store.set("devMode", true);
             mainWindow.webContents.send("send_dev_mode", true);
         }
+        autoUpdater.allowPrerelease = true
+    });
+
+    /* https://medium.com/how-to-electron/how-to-reset-application-data-in-electron-48bba70b5a49 */
+    globalShortcut.register("CommandOrControl+D+S", async () => {
+        store.clear()
+        await NetworkManager.deleteAllConnections()
+        await deleteRotationFile()
+
+        const getAppPath = path.join(app.getPath('appData'), pjson.name);
+        fs.unlink(getAppPath, () => {
+            rebootDevice();
+        });
     });
 });
 
@@ -310,7 +325,7 @@ ipcMain.on("get_qr_code", (event, arg) => {
 });
 
 function checkEthernetConnection() {
-    ethernetInterval = setInterval(async () => {
+    let ethernetInterval = setInterval(async () => {
         const result = NetworkManager.checkForEthernetConnection();
         if (result.success && result.stdout == "1") {
             if (ethernetInterval) {

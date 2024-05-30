@@ -63,8 +63,9 @@ const networkManager = (module.exports = {
 
             /* Checks and wait if connection is active */
             const activeConnection = await networkManager.waitForActiveConnection(ssid);
+            console.log("activeConnection", activeConnection);
 
-            if (activeConnection) {
+            if (activeConnection.success) {
                 /* Connection is active */
 
                 /* Attemps to connect to server */
@@ -170,27 +171,39 @@ const networkManager = (module.exports = {
 
         let attempts = 0;
         let connectionState;
-        while (attempts < 50) {
+        let lastConnectionState = null
+        while (attempts < 75) {
             connectionState = await executeCommand(connectionStateCommand);
 
             console.log("waitForActiveConnection", connectionState);
             if (connectionState.success && connectionState.stdout.includes("activated")) {
-                return true;
+                return connectionState;
             } else if (connectionState.success && connectionState.stdout.includes("activating")) {
+                lastConnectionState = "activating"
                 attempts++;
                 console.log(`waitForActiveConnection: Attempt ${attempts} failed. Retrying in 0.5 second...`);
                 await new Promise((resolve) => setTimeout(resolve, 500));
             } else if (connectionState.success && connectionState.stdout.includes("deactivated")) {
+                connectionState.success = false
+                connectionState.stdout = "Connection state deactivating"
                 return false;
             } else {
-                attempts++;
-                console.log(`waitForActiveConnection: Attempt ${attempts} failed. Retrying in 0.5 second...`);
-                await new Promise((resolve) => setTimeout(resolve, 500));
+                if (lastConnectionState === "activating") {
+                    connectionState.success = false
+                    connectionState.stderr = "Operation went from activating to null. Most likely wrong password"
+                    connectionState.type = "802-11-wireless-security.psk"
+                    return connectionState
+                } else {
+                    attempts++;
+                    console.log(`waitForActiveConnection: Attempt ${attempts} failed. Retrying in 0.5 second...`);
+                    await new Promise((resolve) => setTimeout(resolve, 500));
+                }
             }
         }
 
-        console.log("Exceeded maximum attempts. Operation failed.");
-        return false;
+        connectionState.success = false
+        connectionState.stderr = "Exceeded maximum attempts. Operation failed."
+        return connectionState;
     },
 
     /*
@@ -227,10 +240,7 @@ const networkManager = (module.exports = {
         return connection;
     },
 
-    /*
-     * Deletes ssid connection by SSID
-     * @param {String} ssid
-     */
+    
     async deleteConnectionBySSID(ssid) {
         console.log("Deleting connection:", ssid);
         const deleteCommand = quote(["nmcli", "connection", "delete", ssid]);
@@ -238,6 +248,31 @@ const networkManager = (module.exports = {
         lastConnectionSSID = null;
         console.log("Connection deleted:", deleteResult);
         return deleteResult.success;
+    },
+
+    
+    /*
+     * Deletes all wifi connections
+     */
+    async deleteAllConnections() {
+        const deleteAllCommand = quote(["nmcli","-t", "-f", "name,type", "connection", "show"]);
+
+        const result = await executeCommand(deleteAllCommand, "Delete all connections");
+
+        console.log("all connections", result);
+        const lines = result.stdout.split("\n");
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i].split(":");
+            const ssid = line[0]
+            const type = line[1]
+
+            console.log(line);
+            if (type == "802-11-wireless") {
+                networkManager.deleteConnectionBySSID(ssid)
+            }
+        }
+
+
     },
 
     /*

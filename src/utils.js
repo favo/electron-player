@@ -128,6 +128,14 @@ const utils = (module.exports = {
         const result = await utils.executeCommand(command);
     },
 
+    async deleteRotationFile() {
+        const path = "./rotation";
+        
+        fs.unlink(path, () => {
+            console.log("File deleted");
+        });
+    },
+
     /*
      *   Screenshots mainWindow
      */

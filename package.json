@@ -16,16 +16,6 @@
         "appId": "com.favo.app",
         "productName": "PinToMind Player",
         "artifactName": "pintomind-player.${ext}",
-        "asar": true,
-        "extraResources": [
-            {
-                "from": "./scripts/",
-                "to": "scripts",
-                "filter": [
-                    "**/*"
-                ]
-            }
-        ],
         "linux": {
             "category": "Utility",
             "packageCategory": "utils",
