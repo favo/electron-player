@@ -1,3 +1,4 @@
+var languageData;
 var countdownInterval;
 var isConnecting = false;
 var statusMessage;
@@ -46,17 +47,25 @@ window.onload = async function () {
     myStorage = window.localStorage;
 
     /* 
+        Sets language
+    */
+    const userPreferredLanguage = myStorage.getItem('language') || 'en';
+    languageData = await fetchLanguageData(userPreferredLanguage)
+
+    /* 
       Adds events in elements
     */
     infoskjermenButton.addEventListener("click", (e) => {
         Array.from(e.target.parentElement.children).forEach((el) => el.classList.toggle("selected", el == e.target));
         setHost(e.target.value);
         changeLanguage("no")
+        checkServerConnection();
     });
     pinToMindButton.addEventListener("click", (e) => {
         Array.from(e.target.parentElement.children).forEach((el) => el.classList.toggle("selected", el == e.target));
         setHost(e.target.value);
         changeLanguage("en")
+        checkServerConnection();
     });
     toggleButton.addEventListener("click", () => {
         passwordField.type === "password" ? (passwordField.type = "text") : (passwordField.type = "password");
@@ -91,8 +100,10 @@ window.onload = async function () {
         hostAddress.value = host;
 
         if (host == "app.infoskjermen.no") {
+            changeLanguage("no")
             infoskjermenButton.classList.add("selected");
         } else if (host == "app.pintomind.com") {
+            changeLanguage("en")
             pinToMindButton.classList.add("selected");
         }
     } else {
@@ -161,10 +172,6 @@ window.onload = async function () {
         }
     });
 
-    const userPreferredLanguage = myStorage.getItem('language') || 'en';
-    const langData = await fetchLanguageData(userPreferredLanguage)
-    updateContent(langData);
-
     const hasHadConnection = myStorage.getItem("has-had-connection", "false");
     window.document.body.dataset.hasHadConnection = hasHadConnection;
 };
@@ -178,7 +185,7 @@ function updateContent(langData) {
 }
 
 function setLanguagePreference(lang) {
-    localStorage.setItem('language', lang);
+    myStorage.setItem('language', lang);
 }
 
 async function fetchLanguageData(lang) {
@@ -189,8 +196,8 @@ async function fetchLanguageData(lang) {
 async function changeLanguage(lang) {
     await setLanguagePreference(lang);
     
-    const langData = await fetchLanguageData(lang);
-    updateContent(langData);
+    languageData = await fetchLanguageData(lang);
+    updateContent(languageData);
 }
 
 function resetSpinner() {
@@ -254,8 +261,10 @@ function updateHost() {
         hostAddress.value = data;
         myStorage.setItem("host", data);
         if (data == "app.infoskjermen.no") {
+            changeLanguage("no")
             infoskjermenButton.classList.add("selected");
         } else if (data == "app.pintomind.com") {
+            changeLanguage("en")
             pinToMindButton.classList.add("selected");
         }
     });
@@ -299,17 +308,19 @@ function setStatusMessage(message) {
 }
 
 function setConnected() {
-    setStatusMessage("Connected!");
+    setStatusMessage(languageData["connected"]);
     spinner.classList.add("success");
 }
 
-function setConnecting() {
+function setConnecting
+() {
+    console.log(languageData);
     spinner.classList.add("spin");
-    setStatusMessage("Connecting...");
+    setStatusMessage(languageData["connecting"]);
 }
 
 function setNotConnected() {
-    setStatusMessage("Not connected..");
+    setStatusMessage(languageData["not_connected"]);
     spinner.classList.add("error");
 }
 

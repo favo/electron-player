@@ -14,5 +14,8 @@
     "connect": "Connect",
     "register_dns": "Register DNS",
     "connect_to_host": "Connect to host",
-    "go_to_screen": "Go to screen!"
+    "go_to_screen": "Go to screen!",
+    "connected": "Connected!",   
+    "connecting": "Connecting...",   
+    "not_connected": "Not connected..."   
 }

@@ -135,9 +135,11 @@ app.whenReady().then(() => {
         const devMode = store.get("devMode", false);
         if (devMode) {
             store.set("devMode", false);
+            autoUpdater.allowPrerelease = false
             mainWindow.webContents.send("send_dev_mode", false);
         } else {
             store.set("devMode", true);
+            autoUpdater.allowPrerelease = true
             mainWindow.webContents.send("send_dev_mode", true);
         }
         autoUpdater.allowPrerelease = true

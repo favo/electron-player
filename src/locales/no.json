@@ -14,5 +14,8 @@
     "connect": "Koble til",
     "register_dns": "Registrer DNS",
     "connect_to_host": "Koble til host",
-    "go_to_screen": "Gå til skjerm!"
+    "go_to_screen": "Gå til skjerm!",
+    "connected": "Tilkoblet!",   
+    "connecting": "Kobler til...",   
+    "not_connected": "Ikke tilkoblet..."   
 }
