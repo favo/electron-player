@@ -114,7 +114,7 @@ window.onload = async function () {
     if (dnsAddress) {
         dns.value = dnsAddress;
     } else {
-        dns.value = "Your IP Address";
+        dns.value = languageData["ip_address"];
     }
 
     window.api.send("get_dev_mode");
@@ -167,7 +167,7 @@ window.onload = async function () {
             window.api.send("search_after_networks");
 
             if (isWrongPassword(data)) {
-                errorMessage.innerHTML = "Could not connect to the network. Are you sure that you've entered your password correctly";
+                errorMessage.innerHTML = languageData["wrong_password"];
             }
         }
     });
@@ -236,7 +236,7 @@ function connectToNetwork() {
         /* Case 2: Password field is empty and network requires it */
 
         isConnecting = false;
-        errorMessage.innerHTML = "* This network requires a password";
+        errorMessage.innerHTML = languageData["require_password"];
     } else if (!security) {
         /* Case 3: Network has no security */
 
@@ -246,7 +246,7 @@ function connectToNetwork() {
         /* Case 4: Something wrong happened.. */
 
         isConnecting = false;
-        errorMessage.innerHTML = "* An unexpected error happened..";
+        errorMessage.innerHTML = languageData["unexpected_error"];
     }
 }
 
@@ -367,9 +367,9 @@ function registerDNS() {
         if (waitTime) {
             setInterval(() => {
                 if (data == true) {
-                    setStatusMessage("DNS registred");
+                    setStatusMessage(languageData["dns_registred"]);
                 } else {
-                    setStatusMessage("Could not register DNS");
+                    setStatusMessage(languageData["dns_error"]);
                 }
                 resetSpinner();
             }, waitTime);
@@ -378,7 +378,7 @@ function registerDNS() {
 
     const name = dns.value;
     dns.placeholder = name;
-    setStatusMessage("Registring DNS..");
+    setStatusMessage(languageData["dns_registring"]);
     spinner.classList.add("spin");
 
     myStorage.setItem("dns", name);

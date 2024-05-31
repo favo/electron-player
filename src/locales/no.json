@@ -17,5 +17,12 @@
     "go_to_screen": "Gå til skjerm!",
     "connected": "Tilkoblet!",   
     "connecting": "Kobler til...",   
-    "not_connected": "Ikke tilkoblet..."   
+    "not_connected": "Ikke tilkoblet...",
+    "wrond_password": "Kunne ikke koble til nettverket. Har du tastet inn riktig passord?",
+    "require_password": "* Dette nettverket krever et passord",
+    "unexpected_error": "* En uventet feil skjedde...",
+    "ip_address": "Din IP adresse",
+    "dns_registred": "DNS registrert",
+    "dns_error": "Kunne ikke registrere DNS",
+    "dns_registring": "Registrerer DNS.."
 }
