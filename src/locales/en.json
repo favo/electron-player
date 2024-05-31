@@ -18,7 +18,7 @@
     "connected": "Connected!",   
     "connecting": "Connecting...",   
     "not_connected": "Not connected...",
-    "wrond_password": "Could not connect to the network. Are you sure that you've entered your password correctly",
+    "wrong_password": "Could not connect to the network. Are you sure that you've entered your password correctly",
     "require_password": "* This network requires a password",
     "unexpected_error": "* An unexpected error happened..",
     "ip_address": "Your IP Address",
