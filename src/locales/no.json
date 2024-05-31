@@ -1,0 +1,18 @@
+{
+    "title": "Infoskjermen Player",
+    "host_name": "infoskjermen.no",
+    "select_product": "Velg produkt",
+    "ethernet_title": "Vi ser du er koblet til via ethernet!",
+    "ethernet_description": "Trykk på hvilken som helst knapp ellers blir du omdirigert til skjermen din om <span id='countdown'>15</span>",
+    "select_screen_rotation": "Velg skjerm rotasjon",
+    "connected_to_internet": "Du er tilkoblet til internett!",
+    "connect_to_another": "Koble til et annet nettverk",
+    "select_network": "Velg nettverk",
+    "refresh": "Refresh",
+    "hidden_network": "Skjult nettverk?",
+    "password": "Passord",
+    "connect": "Koble til",
+    "register_dns": "Registrer DNS",
+    "connect_to_host": "Koble til host",
+    "go_to_screen": "Gå til skjerm!"
+}

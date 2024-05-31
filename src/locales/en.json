@@ -1,0 +1,18 @@
+{
+    "title": "PinToMind Player",
+    "host_name": "pintomind.com",
+    "select_product": "Select product",
+    "ethernet_title": "We see you are connected with ethernet!",
+    "ethernet_description": "Press any button or else you will be redirected to your screen in <span id='countdown'>15</span>",
+    "select_screen_rotation": "Select screen rotation",
+    "connected_to_internet": "You are connected to the internet!",
+    "connect_to_another": "Connect to another network",
+    "select_network": "Select network",
+    "refresh": "Refresh",
+    "hidden_network": "Hidden network?",
+    "password": "Password",
+    "connect": "Connect",
+    "register_dns": "Register DNS",
+    "connect_to_host": "Connect to host",
+    "go_to_screen": "Go to screen!"
+}

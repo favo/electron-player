@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8">
     <meta http-equiv="Access-Control-Allow-Origin: *" >
-    <title>PinToMind Player</title>
+    <title data-i18n="title">PinToMind Player</title>
     <script type="text/javascript" language="javascript" src='./settings.js'></script>
     <link rel="stylesheet" type="text/css" href="./settings.css" /> 
   </head>
@@ -16,7 +16,7 @@
         <div class="center-flex">
             <div class="message">
                 <strong id="host-name">infoskjermen.no</strong>
-                <div id="status-message">Connecting...</div>
+                <div data-i18n="host_name" id="status-message">Connecting...</div>
             </div>
             <svg class="spinner spin" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
               <circle class="spinner-circle " cx="50" cy="50" r="42" stroke="#333333" stroke-width="12"></circle>
@@ -31,14 +31,14 @@
       </div>
 
       <div class="ethernet-connected">
-        <h1>We see you are connected with ethernet!</h1>
-        <h1>Press any button or else you will be redirected to your screen in <span id="countdown">15</span></h1>
+        <h1 data-i18n="ethernet_title">We see you are connected with ethernet!</h1>
+        <h1 data-i18n="ethernet_description">Press any button or else you will be redirected to your screen in <span id="countdown">15</span></h1>
       </div>
       
       <div class="settings">
             <h1>Let's go!</h1>
           
-            <label>Select product</label>
+            <label data-i18n="select_product">Select product</label>
             <div class="button-container branding">
               <button id="pintomind" value="app.pintomind.com">PinToMind</button>
               <button id="infoskjermen" value="app.infoskjermen.no">Infoskjermen</button>
@@ -46,7 +46,7 @@
 
             <br><br>
 
-            <label>Select screen rotation</label>
+            <label data-i18n="select_screen_rotation">Select screen rotation</label>
             <div id="rotation-buttons" class="button-container rotation">
                 <button class="selected" value="normal"><img src="../../assets/monitor-1.svg" alt=""></button>
                 <button class="" value="right"><img src="../../assets/monitor-2.svg" alt=""></button>
@@ -57,18 +57,18 @@
             <br><br>
 
             <div class="connected-network">
-              <p>You are connected to the internet!</p>
-              <button id="connect-another-button">Connect to another network</button>
+              <p data-i18n="connected_to_internet">You are connected to the internet!</p>
+              <button data-i18n="connect_to_another" id="connect-another-button"></button>
             </div>
 
             <div class="network-settings" data-hidden-ssid="0">
-              <label for="" style="display: flex;justify-content: center;">Select network</label>
+              <label data-i18n="select_network" for="" style="display: flex;justify-content: center;">Select network</label>
               <div>
                 <div class="networks">
                   <label class="small" for="" style="display: block;">SSID</label>
                   <div class="flex ssid">
                     <select name="" id="network" style="display: inline-flex;"></select>
-                    <button id="refresh-button" style="display: inline-flex;">
+                    <button data-i18n="refresh" id="refresh-button" style="display: inline-flex;">
                       Refresh
                       <img src="../../assets/arrow-clockwise.svg" alt="">
                     </button>
@@ -78,14 +78,14 @@
                   </div>
                 </div>
 
-                <button id="hidden-network-button">Hidden network?</button>
+                <button data-i18n="hidden_network" id="hidden-network-button">Hidden network?</button>
                 
                 <div class="password-box" style="width: 100%;">
-                  <label class="small" for="" style="display: block;">Password</label>
+                  <label data-i18n="password" class="small" for="" style="display: block;">Password</label>
                   <div class="multibutton">
-                    <input id="password" type="password" placeholder="Enter password" style="display: inline-flex; ">
+                    <input id="password" type="password" placeholder="password" style="display: inline-flex; ">
                     <button id="toggleButton" style="display: inline-flex;"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><path d="M128,56C48,56,16,128,16,128s32,72,112,72,112-72,112-72S208,56,128,56Z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><circle cx="128" cy="128" r="40" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg></button>
-                    <button id="connect-button" style="display: inline-flex;">Connect</button>
+                    <button data-i18n="connect" id="connect-button" style="display: inline-flex;">Connect</button>
                   </div>
                 </div>
               </div>
@@ -99,14 +99,14 @@
                 <label class="small" for="" style="display: block; min-width: 5em;">DNS-server</label>
                 <div class="multibutton">
                   <input id="dns" type="text">
-                  <button id="register-dns">Register DNS</button>
+                  <button data-i18n="register_dns" id="register-dns">Register DNS</button>
                 </div>
               </div>
               <div>
                 <label class="small" for="" style="display: block; min-width: 5em;">Host</label>
                 <div class="multibutton">
                   <input id="host-address" type="text" placeholder="local.infoskjermen.no">
-                  <button id="connect-to-host">Connect to host</button>
+                  <button data-i18n="connect_to_host" id="connect-to-host">Connect to host</button>
                 </div>
               </div>
               
@@ -115,7 +115,7 @@
             <br><br>
 
             <div class="button-container branding">
-              <button id="lets-go-button">Go to screen!</button>
+              <button data-i18n="go_to_screen" id="lets-go-button">Go to screen!</button>
             </div>
         </div>
   </body>

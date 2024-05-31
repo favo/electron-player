@@ -14,7 +14,7 @@ var spinner;
 var canvas;
 var dns;
 
-window.onload = function () {
+window.onload = async function () {
     /* 
       Queryies all elemets neeeded
     */
@@ -51,10 +51,12 @@ window.onload = function () {
     infoskjermenButton.addEventListener("click", (e) => {
         Array.from(e.target.parentElement.children).forEach((el) => el.classList.toggle("selected", el == e.target));
         setHost(e.target.value);
+        changeLanguage("no")
     });
     pinToMindButton.addEventListener("click", (e) => {
         Array.from(e.target.parentElement.children).forEach((el) => el.classList.toggle("selected", el == e.target));
         setHost(e.target.value);
+        changeLanguage("en")
     });
     toggleButton.addEventListener("click", () => {
         passwordField.type === "password" ? (passwordField.type = "text") : (passwordField.type = "password");
@@ -159,9 +161,37 @@ window.onload = function () {
         }
     });
 
+    const userPreferredLanguage = myStorage.getItem('language') || 'en';
+    const langData = await fetchLanguageData(userPreferredLanguage)
+    updateContent(langData);
+
     const hasHadConnection = myStorage.getItem("has-had-connection", "false");
     window.document.body.dataset.hasHadConnection = hasHadConnection;
 };
+
+function updateContent(langData) {
+    document.querySelectorAll('[data-i18n]').forEach(element => {
+        console.log(element);
+        const key = element.getAttribute('data-i18n');
+        element.textContent = langData[key];
+    });
+}
+
+function setLanguagePreference(lang) {
+    localStorage.setItem('language', lang);
+}
+
+async function fetchLanguageData(lang) {
+    const response = await fetch(`../locales/${lang}.json`);
+    return response.json();
+}
+
+async function changeLanguage(lang) {
+    await setLanguagePreference(lang);
+    
+    const langData = await fetchLanguageData(lang);
+    updateContent(langData);
+}
 
 function resetSpinner() {
     spinner.classList.remove("error");
