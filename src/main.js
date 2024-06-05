@@ -48,8 +48,9 @@ const createWindow = () => {
         icon: path.join(__dirname, "../assets/icon/png/logo256.png"),
     });
 
+    //TODO Flytte denne inn
+    NetworkManager.enableBLE();
     if (!store.has("firstTime")) {
-        //NetworkManager.enableBLE();
         mainWindow.loadFile(path.join(__dirname, "settings/settings.html"));
         checkEthernetConnection();
     } else {
@@ -72,7 +73,7 @@ const createWindow = () => {
         autoUpdater.checkForUpdates();
     } catch (error) {
         appsignal.sendError(error, (span) => {
-            span.setTags({ host: host, version: pjson.version });
+            span.setTags({ host: store.get("host"), version: pjson.version });
         });
     }
 };
@@ -88,7 +89,9 @@ app.whenReady().then(() => {
             nodeChildProcess.execSync("killall xinit");
         } catch (error) {
             appsignal.sendError(error, (span) => {
-                span.setTags({ host: host, version: pjson.version });
+                span.setAction("Restarting app");
+                span.setNamespace("main");
+                span.setTags({ host: store.get("host"), version: pjson.version });
             });
         }
     });
@@ -180,7 +183,9 @@ app.on("activate", () => {
  */
 autoUpdater.on("error", (error) => {
     appsignal.sendError(error, (span) => {
-        span.setTags({ host: host, version: pjson.version });
+        span.setAction("autoUpdater");
+        span.setNamespace("main");
+        span.setTags({ host: store.get("host"), version: pjson.version });
     });
 });
 

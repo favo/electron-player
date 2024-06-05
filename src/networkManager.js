@@ -321,6 +321,7 @@ const networkManager = (module.exports = {
         bleSocket.on("get-network-list", async () => {
             const result = await networkManager.searchNetwork();
 
+            console.log("get-network-list", result);
             if (result.success) {
                 const networkList = findUniqueSSIDs(result.stdout.toString());
                 bleSocket.emit("list-of-networks", networkList);

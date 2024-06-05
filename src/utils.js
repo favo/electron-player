@@ -6,6 +6,9 @@ const fs = require("fs");
 const { promisify } = require("util");
 const execAsync = promisify(nodeChildProcess.exec);
 
+const Store = require("electron-store");
+const store = new Store();
+
 const Appsignal = require("@appsignal/javascript").default;
 const appsignal = new Appsignal({
     key: "b2bdf969-f795-467e-b710-6b735163281f",
@@ -27,7 +30,9 @@ const utils = (module.exports = {
             return result;
         } catch (error) {
             appsignal.sendError(error, (span) => {
-                span.setTags({ version: pjson.version });
+                span.setAction(type || "unknown")
+                span.setNamespace("executeCommand")
+                span.setTags({host: store.get("host"), version: pjson.version });
             });
             const result = {
                 type: type,
@@ -86,7 +91,9 @@ const utils = (module.exports = {
             nodeChildProcess.execSync("sudo reboot");
         } catch (error) {
             appsignal.sendError(error, (span) => {
-                span.setTags({ version: pjson.version });
+                span.setAction("rebootDevice")
+                span.setNamespace("utils")
+                span.setTags({host: store.get("host"), version: pjson.version });
             });
         }
     },
@@ -112,7 +119,9 @@ const utils = (module.exports = {
             autoUpdater.checkForUpdates();
         } catch (error) {
             appsignal.sendError(error, (span) => {
-                span.setTags({ version: pjson.version });
+                span.setAction("updateApp")
+                span.setNamespace("utils")
+                span.setTags({host: store.get("host"), version: pjson.version });
             });
         }
     },
