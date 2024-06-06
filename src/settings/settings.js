@@ -11,6 +11,7 @@ var hostAddress;
 var hiddenSSID = false;
 var ssidField;
 var myStorage;
+var hostName;
 var spinner;
 var canvas;
 var dns;
@@ -23,7 +24,6 @@ window.onload = async function () {
     const connectButton = document.getElementById("connect-button");
     const rotationButtons = document.getElementById("rotation-buttons").querySelectorAll("button");
     const connectAnotherButton = document.getElementById("connect-another-button");
-    const hostName = document.getElementById("host-name");
     const dnsButton = document.getElementById("register-dns");
     const connectHostButton = document.getElementById("connect-to-host");
     const toggleButton = document.getElementById("toggleButton");
@@ -40,6 +40,7 @@ window.onload = async function () {
     pinToMindButton = document.getElementById("pintomind");
     hostAddress = document.getElementById("host-address");
     passwordField = document.getElementById("password");
+    hostName = document.getElementById("host-name");
     ssidField = document.getElementById("network");
     spinner = document.querySelector(".spinner");
     canvas = document.getElementById("canvas");
@@ -93,23 +94,8 @@ window.onload = async function () {
     dnsButton.addEventListener("click", () => registerDNS());
     connectHostButton.addEventListener("click", () => connectToHost());
     passwordField.addEventListener("input", () => (errorMessage.innerHTML = null));
-
-    const host = myStorage.getItem("host");
-    if (host) {
-        hostName.innerHTML = host;
-        hostAddress.value = host;
-
-        if (host == "app.infoskjermen.no") {
-            changeLanguage("no")
-            infoskjermenButton.classList.add("selected");
-        } else if (host == "app.pintomind.com") {
-            changeLanguage("en")
-            pinToMindButton.classList.add("selected");
-        }
-    } else {
-        updateHost();
-    }
-
+    
+    
     const dnsAddress = myStorage.getItem("dns");
     if (dnsAddress) {
         dns.value = dnsAddress;
@@ -119,6 +105,8 @@ window.onload = async function () {
 
     window.api.send("get_dev_mode");
     window.api.send("get_qr_code");
+
+    updateHost();
     checkServerConnection();
 
     [...rotationButtons].forEach((button) => {
@@ -257,7 +245,7 @@ function checkServerConnection() {
 
 function updateHost() {
     window.api.receive("send_host", (data) => {
-        document.getElementById("host-name").innerHTML = data;
+        hostName.innerHTML = data;
         hostAddress.value = data;
         myStorage.setItem("host", data);
         if (data == "app.infoskjermen.no") {

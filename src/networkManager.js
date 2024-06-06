@@ -311,7 +311,7 @@ const networkManager = (module.exports = {
         });
 
         bleSocket.on("host", (host) => {
-            ipcMain.emit("set_host", host);
+            ipcMain.emit("set_host_from_bluetooth", host.toString());
         });
 
         bleSocket.on("finish-setup", () => {

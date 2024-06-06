@@ -288,13 +288,20 @@ ipcMain.on("go_to_app", (_event, _arg) => {
 });
 
 ipcMain.on("set_host", (event, arg) => {
-    console.log("Settings host to:", arg);
+    console.log("setting host to:", arg);
     store.set("host", arg);
+});
+
+ipcMain.on("set_host_from_bluetooth", (host) => {
+    console.log("setting host to:", host);
+    store.set("host", host);
+    mainWindow.webContents.reload()
 });
 
 ipcMain.on("request_host", (event, arg) => {
     const host = store.get("host");
     mainWindow.webContents.send("send_host", host);
+    
     // Trenger for å fjerne musepekeren
     mainWindow.webContents.sendInputEvent({
         type: "mouseMove",
