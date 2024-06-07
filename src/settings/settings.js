@@ -54,6 +54,13 @@ window.onload = async () => {
     window.api.resultFromStore("lang", async (lang) => {
         languageData = await fetchLanguageData(lang);
         checkServerConnection();
+
+        const dnsAddress = myStorage.getItem("dns");
+        if (dnsAddress) {
+            dns.value = dnsAddress;
+        } else {
+            dns.value = languageData["ip_address"];
+        }
     });
 
     /* 
@@ -101,13 +108,6 @@ window.onload = async () => {
     dnsButton.addEventListener("click", () => registerDNS());
     connectHostButton.addEventListener("click", () => connectToHost());
     passwordField.addEventListener("input", () => (errorMessage.innerHTML = null));
-
-    const dnsAddress = myStorage.getItem("dns");
-    if (dnsAddress) {
-        dns.value = dnsAddress;
-    } else {
-        dns.value = languageData["ip_address"];
-    }
 
     updateHost();
 
@@ -225,7 +225,7 @@ function updateHost() {
 }
 
 function setHost(host) {
-    window.api.send("set_host", {host: host, reload: false});
+    window.api.send("set_host", { host: host, reload: false });
     myStorage.setItem("host", host);
     document.getElementById("host-name").innerHTML = host;
     hostAddress.value = host;

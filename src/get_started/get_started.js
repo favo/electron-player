@@ -12,6 +12,16 @@ window.onload = async () => {
     window.api.resultFromStore("lang", async (lang) => {
         languageData = await fetchLanguageData(lang);
         setConnecting();
+        window.api.send("check_server_connection");
+    });
+
+    window.api.receive("connect_to_network_status", (data) => {
+        resetSpinner();
+        if (data.success && data.stdout.toString() == "1") {
+            setConnected();
+        } else {
+            setNotConnected();
+        }
     });
 
     window.api.getFromStore("uuid");
@@ -24,15 +34,7 @@ window.onload = async () => {
         canvas.src = data;
     });
 
-    window.api.send("check_server_connection");
-    window.api.receive("connect_to_network_status", (data) => {
-        resetSpinner();
-        if (data.success && data.stdout.toString() == "1") {
-            setConnected();
-        } else {
-            setNotConnected();
-        }
-    });
+
 
     updateHost();
 };

@@ -11,7 +11,7 @@ const Store = require("electron-store");
 const store = new Store();
 
 let lastConnectionSSID;
-let ethernetInterval
+let ethernetInterval;
 
 const networkManager = (module.exports = {
     /*
@@ -294,7 +294,7 @@ const networkManager = (module.exports = {
                 }
 
                 ipcMain.emit("ethernet_status", result.stdout.toString());
-                bleSocket.emit("ethernet-status", result.stdout.toString())
+                bleSocket.emit("ethernet-status", result.stdout.toString());
             }
         }, 2000);
     },
@@ -302,12 +302,12 @@ const networkManager = (module.exports = {
     /*
      *   Stops ethernetinterval
      */
-        async stopEthernetInterval() {
-            if (ethernetInterval) {
-                clearInterval(ethernetInterval);
-                ethernetInterval = null;
-            }
-        },
+    async stopEthernetInterval() {
+        if (ethernetInterval) {
+            clearInterval(ethernetInterval);
+            ethernetInterval = null;
+        }
+    },
 
     /*
      *   Adds dns address to /etc/resolv
@@ -336,7 +336,7 @@ const networkManager = (module.exports = {
         });
 
         bleSocket.on("host", (host) => {
-            ipcMain.emit("set_host", {host: host.toString(), reload: true});
+            ipcMain.emit("set_host", null, { host: host.toString(), reload: true });
         });
 
         bleSocket.on("finish-setup", () => {
@@ -357,9 +357,9 @@ const networkManager = (module.exports = {
     },
 
     /*
-     *  Disables BLE 
+     *  Disables BLE
      */
     disableBLE() {
         bleSocket.emit("ble-disable");
-    }
+    },
 });

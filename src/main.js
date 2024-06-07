@@ -251,7 +251,7 @@ ipcMain.on("set_lang", (_event, lang) => {
     store.set("lang", lang);
 });
 
-ipcMain.on("set_host", (_event, data) => {
+ipcMain.on("set_host", (event, data) => {
     store.set("host", data.host);
 
     if (data.reload) {
