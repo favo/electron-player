@@ -16,7 +16,7 @@ var spinner;
 var canvas;
 var dns;
 
-window.onload = async function () {
+window.onload = async () => {
     /* 
       Queryies all elemets neeeded
     */
@@ -28,7 +28,7 @@ window.onload = async function () {
     const connectHostButton = document.getElementById("connect-to-host");
     const toggleButton = document.getElementById("toggleButton");
     const hiddenNetworkButton = document.getElementById("hidden-network-button");
-    
+
     /* 
     Queryies elements needed also later
     */
@@ -50,8 +50,11 @@ window.onload = async function () {
     /* 
         Sets language
     */
-    const userPreferredLanguage = myStorage.getItem('language') || 'en';
-    languageData = await fetchLanguageData(userPreferredLanguage)
+    window.api.getFromStore("lang");
+    window.api.resultFromStore("lang", async (lang) => {
+        languageData = await fetchLanguageData(lang);
+        checkServerConnection();
+    });
 
     /* 
       Adds events in elements
@@ -59,18 +62,21 @@ window.onload = async function () {
     infoskjermenButton.addEventListener("click", (e) => {
         Array.from(e.target.parentElement.children).forEach((el) => el.classList.toggle("selected", el == e.target));
         setHost(e.target.value);
-        changeLanguage("no")
+        changeLanguage("no");
         checkServerConnection();
     });
+
     pinToMindButton.addEventListener("click", (e) => {
         Array.from(e.target.parentElement.children).forEach((el) => el.classList.toggle("selected", el == e.target));
         setHost(e.target.value);
-        changeLanguage("en")
+        changeLanguage("en");
         checkServerConnection();
     });
+
     toggleButton.addEventListener("click", () => {
         passwordField.type === "password" ? (passwordField.type = "text") : (passwordField.type = "password");
     });
+
     refreshButton.addEventListener("click", () => {
         window.api.send("search_after_networks");
         refreshButton.dataset.status = "pending";
@@ -78,6 +84,7 @@ window.onload = async function () {
             refreshButton.dataset.status = null;
         }, 5000);
     });
+
     hiddenNetworkButton.addEventListener("click", () => {
         const el = document.querySelector(".network-settings");
         if (el.dataset.hiddenSsid === "1") {
@@ -94,8 +101,7 @@ window.onload = async function () {
     dnsButton.addEventListener("click", () => registerDNS());
     connectHostButton.addEventListener("click", () => connectToHost());
     passwordField.addEventListener("input", () => (errorMessage.innerHTML = null));
-    
-    
+
     const dnsAddress = myStorage.getItem("dns");
     if (dnsAddress) {
         dns.value = dnsAddress;
@@ -103,11 +109,7 @@ window.onload = async function () {
         dns.value = languageData["ip_address"];
     }
 
-    window.api.send("get_dev_mode");
-    window.api.send("get_qr_code");
-
     updateHost();
-    checkServerConnection();
 
     [...rotationButtons].forEach((button) => {
         button.addEventListener("click", changeRotation);
@@ -122,21 +124,13 @@ window.onload = async function () {
         displayListOfNetworks(data);
     });
 
-    window.api.receive("send_dev_mode", (data) => {
-        window.document.body.dataset.devMode = data;
+    window.api.getFromStore("devMode");
+    window.api.resultFromStore("devMode", (devMode) => {
+        window.document.body.dataset.devMode = devMode;
     });
 
-    window.api.receive("ethernet_status", (data) => {
-        if (data == "1") {
-            const ethernet = document.querySelector(".ethernet-connected");
-            const settings = document.querySelector(".settings");
-            settings.style.display = "none";
-            ethernet.style.display = "flex";
-            startCountdown();
-        }
-    });
-
-    window.api.receive("send_qr_code", (data) => {
+    window.api.send("create_qr_code", { path: "/connect", lightColor: "#000000", darkColor: "#828282" });
+    window.api.receive("finished_qr_code", (data) => {
         canvas.src = data;
     });
 
@@ -163,36 +157,6 @@ window.onload = async function () {
     const hasHadConnection = myStorage.getItem("has-had-connection", "false");
     window.document.body.dataset.hasHadConnection = hasHadConnection;
 };
-
-function updateContent(langData) {
-    document.querySelectorAll('[data-i18n]').forEach(element => {
-        console.log(element);
-        const key = element.getAttribute('data-i18n');
-        element.textContent = langData[key];
-    });
-}
-
-function setLanguagePreference(lang) {
-    myStorage.setItem('language', lang);
-}
-
-async function fetchLanguageData(lang) {
-    const response = await fetch(`../locales/${lang}.json`);
-    return response.json();
-}
-
-async function changeLanguage(lang) {
-    await setLanguagePreference(lang);
-    
-    languageData = await fetchLanguageData(lang);
-    updateContent(languageData);
-}
-
-function resetSpinner() {
-    spinner.classList.remove("error");
-    spinner.classList.remove("success");
-    spinner.classList.remove("spin");
-}
 
 function connectToNetwork() {
     /* If is connection then returning preventing mulitple calls */
@@ -244,24 +208,24 @@ function checkServerConnection() {
 }
 
 function updateHost() {
-    window.api.receive("send_host", (data) => {
-        hostName.innerHTML = data;
-        hostAddress.value = data;
-        myStorage.setItem("host", data);
-        if (data == "app.infoskjermen.no") {
-            changeLanguage("no")
+    window.api.resultFromStore("host", (host) => {
+        hostName.innerHTML = host;
+        hostAddress.value = host;
+        myStorage.setItem("host", host);
+        if (host == "app.infoskjermen.no") {
+            changeLanguage("no");
             infoskjermenButton.classList.add("selected");
-        } else if (data == "app.pintomind.com") {
-            changeLanguage("en")
+        } else if (host == "app.pintomind.com") {
+            changeLanguage("en");
             pinToMindButton.classList.add("selected");
         }
     });
 
-    window.api.send("request_host");
+    window.api.getFromStore("host");
 }
 
 function setHost(host) {
-    window.api.send("set_host", host);
+    window.api.send("set_host", {host: host, reload: false});
     myStorage.setItem("host", host);
     document.getElementById("host-name").innerHTML = host;
     hostAddress.value = host;
@@ -289,63 +253,6 @@ function displayListOfNetworks(data) {
         option.dataset.security = network.security;
         select.appendChild(option);
     });
-}
-
-function setStatusMessage(message) {
-    statusMessage.innerHTML = message;
-}
-
-function setConnected() {
-    setStatusMessage(languageData["connected"]);
-    spinner.classList.add("success");
-}
-
-function setConnecting
-() {
-    console.log(languageData);
-    spinner.classList.add("spin");
-    setStatusMessage(languageData["connecting"]);
-}
-
-function setNotConnected() {
-    setStatusMessage(languageData["not_connected"]);
-    spinner.classList.add("error");
-}
-
-function startCountdown() {
-    if (!countdownInterval) {
-        document.addEventListener("keydown", keyboardEvent);
-
-        const countDownNumber = document.getElementById("countdown");
-        let number = 15;
-        countdownInterval = setInterval(() => {
-            if (number == 0) {
-                if (countdownInterval) {
-                    clearInterval(countdownInterval);
-                    countdownInterval == null;
-                }
-                document.removeEventListener("keydown", keyboardEvent);
-                window.api.send("go_to_app");
-            } else {
-                number = number - 1;
-                countDownNumber.innerHTML = number;
-            }
-        }, 1000);
-    }
-}
-
-function keyboardEvent() {
-    if (countdownInterval) {
-        clearInterval(countdownInterval);
-        countdownInterval == null;
-    }
-
-    document.removeEventListener("keydown", keyboardEvent);
-
-    const ethernet = document.querySelector(".ethernet-connected");
-    const settings = document.querySelector(".settings");
-    settings.style.display = "flex";
-    ethernet.style.display = "none";
 }
 
 function registerDNS() {
@@ -413,6 +320,6 @@ function findUniqueSSIDs(inputString) {
 }
 
 function isWrongPassword(data) {
-    if (data.type == "802-11-wireless-security.psk" || (data.error && data.error.toString().includes("802-11-wireless-security.psk"))) return true
-    return false
+    if (data.type == "802-11-wireless-security.psk" || (data.error && data.error.toString().includes("802-11-wireless-security.psk"))) return true;
+    return false;
 }

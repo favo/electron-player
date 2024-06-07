@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8" />
+        <meta http-equiv="Access-Control-Allow-Origin: *" />
+        <title data-i18n="title">PinToMind Player</title>
+        <script type="text/javascript" language="javascript" src="./get_started.js"></script>
+        <script type="text/javascript" language="javascript" src="../spinner/spinner.js"></script>
+        <script type="text/javascript" language="javascript" src="../utils/language.js"></script>
+        <link rel="stylesheet" type="text/css" href="./get_started.css" />
+        <link rel="stylesheet" type="text/css" href="../spinner.css" />
+    </head>
+    <body>
+        <img id="logo-top-right" src="../../assets/logo.svg" alt="" />
+
+        <div id="bottom-right">
+            <div class="center-flex">
+                <div class="message">
+                    <strong id="host-name">app.pintomind.com</strong>
+                    <div data-i18n="host_name" id="status-message">Connecting...</div>
+                </div>
+                <svg class="spinner spin" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle class="spinner-circle" cx="50" cy="50" r="42" stroke="#333333" stroke-width="12"></circle>
+                    <path
+                        class="spinner-line"
+                        stroke="#CCC"
+                        d="M92 50C92 58.9907 89.1149 67.7442 83.7691 74.973C78.4233 82.2017 70.8988 87.5243 62.3025 90.1578C53.7061 92.7913 44.4915 92.5968 36.0139 89.6029C27.5363 86.6089 20.2432 80.9736 15.2072 73.5256"
+                        stroke-width="12"
+                        stroke-linecap="round"
+                    ></path>
+                    <path class="✓" stroke="#CCC" d="M33 48L47.547 60.8356C48.8661 61.9995 50.8989 61.7839 51.9444 60.3693L67 40" stroke-width="12" stroke-linecap="round"></path>
+                    <g class="x">
+                        <path d="M39.5086 60.7322L59.8101 40.5866" stroke="#CCC" stroke-width="12" stroke-linecap="round"></path>
+                        <path d="M59.7322 60.8102L39.5865 40.5087" stroke="#CCC" stroke-width="12" stroke-linecap="round"></path>
+                    </g>
+                </svg>
+            </div>
+        </div>
+
+        <main>
+            <h1>Get started with PinToMind</h1>
+
+            <div class="container">
+                <div class="wireless-container">
+                    <h2>Wireless (PinToMind GO)</h2>
+                    <p>1. Go to PinToMind GO on your mobile or scan the QR-code below</p>
+
+                    <div class="qr-code-container">
+                        <img id="canvas" />
+                    </div>
+
+                    <p>2. Go to profile -> connect to device</p>
+                    <p>3. Click on device with the following code</p>
+
+                    <div class="random-id">ABC123</div>
+
+                    <p>4. Follow the instructions in the app</p>
+                </div>
+                <div class="or-container"></div>
+                <div class="keyboard-container">
+                    <h2>With keyboard</h2>
+                    <p>1. Connect keyboard to your device</p>
+                    <p>2. Press <b>CTRL + I</b> to open settings</p>
+                    <p>3. Follow instructions to setup network and device settings</p>
+                </div>
+            </div>
+        </main>
+    </body>
+</html>

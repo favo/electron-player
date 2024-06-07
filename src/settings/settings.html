@@ -1,122 +1,138 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="UTF-8">
-    <meta http-equiv="Access-Control-Allow-Origin: *" >
-    <title data-i18n="title">PinToMind Player</title>
-    <script type="text/javascript" language="javascript" src='./settings.js'></script>
-    <link rel="stylesheet" type="text/css" href="./settings.css" /> 
-  </head>
-  <body>
-      <img src="../../assets/dots.svg" id="top-right" alt="">
-      <img id="canvas"></img>
-      <img src="../../assets/swirls.svg" id="bottom-left" alt="">
+    <head>
+        <meta charset="UTF-8" />
+        <meta http-equiv="Access-Control-Allow-Origin: *" />
+        <title data-i18n="title">PinToMind Player</title>
+        <script type="text/javascript" language="javascript" src="./settings.js"></script>
+        <script type="text/javascript" language="javascript" src="../utils/language.js"></script>
+        <script type="text/javascript" language="javascript" src="../spinner/spinner.js"></script>
+        <link rel="stylesheet" type="text/css" href="./settings.css" />
+        <link rel="stylesheet" type="text/css" href="../spinner.css" />
+    </head>
+    <body>
+        <img src="../../assets/dots.svg" id="top-right" alt="" />
+        <img src="../../assets/swirls.svg" id="bottom-left" alt="" />
+        <img id="canvas" />
 
-      <div id="bottom-right">
-        <div class="center-flex">
-            <div class="message">
-                <strong id="host-name">infoskjermen.no</strong>
-                <div data-i18n="host_name" id="status-message">Connecting...</div>
+        <div id="bottom-right">
+            <div class="center-flex">
+                <div class="message">
+                    <strong id="host-name">app.pintomind.com</strong>
+                    <div data-i18n="host_name" id="status-message">Connecting...</div>
+                </div>
+                <svg class="spinner spin" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle class="spinner-circle" cx="50" cy="50" r="42" stroke="#333333" stroke-width="12"></circle>
+                    <path
+                        class="spinner-line"
+                        stroke="#CCC"
+                        d="M92 50C92 58.9907 89.1149 67.7442 83.7691 74.973C78.4233 82.2017 70.8988 87.5243 62.3025 90.1578C53.7061 92.7913 44.4915 92.5968 36.0139 89.6029C27.5363 86.6089 20.2432 80.9736 15.2072 73.5256"
+                        stroke-width="12"
+                        stroke-linecap="round"
+                    ></path>
+                    <path class="✓" stroke="#CCC" d="M33 48L47.547 60.8356C48.8661 61.9995 50.8989 61.7839 51.9444 60.3693L67 40" stroke-width="12" stroke-linecap="round"></path>
+                    <g class="x">
+                        <path d="M39.5086 60.7322L59.8101 40.5866" stroke="#CCC" stroke-width="12" stroke-linecap="round"></path>
+                        <path d="M59.7322 60.8102L39.5865 40.5087" stroke="#CCC" stroke-width="12" stroke-linecap="round"></path>
+                    </g>
+                </svg>
             </div>
-            <svg class="spinner spin" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <circle class="spinner-circle " cx="50" cy="50" r="42" stroke="#333333" stroke-width="12"></circle>
-              <path class="spinner-line" stroke="#CCC" d="M92 50C92 58.9907 89.1149 67.7442 83.7691 74.973C78.4233 82.2017 70.8988 87.5243 62.3025 90.1578C53.7061 92.7913 44.4915 92.5968 36.0139 89.6029C27.5363 86.6089 20.2432 80.9736 15.2072 73.5256" stroke-width="12" stroke-linecap="round"></path>
-              <path class="✓" stroke="#CCC" d="M33 48L47.547 60.8356C48.8661 61.9995 50.8989 61.7839 51.9444 60.3693L67 40" stroke-width="12" stroke-linecap="round"></path>
-              <g class="x">
-                  <path d="M39.5086 60.7322L59.8101 40.5866" stroke="#CCC" stroke-width="12" stroke-linecap="round"></path>
-                  <path d="M59.7322 60.8102L39.5865 40.5087" stroke="#CCC" stroke-width="12" stroke-linecap="round"></path>
-              </g>      
-            </svg>
         </div>
-      </div>
 
-      <div class="ethernet-connected">
-        <h1 data-i18n="ethernet_title">We see you are connected with ethernet!</h1>
-        <h1 data-i18n="ethernet_description">Press any button or else you will be redirected to your screen in <span id="countdown">15</span></h1>
-      </div>
-      
-      <div class="settings">
+        <div class="settings">
             <h1>Let's go!</h1>
-          
+
             <label data-i18n="select_product">Select product</label>
             <div class="button-container branding">
-              <button id="pintomind" value="app.pintomind.com">PinToMind</button>
-              <button id="infoskjermen" value="app.infoskjermen.no">Infoskjermen</button>
+                <button id="pintomind" value="app.pintomind.com">PinToMind</button>
+                <button id="infoskjermen" value="app.infoskjermen.no">Infoskjermen</button>
             </div>
 
-            <br><br>
+            <br /><br />
 
             <label data-i18n="select_screen_rotation">Select screen rotation</label>
             <div id="rotation-buttons" class="button-container rotation">
-                <button class="selected" value="normal"><img src="../../assets/monitor-1.svg" alt=""></button>
-                <button class="" value="right"><img src="../../assets/monitor-2.svg" alt=""></button>
-                <button class="" value="inverted"><img src="../../assets/monitor-3.svg" alt=""></button>
-                <button class="" value="left"><img src="../../assets/monitor-4.svg" alt=""></button>
+                <button class="selected" value="normal"><img src="../../assets/monitor-1.svg" alt="" /></button>
+                <button class="" value="right"><img src="../../assets/monitor-2.svg" alt="" /></button>
+                <button class="" value="inverted"><img src="../../assets/monitor-3.svg" alt="" /></button>
+                <button class="" value="left"><img src="../../assets/monitor-4.svg" alt="" /></button>
             </div>
 
-            <br><br>
+            <br /><br />
 
             <div class="connected-network">
-              <p data-i18n="connected_to_internet">You are connected to the internet!</p>
-              <button data-i18n="connect_to_another" id="connect-another-button"></button>
+                <p data-i18n="connected_to_internet">You are connected to the internet!</p>
+                <button data-i18n="connect_to_another" id="connect-another-button"></button>
             </div>
 
             <div class="network-settings" data-hidden-ssid="0">
-              <label data-i18n="select_network" for="" style="display: flex;justify-content: center;">Select network</label>
-              <div>
-                <div class="networks">
-                  <label class="small" for="" style="display: block;">SSID</label>
-                  <div class="flex ssid">
-                    <select name="" id="network" style="display: inline-flex;"></select>
-                    <button data-i18n="refresh" id="refresh-button" style="display: inline-flex;">
-                      Refresh
-                      <img src="../../assets/arrow-clockwise.svg" alt="">
-                    </button>
-                  </div>
-                  <div class="flex hidden">
-                    <input type="text" id="hidden-network" style="display: inline-flex; width: 100%;">
-                  </div>
-                </div>
+                <label data-i18n="select_network" for="" style="display: flex; justify-content: center">Select network</label>
+                <div>
+                    <div class="networks">
+                        <label class="small" for="" style="display: block">SSID</label>
+                        <div class="flex ssid">
+                            <select name="" id="network" style="display: inline-flex"></select>
+                            <button data-i18n="refresh" id="refresh-button" style="display: inline-flex">
+                                Refresh
+                                <img src="../../assets/arrow-clockwise.svg" alt="" />
+                            </button>
+                        </div>
+                        <div class="flex hidden">
+                            <input type="text" id="hidden-network" style="display: inline-flex; width: 100%" />
+                        </div>
+                    </div>
 
-                <button data-i18n="hidden_network" id="hidden-network-button">Hidden network?</button>
-                
-                <div class="password-box" style="width: 100%;">
-                  <label data-i18n="password" class="small" for="" style="display: block;">Password</label>
-                  <div class="multibutton">
-                    <input id="password" type="password" placeholder="password" style="display: inline-flex; ">
-                    <button id="toggleButton" style="display: inline-flex;"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><path d="M128,56C48,56,16,128,16,128s32,72,112,72,112-72,112-72S208,56,128,56Z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><circle cx="128" cy="128" r="40" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg></button>
-                    <button data-i18n="connect" id="connect-button" style="display: inline-flex;">Connect</button>
-                  </div>
+                    <button data-i18n="hidden_network" id="hidden-network-button">Hidden network?</button>
+
+                    <div class="password-box" style="width: 100%">
+                        <label data-i18n="password" class="small" for="" style="display: block">Password</label>
+                        <div class="multibutton">
+                            <input id="password" type="password" placeholder="password" style="display: inline-flex" />
+                            <button id="toggleButton" style="display: inline-flex">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+                                    <rect width="256" height="256" fill="none" />
+                                    <path
+                                        d="M128,56C48,56,16,128,16,128s32,72,112,72,112-72,112-72S208,56,128,56Z"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        stroke-width="16"
+                                    />
+                                    <circle cx="128" cy="128" r="40" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16" />
+                                </svg>
+                            </button>
+                            <button data-i18n="connect" id="connect-button" style="display: inline-flex">Connect</button>
+                        </div>
+                    </div>
                 </div>
-              </div>
             </div>
 
             <p id="error-message"></p>
 
             <div id="dev-mode">
-              <label for="" style="display: flex;justify-content: center;">Dev Mode</label>
-              <div>
-                <label class="small" for="" style="display: block; min-width: 5em;">DNS-server</label>
-                <div class="multibutton">
-                  <input id="dns" type="text">
-                  <button data-i18n="register_dns" id="register-dns">Register DNS</button>
+                <label for="" style="display: flex; justify-content: center">Dev Mode</label>
+                <div>
+                    <label class="small" for="" style="display: block; min-width: 5em">DNS-server</label>
+                    <div class="multibutton">
+                        <input id="dns" type="text" />
+                        <button data-i18n="register_dns" id="register-dns">Register DNS</button>
+                    </div>
                 </div>
-              </div>
-              <div>
-                <label class="small" for="" style="display: block; min-width: 5em;">Host</label>
-                <div class="multibutton">
-                  <input id="host-address" type="text" placeholder="local.infoskjermen.no">
-                  <button data-i18n="connect_to_host" id="connect-to-host">Connect to host</button>
+                <div>
+                    <label class="small" for="" style="display: block; min-width: 5em">Host</label>
+                    <div class="multibutton">
+                        <input id="host-address" type="text" placeholder="local.infoskjermen.no" />
+                        <button data-i18n="connect_to_host" id="connect-to-host">Connect to host</button>
+                    </div>
                 </div>
-              </div>
-              
             </div>
 
-            <br><br>
+            <br /><br />
 
             <div class="button-container branding">
-              <button data-i18n="go_to_screen" id="lets-go-button">Go to screen!</button>
+                <button data-i18n="go_to_screen" id="lets-go-button">Go to screen!</button>
             </div>
         </div>
-  </body>
+    </body>
 </html>

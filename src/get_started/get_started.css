@@ -1,0 +1,95 @@
+body { 
+    margin: 0; 
+    padding: 0; 
+    color: #D0D0D0; 
+    background-color: black; 
+    font-family: Verdana, Geneva, Tahoma, sans-serif; 
+    overflow: hidden; 
+    font-size: 35px;
+}	
+
+main {
+    display: flex;
+    min-width: 100vw; 
+    min-height:100vh;  
+    flex-direction: column;
+}
+
+#logo-top-right {
+    position: absolute;
+    top: 4rem;
+    right: 4rem;
+    height: 120px;
+}
+
+h1 {
+    font-size: 60px;
+    margin: 0;
+    padding-top: 60px;
+    padding-left: 60px;
+    color: white; 
+}
+
+h2 {
+   font-size: 40px; 
+   color: white; 
+}
+
+p {
+    line-height: 150%;
+    padding: 0;
+    margin: 0;
+}
+
+.container {
+    display: flex;
+    flex-grow: 1;
+    padding: 20px 60px 60px 60px;
+}
+
+.wireless-container {  
+    min-height: 100%;
+    flex-basis: 50%;
+}
+
+.or-container {
+    border: 2px #C4C4C4 solid;
+    min-height: 100%;
+    position: relative;
+    margin: 45px 100px;
+}
+
+.or-container::after {
+    content: "OR";
+    background-color: black;
+    font-size: 40px;
+    color: #D9D9D9;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    padding: 40px 0;
+}
+
+.keyboard-container {
+    min-height: 100%;
+    flex-basis: 50%;
+}
+
+.qr-code-container {
+    display: flex;
+    justify-content: center;
+    margin: 20px 0;
+}
+.qr-code-container img {
+    height: 230px;
+}
+
+.random-id {
+    font-size: 60px;
+    font-weight: bold;
+    margin: 20px 0;
+    color: white;
+    text-align: center;
+    text-transform: uppercase;
+}

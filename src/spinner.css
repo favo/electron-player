@@ -1,0 +1,13 @@
+#bottom-right {position: absolute;bottom: 0;right: 0;padding: 1vw; font-size: 2vw; pointer-events: none; color: rgb(130, 130, 130);}
+.center-flex {  display: -webkit-flex;  display: flex;  justify-content: center;  align-items: center;}
+.message {  font-size: 0.7em;  margin-right: 0.7em;}
+.spinner {  width: 1.5em;  height: 1.5em;  padding: 0;}
+.spin {  animation: spin 1.5s infinite linear;}
+.shake {  animation: shake 0.75s ease;}
+.spinner .✓ {  display: none;}
+.spinner .x * {  display: none;}
+.spinner.success .✓ {  display: block;  animation: pop 0.3s ease 1;}
+.spinner.success .spinner-line {  display: none;}
+.spinner.error .spinner-line {  display: none;}
+.spinner.error .x * {  display: block;}
+.message {  text-align: right;}

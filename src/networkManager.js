@@ -171,7 +171,7 @@ const networkManager = (module.exports = {
 
         let attempts = 0;
         let connectionState;
-        let lastConnectionState = null
+        let lastConnectionState = null;
         while (attempts < 75) {
             connectionState = await executeCommand(connectionStateCommand);
 
@@ -179,20 +179,20 @@ const networkManager = (module.exports = {
             if (connectionState.success && connectionState.stdout.includes("activated")) {
                 return connectionState;
             } else if (connectionState.success && connectionState.stdout.includes("activating")) {
-                lastConnectionState = "activating"
+                lastConnectionState = "activating";
                 attempts++;
                 console.log(`waitForActiveConnection: Attempt ${attempts} failed. Retrying in 0.5 second...`);
                 await new Promise((resolve) => setTimeout(resolve, 500));
             } else if (connectionState.success && connectionState.stdout.includes("deactivated")) {
-                connectionState.success = false
-                connectionState.stdout = "Connection state deactivating"
+                connectionState.success = false;
+                connectionState.stdout = "Connection state deactivating";
                 return false;
             } else {
                 if (lastConnectionState === "activating") {
-                    connectionState.success = false
-                    connectionState.stderr = "Operation went from activating to null. Most likely wrong password"
-                    connectionState.type = "802-11-wireless-security.psk"
-                    return connectionState
+                    connectionState.success = false;
+                    connectionState.stderr = "Operation went from activating to null. Most likely wrong password";
+                    connectionState.type = "802-11-wireless-security.psk";
+                    return connectionState;
                 } else {
                     attempts++;
                     console.log(`waitForActiveConnection: Attempt ${attempts} failed. Retrying in 0.5 second...`);
@@ -201,8 +201,8 @@ const networkManager = (module.exports = {
             }
         }
 
-        connectionState.success = false
-        connectionState.stderr = "Exceeded maximum attempts. Operation failed."
+        connectionState.success = false;
+        connectionState.stderr = "Exceeded maximum attempts. Operation failed.";
         return connectionState;
     },
 
@@ -240,7 +240,6 @@ const networkManager = (module.exports = {
         return connection;
     },
 
-    
     async deleteConnectionBySSID(ssid) {
         console.log("Deleting connection:", ssid);
         const deleteCommand = quote(["nmcli", "connection", "delete", ssid]);
@@ -250,12 +249,11 @@ const networkManager = (module.exports = {
         return deleteResult.success;
     },
 
-    
     /*
      * Deletes all wifi connections
      */
     async deleteAllConnections() {
-        const deleteAllCommand = quote(["nmcli","-t", "-f", "name,type", "connection", "show"]);
+        const deleteAllCommand = quote(["nmcli", "-t", "-f", "name,type", "connection", "show"]);
 
         const result = await executeCommand(deleteAllCommand, "Delete all connections");
 
@@ -263,25 +261,39 @@ const networkManager = (module.exports = {
         const lines = result.stdout.split("\n");
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i].split(":");
-            const ssid = line[0]
-            const type = line[1]
+            const ssid = line[0];
+            const type = line[1];
 
             console.log(line);
             if (type == "802-11-wireless") {
-                networkManager.deleteConnectionBySSID(ssid)
+                networkManager.deleteConnectionBySSID(ssid);
             }
         }
-
-
     },
 
     /*
      *   Checks if device is connected with etherenet
      */
-    async checkForEthernetConnection() {
+    async checkEthernetConnection() {
         const command = "nmcli device status | grep ethernet | grep -q connected && echo 1 || echo 0";
 
         return await executeCommand(command);
+    },
+
+    /*
+     *   Checks if device is connected with etherenet
+     */
+    async checkEthernetConnectionInterval() {
+        let ethernetInterval = setInterval(async () => {
+            const result = networkManager.checkEthernetConnection();
+            if (result.success && result.stdout == "1") {
+                if (ethernetInterval) {
+                    clearInterval(ethernetInterval);
+                    ethernetInterval = null;
+                }
+                ipcMain.emit("ethernet_status", result.stdout.toString());
+            }
+        }, 2000);
     },
 
     /*
@@ -311,7 +323,7 @@ const networkManager = (module.exports = {
         });
 
         bleSocket.on("host", (host) => {
-            ipcMain.emit("set_host_from_bluetooth", host.toString());
+            ipcMain.emit("set_host", {host: host.toString(), reload: true});
         });
 
         bleSocket.on("finish-setup", () => {
@@ -328,11 +340,7 @@ const networkManager = (module.exports = {
             }
         });
 
-        // setTimeout(() => {
-        //     // Disable BLE after 10 minutes to prevent someone from changing the Wi-Fi
-        //     bleSocket.emit("ble-disable");
-        // }, 60*1000*10);
-
-        bleSocket.emit("ble-enable");
+        bleSocket.emit("ble-enable", store.get("uuid"));
+        // bleSocket.emit("ble-disable");
     },
 });

@@ -18,7 +18,6 @@ input, select { min-width: 15em; }
 .networks button, .password-box button { display: flex; align-items: center; }
 .network-settings {display: none;}
 #dev-mode {display: none;}
-.ethernet-connected {position: absolute; display: none; justify-content: center; align-items: center; height: 100%; width: 100%; flex-direction: column;}
 #hidden-network-button {font-size: 0.7em; text-align: center; padding: 0; border: 0; display: inline-flex; margin-bottom: 0.3em;}
 
 .network-settings[data-hidden-ssid="1"] .ssid {display: none;}
@@ -46,19 +45,6 @@ body[data-dev-mode="true"] #dev-mode {display: flex; flex-direction: column; gap
 #canvas {position: absolute; bottom: 10vh; right: 1em;}
 
 #error-message {font-size: 0.8em;}
-
-.center-flex {  display: -webkit-flex;  display: flex;  justify-content: center;  align-items: center;}
-.message {  font-size: 0.7em;  margin-right: 0.7em;}
-.spinner {  width: 1.5em;  height: 1.5em;  padding: 0;}
-.spin {  animation: spin 1.5s infinite linear;}
-.shake {  animation: shake 0.75s ease;}
-.spinner .✓ {  display: none;}
-.spinner .x * {  display: none;}
-.spinner.success .✓ {  display: block;  animation: pop 0.3s ease 1;}
-.spinner.success .spinner-line {  display: none;}
-.spinner.error .spinner-line {  display: none;}
-.spinner.error .x * {  display: block;}
-.message {  text-align: right;}
 
 .flex {display: flex; gap: 0.3em;}
 .flex select {flex-grow: 1;}

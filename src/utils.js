@@ -99,6 +99,21 @@ const utils = (module.exports = {
     },
 
     /*
+     *   Restarts app
+     */
+    restartApp() {
+        try {
+            nodeChildProcess.execSync("killall xinit");
+        } catch (error) {
+            appsignal.sendError(error, (span) => {
+                span.setAction("Restarting app");
+                span.setNamespace("utils");
+                span.setTags({ host: store.get("host"), version: pjson.version });
+            });
+        }
+    },
+
+    /*
      *   Sends device info to mainWindow
      */
     sendDeviceInfo(host) {

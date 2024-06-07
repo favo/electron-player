@@ -13,15 +13,15 @@ contextBridge.exposeInMainWorld("api", {
             "search_after_networks",
             "connect_to_network",
             "go_to_app",
-            "request_host",
             "set_host",
+            "set_lang",
             "connect_to_dns",
-            "get_dev_mode",
             "request_system_stats",
             "start_system_stats_stream",
             "stop_system_stats_stream",
-            "get_qr_code",
+            "create_qr_code",
             "check_server_connection",
+            "remove_mouse"
         ];
         if (validChannels.includes(channel)) {
             ipcRenderer.send(channel, data);
@@ -33,16 +33,28 @@ contextBridge.exposeInMainWorld("api", {
             "list_of_networks",
             "connect_to_network_status",
             "request_physical_id",
-            "send_host",
             "ethernet_status",
-            "send_dev_mode",
             "recieve_system_stats",
-            "send_qr_code",
+            "finished_qr_code",
             "dns_registred",
             "open_toaster",
         ];
         if (validChannels.includes(channel)) {
             ipcRenderer.on(channel, (event, ...args) => func(...args));
+        }
+    },
+
+    getFromStore: (key) => {
+        let validKeys = ["host", "dns", "uuid", "lang", "devMode"];
+
+        if (validKeys.includes(key)) {
+            ipcRenderer.send("getFromStore", key);
+        }
+    },
+    resultFromStore: (key, func) => {
+        let validKeys = ["host", "dns", "uuid", "lang", "devMode"];
+        if (validKeys.includes(key)) {
+            ipcRenderer.on(key, (event, ...args) => func(...args));
         }
     },
 });

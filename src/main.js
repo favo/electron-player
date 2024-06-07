@@ -1,4 +1,4 @@
-const { rebootDevice, sendDeviceInfo, updateApp, updateFirmware, getSystemStats, setRotation, deleteRotationFile } = require("./utils");
+const { rebootDevice, restartApp, sendDeviceInfo, updateApp, updateFirmware, getSystemStats, setRotation, deleteRotationFile } = require("./utils");
 const NetworkManager = require("./networkManager");
 
 const { app, BrowserWindow, ipcMain, globalShortcut } = require("electron");
@@ -19,13 +19,14 @@ const store = new Store();
 
 const pjson = require("../package.json");
 
-let host = "http://app.pintomind.com";
+const crypto = require("crypto");
+
 let mainWindow;
 let systemStatsStream;
 
 autoUpdater.autoDownload = false;
 autoUpdater.autoInstallOnAppQuit = true;
-autoUpdater.allowPrerelease = false
+autoUpdater.allowPrerelease = false;
 
 app.commandLine.appendSwitch("use-vulkan");
 app.commandLine.appendSwitch("enable-features", "Vulkan");
@@ -48,17 +49,25 @@ const createWindow = () => {
         icon: path.join(__dirname, "../assets/icon/png/logo256.png"),
     });
 
+    if (!store.has("host")) {
+        store.set("host", "app.pintomind.com");
+    }
+
+    if (!store.has("uuid")) {
+        const uuid = crypto.randomBytes(3).toString("hex");
+        store.set("uuid", uuid);
+    }
+
+    if (!store.has("lang")) {
+        store.set("lang", "en");
+    }
+
     //TODO Flytte denne inn
     NetworkManager.enableBLE();
     if (!store.has("firstTime")) {
-        mainWindow.loadFile(path.join(__dirname, "settings/settings.html"));
-        checkEthernetConnection();
+        mainWindow.loadFile(path.join(__dirname, "get_started/get_started.html"));
     } else {
         mainWindow.loadFile(path.join(__dirname, "index/index.html"));
-    }
-
-    if (!store.has("host")) {
-        store.set("host", "app.pintomind.com");
     }
 
     mainWindow.once("ready-to-show", () => {
@@ -69,13 +78,7 @@ const createWindow = () => {
         mainWindow = null;
     });
 
-    try {
-        autoUpdater.checkForUpdates();
-    } catch (error) {
-        appsignal.sendError(error, (span) => {
-            span.setTags({ host: store.get("host"), version: pjson.version });
-        });
-    }
+    updateApp(autoUpdater);
 };
 
 /*
@@ -85,15 +88,7 @@ app.whenReady().then(() => {
     //  Restarts app
     globalShortcut.register("CommandOrControl+B", () => {
         console.log("Restarting app..");
-        try {
-            nodeChildProcess.execSync("killall xinit");
-        } catch (error) {
-            appsignal.sendError(error, (span) => {
-                span.setAction("Restarting app");
-                span.setNamespace("main");
-                span.setTags({ host: store.get("host"), version: pjson.version });
-            });
-        }
+        restartApp();
     });
     //  reboot device
     globalShortcut.register("CommandOrControl+A", () => {
@@ -120,11 +115,6 @@ app.whenReady().then(() => {
         console.log("Updating firmware...");
         updateFirmware();
     });
-    /*   // Takes screenshot
-  globalShortcut.register('CommandOrControl+P', () => {
-    screenShot()
-  }) */
-
     // Opens settings page
     globalShortcut.register("CommandOrControl+I", () => {
         mainWindow.loadFile(path.join(__dirname, "settings/settings.html"));
@@ -133,28 +123,33 @@ app.whenReady().then(() => {
     globalShortcut.register("CommandOrControl+P", () => {
         mainWindow.loadFile(path.join(__dirname, "index/index.html"));
     });
+    // Opens get started page
+    globalShortcut.register("CommandOrControl+G", () => {
+        mainWindow.loadFile(path.join(__dirname, "get_started/get_started.html"));
+    });
     // Enables devmode
     globalShortcut.register("CommandOrControl+D+M", () => {
         const devMode = store.get("devMode", false);
+
         if (devMode) {
             store.set("devMode", false);
-            autoUpdater.allowPrerelease = false
-            mainWindow.webContents.send("send_dev_mode", false);
+            autoUpdater.allowPrerelease = false;
+            mainWindow.webContents.send("devMode", false);
         } else {
             store.set("devMode", true);
-            autoUpdater.allowPrerelease = true
-            mainWindow.webContents.send("send_dev_mode", true);
+            autoUpdater.allowPrerelease = true;
+            mainWindow.webContents.send("devMode", true);
         }
-        autoUpdater.allowPrerelease = true
+        autoUpdater.allowPrerelease = true;
     });
 
     /* https://medium.com/how-to-electron/how-to-reset-application-data-in-electron-48bba70b5a49 */
     globalShortcut.register("CommandOrControl+D+S", async () => {
-        store.clear()
-        await NetworkManager.deleteAllConnections()
-        await deleteRotationFile()
+        store.clear();
+        await NetworkManager.deleteAllConnections();
+        await deleteRotationFile();
 
-        const getAppPath = path.join(app.getPath('appData'), pjson.name);
+        const getAppPath = path.join(app.getPath("appData"), pjson.name);
         fs.unlink(getAppPath, () => {
             rebootDevice();
         });
@@ -179,44 +174,6 @@ app.on("activate", () => {
 });
 
 /*
- *   AutoUpdater callbacks
- */
-autoUpdater.on("error", (error) => {
-    appsignal.sendError(error, (span) => {
-        span.setAction("autoUpdater");
-        span.setNamespace("main");
-        span.setTags({ host: store.get("host"), version: pjson.version });
-    });
-});
-
-autoUpdater.on("checking-for-update", (info) => {
-    console.log(info);
-    mainWindow.webContents.send("open_toaster", "Checking for update");
-});
-
-autoUpdater.on("update-not-available", (info) => {
-    console.log(info);
-    mainWindow.webContents.send("open_toaster", "No updates available");
-});
-
-autoUpdater.on("update-available", (info) => {
-    console.log(info);
-    autoUpdater.downloadUpdate();
-    mainWindow.webContents.send("open_toaster", "Update available");
-});
-
-autoUpdater.on("download-progress", (info) => {
-    console.log(info);
-    mainWindow.webContents.send("open_toaster", `Download progress ${info.percent.toFixed(2)}%`);
-});
-
-autoUpdater.on("update-downloaded", (info) => {
-    console.log(info);
-    autoUpdater.quitAndInstall();
-    mainWindow.webContents.send("open_toaster", "Update downloaded");
-});
-
-/*
  *   Listeners from renderer. Called when server sends message
  */
 ipcMain.on("reboot_device", (event, arg) => {
@@ -229,6 +186,7 @@ ipcMain.on("restart_app", (event, arg) => {
 });
 
 ipcMain.on("request_device_info", (event, arg) => {
+    const host = store.get("host")
     const deviceInfo = sendDeviceInfo(host);
     mainWindow.webContents.send("send_device_info", deviceInfo);
 });
@@ -278,8 +236,25 @@ ipcMain.on("request_system_stats", (event, arg) => {
 /* 
   Listeners from settings page.
 */
-ipcMain.on("change_rotation", (event, arg) => {
+ipcMain.on("getFromStore", (_event, key) => {
+    const value = store.get(key);
+    mainWindow.webContents.send(key, value);
+});
+
+ipcMain.on("change_rotation", (_event, arg) => {
     setRotation(arg);
+});
+
+ipcMain.on("set_lang", (_event, lang) => {
+    store.set("lang", lang);
+});
+
+ipcMain.on("set_host", (_event, data) => {
+    store.set("host", data.host);
+
+    if (data.reload) {
+        mainWindow.webContents.reload();
+    }
 });
 
 ipcMain.on("go_to_app", (_event, _arg) => {
@@ -287,22 +262,16 @@ ipcMain.on("go_to_app", (_event, _arg) => {
     mainWindow.loadFile(path.join(__dirname, "index/index.html"));
 });
 
-ipcMain.on("set_host", (event, arg) => {
-    console.log("setting host to:", arg);
-    store.set("host", arg);
+ipcMain.on("connect_to_dns", (event, arg) => {
+    const result = NetworkManager.addDNS(arg);
+    mainWindow.webContents.send("dns_registred", result.success);
 });
 
-ipcMain.on("set_host_from_bluetooth", (host) => {
-    console.log("setting host to:", host);
-    store.set("host", host);
-    mainWindow.webContents.reload()
+ipcMain.on("ethernet_status", (event, arg) => {
+    console.log(arg);
 });
 
-ipcMain.on("request_host", (event, arg) => {
-    const host = store.get("host");
-    mainWindow.webContents.send("send_host", host);
-    
-    // Trenger for å fjerne musepekeren
+ipcMain.on("remove_mouse", (_event, _arg) => {
     mainWindow.webContents.sendInputEvent({
         type: "mouseMove",
         x: 100,
@@ -310,43 +279,60 @@ ipcMain.on("request_host", (event, arg) => {
     });
 });
 
-ipcMain.on("connect_to_dns", (event, arg) => {
-    const result = NetworkManager.addDNS(arg);
-    mainWindow.webContents.send("dns_registred", result.success);
-});
-
-ipcMain.on("get_dev_mode", (event, arg) => {
-    const devMode = store.get("devMode", false);
-    mainWindow.webContents.send("send_dev_mode", devMode);
-});
-
-ipcMain.on("get_qr_code", (event, arg) => {
+ipcMain.on("create_qr_code", (event, options) => {
     const host = store.get("host");
-    const qrcodeURI = host + "/connect";
-    var opts = {
+    const qrcodeURI = host + options.path || "";
+
+    const opts = {
         errorCorrectionLevel: "H",
         type: "image/jpeg",
         quality: 0.8,
         margin: 1,
         color: {
-            light: "#000000",
-            dark: "#828282",
+            light: options.lightColor,
+            dark: options.darkColor,
         },
     };
-    QRCode.toDataURL(qrcodeURI, opts, function (err, url) {
-        mainWindow.webContents.send("send_qr_code", url);
+
+    QRCode.toDataURL(qrcodeURI, opts, (err, url) => {
+        mainWindow.webContents.send("finished_qr_code", url);
     });
 });
 
-function checkEthernetConnection() {
-    let ethernetInterval = setInterval(async () => {
-        const result = NetworkManager.checkForEthernetConnection();
-        if (result.success && result.stdout == "1") {
-            if (ethernetInterval) {
-                clearInterval(ethernetInterval);
-                ethernetInterval = null;
-            }
-            mainWindow.webContents.send("ethernet_status", result.stdout.toString());
-        }
-    }, 2000);
-}
+/*
+ *   AutoUpdater callbacks
+ */
+autoUpdater.on("error", (error) => {
+    appsignal.sendError(error, (span) => {
+        span.setAction("autoUpdater");
+        span.setNamespace("main");
+        span.setTags({ host: store.get("host"), version: pjson.version });
+    });
+});
+
+autoUpdater.on("checking-for-update", (info) => {
+    console.log(info);
+    mainWindow.webContents.send("open_toaster", "Checking for update");
+});
+
+autoUpdater.on("update-not-available", (info) => {
+    console.log(info);
+    mainWindow.webContents.send("open_toaster", "No updates available");
+});
+
+autoUpdater.on("update-available", (info) => {
+    console.log(info);
+    autoUpdater.downloadUpdate();
+    mainWindow.webContents.send("open_toaster", "Update available");
+});
+
+autoUpdater.on("download-progress", (info) => {
+    console.log(info);
+    mainWindow.webContents.send("open_toaster", `Download progress ${info.percent.toFixed(2)}%`);
+});
+
+autoUpdater.on("update-downloaded", (info) => {
+    console.log(info);
+    autoUpdater.quitAndInstall();
+    mainWindow.webContents.send("open_toaster", "Update downloaded");
+});
