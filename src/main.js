@@ -62,9 +62,9 @@ const createWindow = () => {
         store.set("lang", "en");
     }
 
-    //TODO Flytte denne inn
-    NetworkManager.enableBLE();
     if (!store.has("firstTime")) {
+        NetworkManager.enableBLE();
+        NetworkManager.checkEthernetConnectionInterval();
         mainWindow.loadFile(path.join(__dirname, "get_started/get_started.html"));
     } else {
         mainWindow.loadFile(path.join(__dirname, "index/index.html"));
@@ -121,6 +121,8 @@ app.whenReady().then(() => {
     });
     // Opens player page
     globalShortcut.register("CommandOrControl+P", () => {
+        NetworkManager.stopEthernetInterval();
+        NetworkManager.disableBLE();
         mainWindow.loadFile(path.join(__dirname, "index/index.html"));
     });
     // Opens get started page
@@ -186,7 +188,7 @@ ipcMain.on("restart_app", (event, arg) => {
 });
 
 ipcMain.on("request_device_info", (event, arg) => {
-    const host = store.get("host")
+    const host = store.get("host");
     const deviceInfo = sendDeviceInfo(host);
     mainWindow.webContents.send("send_device_info", deviceInfo);
 });
@@ -259,6 +261,8 @@ ipcMain.on("set_host", (_event, data) => {
 
 ipcMain.on("go_to_app", (_event, _arg) => {
     store.set("firstTime", "false");
+    NetworkManager.stopEthernetInterval();
+    NetworkManager.disableBLE();
     mainWindow.loadFile(path.join(__dirname, "index/index.html"));
 });
 

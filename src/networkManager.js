@@ -11,6 +11,7 @@ const Store = require("electron-store");
 const store = new Store();
 
 let lastConnectionSSID;
+let ethernetInterval
 
 const networkManager = (module.exports = {
     /*
@@ -281,20 +282,32 @@ const networkManager = (module.exports = {
     },
 
     /*
-     *   Checks if device is connected with etherenet
+     *   Checks if device is connected with etherenet in interval
      */
     async checkEthernetConnectionInterval() {
-        let ethernetInterval = setInterval(async () => {
+        ethernetInterval = setInterval(async () => {
             const result = networkManager.checkEthernetConnection();
             if (result.success && result.stdout == "1") {
                 if (ethernetInterval) {
                     clearInterval(ethernetInterval);
                     ethernetInterval = null;
                 }
+
                 ipcMain.emit("ethernet_status", result.stdout.toString());
+                bleSocket.emit("ethernet-status", result.stdout.toString())
             }
         }, 2000);
     },
+
+    /*
+     *   Stops ethernetinterval
+     */
+        async stopEthernetInterval() {
+            if (ethernetInterval) {
+                clearInterval(ethernetInterval);
+                ethernetInterval = null;
+            }
+        },
 
     /*
      *   Adds dns address to /etc/resolv
@@ -341,6 +354,12 @@ const networkManager = (module.exports = {
         });
 
         bleSocket.emit("ble-enable", store.get("uuid"));
-        // bleSocket.emit("ble-disable");
     },
+
+    /*
+     *  Disables BLE 
+     */
+    disableBLE() {
+        bleSocket.emit("ble-disable");
+    }
 });
