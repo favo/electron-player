@@ -64,7 +64,6 @@ const createWindow = () => {
 
     if (!store.has("firstTime")) {
         NetworkManager.enableBLE();
-        NetworkManager.checkEthernetConnectionInterval();
         mainWindow.loadFile(path.join(__dirname, "get_started/get_started.html"));
     } else {
         mainWindow.loadFile(path.join(__dirname, "index/index.html"));
@@ -121,7 +120,6 @@ app.whenReady().then(() => {
     });
     // Opens player page
     globalShortcut.register("CommandOrControl+P", () => {
-        NetworkManager.stopEthernetInterval();
         NetworkManager.disableBLE();
         mainWindow.loadFile(path.join(__dirname, "index/index.html"));
     });
@@ -261,7 +259,6 @@ ipcMain.on("set_host", (event, data) => {
 
 ipcMain.on("go_to_app", (_event, _arg) => {
     store.set("firstTime", "false");
-    NetworkManager.stopEthernetInterval();
     NetworkManager.disableBLE();
     mainWindow.loadFile(path.join(__dirname, "index/index.html"));
 });
@@ -271,8 +268,8 @@ ipcMain.on("connect_to_dns", (event, arg) => {
     mainWindow.webContents.send("dns_registred", result.success);
 });
 
-ipcMain.on("ethernet_status", (event, arg) => {
-    console.log(arg);
+ipcMain.on("ethernet_status", (_event, result) => {
+    mainWindow.webContents.send("connect_to_network_status", result);
 });
 
 ipcMain.on("remove_mouse", (_event, _arg) => {

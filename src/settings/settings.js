@@ -17,9 +17,9 @@ var canvas;
 var dns;
 
 window.onload = async () => {
-    /* 
-      Queryies all elemets neeeded
-    */
+    /*
+     *  Queryies all elemets neeeded
+     */
     const letsGoButton = document.getElementById("lets-go-button");
     const connectButton = document.getElementById("connect-button");
     const rotationButtons = document.getElementById("rotation-buttons").querySelectorAll("button");
@@ -29,9 +29,9 @@ window.onload = async () => {
     const toggleButton = document.getElementById("toggleButton");
     const hiddenNetworkButton = document.getElementById("hidden-network-button");
 
-    /* 
-    Queryies elements needed also later
-    */
+    /*
+     *  Queryies elements needed also later
+     */
     hiddenSsidField = document.getElementById("hidden-network");
     statusMessage = document.getElementById("status-message");
     refreshButton = document.getElementById("refresh-button");
@@ -47,9 +47,9 @@ window.onload = async () => {
     dns = document.getElementById("dns");
     myStorage = window.localStorage;
 
-    /* 
-        Sets language
-    */
+    /*
+     *  Sets language
+     */
     window.api.getFromStore("lang");
     window.api.resultFromStore("lang", async (lang) => {
         languageData = await fetchLanguageData(lang);

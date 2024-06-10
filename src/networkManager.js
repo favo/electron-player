@@ -278,7 +278,13 @@ const networkManager = (module.exports = {
     async checkEthernetConnection() {
         const command = "nmcli device status | grep ethernet | grep -q connected && echo 1 || echo 0";
 
-        return await executeCommand(command);
+        const result = await executeCommand(command);
+
+        if (result.success && result.stdout == "1") {
+            return await networkManager.attemptServerConnection();
+        } else {
+            return result;
+        }
     },
 
     /*
@@ -286,15 +292,12 @@ const networkManager = (module.exports = {
      */
     async checkEthernetConnectionInterval() {
         ethernetInterval = setInterval(async () => {
-            const result = networkManager.checkEthernetConnection();
+            const result = await networkManager.checkEthernetConnection();
             if (result.success && result.stdout == "1") {
                 if (ethernetInterval) {
                     clearInterval(ethernetInterval);
                     ethernetInterval = null;
                 }
-
-                ipcMain.emit("ethernet_status", result.stdout.toString());
-                bleSocket.emit("ethernet-status", result.stdout.toString());
             }
         }, 2000);
     },
@@ -341,6 +344,11 @@ const networkManager = (module.exports = {
 
         bleSocket.on("finish-setup", () => {
             ipcMain.emit("go_to_app");
+        });
+
+        bleSocket.on("check-ethernet-status", async () => {
+            const result = await networkManager.checkEthernetConnection();
+            bleSocket.emit("ethernet-status", result);
         });
 
         bleSocket.on("get-network-list", async () => {

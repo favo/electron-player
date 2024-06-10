@@ -21,7 +21,8 @@ contextBridge.exposeInMainWorld("api", {
             "stop_system_stats_stream",
             "create_qr_code",
             "check_server_connection",
-            "remove_mouse"
+            "remove_mouse",
+            "ethernet_status",
         ];
         if (validChannels.includes(channel)) {
             ipcRenderer.send(channel, data);
