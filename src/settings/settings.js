@@ -211,7 +211,6 @@ function updateHost() {
     window.api.resultFromStore("host", (host) => {
         hostName.innerHTML = host;
         hostAddress.value = host;
-        myStorage.setItem("host", host);
         if (host == "app.infoskjermen.no") {
             changeLanguage("no");
             infoskjermenButton.classList.add("selected");
@@ -226,7 +225,6 @@ function updateHost() {
 
 function setHost(host) {
     window.api.send("set_host", { host: host, reload: false });
-    myStorage.setItem("host", host);
     document.getElementById("host-name").innerHTML = host;
     hostAddress.value = host;
 }

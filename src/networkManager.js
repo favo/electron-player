@@ -294,6 +294,8 @@ const networkManager = (module.exports = {
         ethernetInterval = setInterval(async () => {
             const result = await networkManager.checkEthernetConnection();
             if (result.success && result.stdout == "1") {
+                ipcMain.emit("ethernet_status", result)
+                
                 if (ethernetInterval) {
                     clearInterval(ethernetInterval);
                     ethernetInterval = null;
