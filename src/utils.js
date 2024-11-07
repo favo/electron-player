@@ -2,6 +2,7 @@ const nodeChildProcess = require("child_process");
 const pjson = require("../package.json");
 const si = require("systeminformation");
 const fs = require("fs");
+const quote = require("shell-quote/quote");
 
 const { promisify } = require("util");
 const execAsync = promisify(nodeChildProcess.exec);
@@ -79,7 +80,7 @@ const utils = (module.exports = {
         const result = await utils.executeCommand(command);
 
         if (result.success) {
-            rebootDevice();
+            utils.rebootDevice();
         }
     },
 
@@ -149,15 +150,46 @@ const utils = (module.exports = {
 
         const command = "/home/pi/.adjust_video.sh";
 
-        const result = await utils.executeCommand(command);
+        await utils.executeCommand(command);
     },
 
-    async deleteRotationFile() {
-        const path = "./rotation";
-        
-        fs.unlink(path, () => {
-            console.log("File deleted");
-        });
+    async resetRotationFile() {
+        fs.writeFileSync("./rotation", "normal");
+    },
+
+    /*
+     *   Lists all possible screen resolutions
+     */
+    async getAllScreenResolution() {
+        const command = "export DISPLAY=:0 | xrandr"
+        const xrandrOutput = await utils.executeCommand(command);
+
+        if (xrandrOutput.success) {
+            const resolutionPattern = /\b\d{3,4}x\d{3,4}\b/g;
+            const currentResolutionPattern = /\b\d{3,4}x\d{3,4}\b(?=\s+\d+.\d+\*)/;
+
+            return {
+                list: xrandrOutput.stdout.match(resolutionPattern),
+                current: xrandrOutput.stdout.match(currentResolutionPattern)[0]
+            };
+        } else {
+            return {
+                list: null, 
+                current: null
+            }
+        }
+
+    },
+
+    /*
+     *   Sets screen resolution
+     */
+    async setScreenResolution(resolution) {
+        fs.writeFileSync("./resolution", resolution);
+
+        const command = "/home/pi/.adjust_video.sh";
+
+        await utils.executeCommand(command);
     },
 
     /*

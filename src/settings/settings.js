@@ -1,9 +1,11 @@
 var languageData;
 var countdownInterval;
 var isConnecting = false;
+var isRegistringDns = false;
 var statusMessage;
 var pinToMindButton;
 var infoskjermenButton;
+var screenResolution
 var refreshButton;
 var passwordField;
 var errorMessage;
@@ -24,19 +26,21 @@ window.onload = async () => {
     const connectButton = document.getElementById("connect-button");
     const rotationButtons = document.getElementById("rotation-buttons").querySelectorAll("button");
     const connectAnotherButton = document.getElementById("connect-another-button");
+    const screenResolutionButton = document.getElementById("set-screen-resolution");
     const dnsButton = document.getElementById("register-dns");
     const connectHostButton = document.getElementById("connect-to-host");
     const toggleButton = document.getElementById("toggleButton");
     const hiddenNetworkButton = document.getElementById("hidden-network-button");
-
+    
     /*
-     *  Queryies elements needed also later
-     */
+    *  Queryies elements needed also later
+    */
+    screenResolution = document.getElementById("screen-resolution");
+    infoskjermenButton = document.getElementById("infoskjermen");
     hiddenSsidField = document.getElementById("hidden-network");
     statusMessage = document.getElementById("status-message");
     refreshButton = document.getElementById("refresh-button");
     errorMessage = document.getElementById("error-message");
-    infoskjermenButton = document.getElementById("infoskjermen");
     pinToMindButton = document.getElementById("pintomind");
     hostAddress = document.getElementById("host-address");
     passwordField = document.getElementById("password");
@@ -50,7 +54,6 @@ window.onload = async () => {
     /*
      *  Sets language
      */
-    window.api.getFromStore("lang");
     window.api.resultFromStore("lang", async (lang) => {
         languageData = await fetchLanguageData(lang);
         checkServerConnection();
@@ -62,6 +65,7 @@ window.onload = async () => {
             dns.value = languageData["ip_address"];
         }
     });
+    window.api.getFromStore("lang");
 
     /* 
       Adds events in elements
@@ -107,6 +111,7 @@ window.onload = async () => {
     connectButton.addEventListener("click", () => connectToNetwork());
     dnsButton.addEventListener("click", () => registerDNS());
     connectHostButton.addEventListener("click", () => connectToHost());
+    screenResolutionButton.addEventListener("click", () => setScreenResolution());
     passwordField.addEventListener("input", () => (errorMessage.innerHTML = null));
 
     updateHost();
@@ -124,15 +129,30 @@ window.onload = async () => {
         displayListOfNetworks(data);
     });
 
-    window.api.getFromStore("devMode");
     window.api.resultFromStore("devMode", (devMode) => {
         window.document.body.dataset.devMode = devMode;
     });
+    window.api.getFromStore("devMode");
 
-    window.api.send("create_qr_code", { path: "/connect", lightColor: "#000000", darkColor: "#828282" });
     window.api.receive("finished_qr_code", (data) => {
         canvas.src = data;
     });
+    window.api.send("create_qr_code", { path: "/connect", lightColor: "#000000", darkColor: "#828282" });
+    
+    window.api.receive("send_screen_resolutions", (data) => {
+        if (data) {
+            data.list.forEach((res) => {
+                const option = document.createElement("option");
+                option.textContent = res
+                option.value = res;
+                if (data.current == res) {
+                    option.selected = true
+                }
+                screenResolution.appendChild(option)
+            })
+        }
+    });
+    window.api.send("get_screen_resolutions");
 
     // Callback for when connecting to a network
     window.api.receive("connect_to_network_status", (data) => {
@@ -255,22 +275,22 @@ function displayListOfNetworks(data) {
 
 function registerDNS() {
     const delay = Date.now();
+    if (isRegistringDns) return
+
     window.api.receive("dns_registred", (data) => {
-        const waitTime = Date.now() - delay;
-        if (waitTime) {
-            setInterval(() => {
-                if (data == true) {
-                    setStatusMessage(languageData["dns_registred"]);
-                } else {
-                    setStatusMessage(languageData["dns_error"]);
-                }
-                resetSpinner();
-            }, waitTime);
+        isRegistringDns = false
+
+        if (data == true) {
+            setStatusMessage(languageData["dns_registred"]);
+        } else {
+            setStatusMessage(languageData["dns_error"]);
         }
+        resetSpinner
     });
 
     const name = dns.value;
     dns.placeholder = name;
+    resetSpinner()
     setStatusMessage(languageData["dns_registring"]);
     spinner.classList.add("spin");
 
@@ -281,6 +301,11 @@ function registerDNS() {
 function connectToHost() {
     const name = hostAddress.value;
     setHost(name);
+}
+
+function setScreenResolution() {
+    const res = screenResolution.value 
+    window.api.send("set_screen_resolution", res);
 }
 
 function findUniqueSSIDs(inputString) {

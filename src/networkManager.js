@@ -1,5 +1,5 @@
 const quote = require("shell-quote/quote");
-const { setRotation, executeCommand, findUniqueSSIDs } = require("./utils.js");
+const { setRotation, executeCommand, findUniqueSSIDs, getAllScreenResolution, setScreenResolution } = require("./utils.js");
 const fs = require("fs");
 
 const io = require("socket.io-client");
@@ -265,7 +265,6 @@ const networkManager = (module.exports = {
             const ssid = line[0];
             const type = line[1];
 
-            console.log(line);
             if (type == "802-11-wireless") {
                 networkManager.deleteConnectionBySSID(ssid);
             }
@@ -317,10 +316,23 @@ const networkManager = (module.exports = {
     /*
      *   Adds dns address to /etc/resolv
      */
-    async addDNS(name) {
-        const command = quote(["sudo", "sed", "-i", `3inameserver ${name}`, "/etc/resolv.conf"]);
+    async addDNS(dns) {
+        const connectionName = await executeCommand("nmcli -t -f active,ssid dev wifi | grep '^yes' | cut -d':' -f2")
 
-        return await executeCommand(command);
+        if (connectionName.success) {
+
+            const modifyDNS = await executeCommand(quote(["nmcli", "con", "mod", `${connectionName.stdout}`, "ipv4.dns", `${dns}`]))
+            if (modifyDNS.success) {
+                const disableAutoDNS = await executeCommand(quote(["nmcli", "con", "mod", `${connectionName.stdout}`, "ipv4.ignore-auto-dns", 'yes']));
+                if (disableAutoDNS) {
+                    return await executeCommand(`nmcli con down ${connectionName.stdout} | nmcli con up ${connectionName.stdout}`);
+                } else {
+                    return disableAutoDNS
+                }
+            } else {
+                return modifyDNS
+            }
+        }
     },
 
     /*
@@ -351,6 +363,16 @@ const networkManager = (module.exports = {
         bleSocket.on("check-ethernet-status", async () => {
             const result = await networkManager.checkEthernetConnection();
             bleSocket.emit("ethernet-status", result);
+        });
+
+        bleSocket.on("get-resolution-list", async () => {
+            const result = await getAllScreenResolution();
+
+            bleSocket.emit("list-of-resolutions", result);
+        });
+
+        bleSocket.on("set-resolution", (res) => {
+            setScreenResolution(res)
         });
 
         bleSocket.on("get-network-list", async () => {

@@ -21,8 +21,10 @@
     "wrong_password": "Kunne ikke koble til nettverket. Har du tastet inn riktig passord?",
     "require_password": "* Dette nettverket krever et passord",
     "unexpected_error": "* En uventet feil skjedde...",
-    "ip_address": "Din IP adresse",
+    "ip_address": "Din IP adresse", 
     "dns_registred": "DNS registrert",
     "dns_error": "Kunne ikke registrere DNS",
-    "dns_registring": "Registrerer DNS.."
+    "dns_registring": "Registrerer DNS..",
+    "select_screen_resolution": "Velg oppløsning",
+    "set_screen_res": "Sett oppløsning"
 }

@@ -24,5 +24,7 @@
     "ip_address": "Your IP Address",
     "dns_registred": "DNS registred",
     "dns_error": "Could not register DNS",
-    "dns_registring": "Registring DNS.."
+    "dns_registring": "Registring DNS..",
+    "select_screen_resolution": "Choose resolution",
+    "set_screen_res": "Set resolution"
 }

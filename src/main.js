@@ -1,4 +1,4 @@
-const { rebootDevice, restartApp, sendDeviceInfo, updateApp, updateFirmware, getSystemStats, setRotation, deleteRotationFile } = require("./utils");
+const { rebootDevice, restartApp, sendDeviceInfo, updateApp, updateFirmware, getSystemStats, setRotation, resetRotationFile, setScreenResolution, getAllScreenResolution } = require("./utils");
 const NetworkManager = require("./networkManager");
 
 const { app, BrowserWindow, ipcMain, globalShortcut } = require("electron");
@@ -20,6 +20,7 @@ const store = new Store();
 const pjson = require("../package.json");
 
 const crypto = require("crypto");
+const utils = require("./utils");
 
 let mainWindow;
 let systemStatsStream;
@@ -48,6 +49,7 @@ const createWindow = () => {
         frame: false,
         icon: path.join(__dirname, "../assets/icon/png/logo256.png"),
     });
+    mainWindow.setBackgroundColor('#000000');
 
     if (!store.has("host")) {
         store.set("host", "app.pintomind.com");
@@ -62,10 +64,11 @@ const createWindow = () => {
         store.set("lang", "en");
     }
 
+    console.log(! store.has("firstTime"));
     if (!store.has("firstTime")) {
         NetworkManager.enableBLE();
         NetworkManager.checkEthernetConnectionInterval()
-        mainWindow.loadFile(path.join(__dirname, "settings/settings.html"));
+        mainWindow.loadFile(path.join(__dirname, "get_started/get_started.html"));
     } else {
         mainWindow.loadFile(path.join(__dirname, "index/index.html"));
     }
@@ -149,7 +152,7 @@ app.whenReady().then(() => {
     globalShortcut.register("CommandOrControl+D+S", async () => {
         store.clear();
         await NetworkManager.deleteAllConnections();
-        await deleteRotationFile();
+        await resetRotationFile();
 
         const getAppPath = path.join(app.getPath("appData"), pjson.name);
         fs.unlink(getAppPath, () => {
@@ -248,6 +251,15 @@ ipcMain.on("change_rotation", (_event, arg) => {
     setRotation(arg);
 });
 
+ipcMain.on("set_screen_resolution", (event, arg) => {
+    setScreenResolution(arg);
+});
+
+ipcMain.on("get_screen_resolutions", async (event, arg) => {
+    const screenResolutions = await getAllScreenResolution();
+    mainWindow.webContents.send("send_screen_resolutions", screenResolutions);    
+});
+
 ipcMain.on("set_lang", (_event, lang) => {
     store.set("lang", lang);
 });
@@ -267,8 +279,8 @@ ipcMain.on("go_to_app", (_event, _arg) => {
     mainWindow.loadFile(path.join(__dirname, "index/index.html"));
 });
 
-ipcMain.on("connect_to_dns", (event, arg) => {
-    const result = NetworkManager.addDNS(arg);
+ipcMain.on("connect_to_dns", async (event, arg) => {
+    const result = await NetworkManager.addDNS(arg);
     mainWindow.webContents.send("dns_registred", result.success);
 });
 

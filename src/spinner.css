@@ -1,9 +1,8 @@
-#bottom-right {position: absolute;bottom: 0;right: 0;padding: 1vw; font-size: 2vw; pointer-events: none; color: rgb(130, 130, 130);}
+#bottom-right {position: absolute;bottom: 0;right: 0;padding: 1vw; font-size: 2vw; pointer-events: none; color: rgb(130, 130, 130); overflow: hidden;}
+
 .center-flex {  display: -webkit-flex;  display: flex;  justify-content: center;  align-items: center;}
 .message {  font-size: 0.7em;  margin-right: 0.7em;}
 .spinner {  width: 1.5em;  height: 1.5em;  padding: 0;}
-.spin {  animation: spin 1.5s infinite linear;}
-.shake {  animation: shake 0.75s ease;}
 .spinner .✓ {  display: none;}
 .spinner .x * {  display: none;}
 .spinner.success .✓ {  display: block;  animation: pop 0.3s ease 1;}
@@ -11,3 +10,48 @@
 .spinner.error .spinner-line {  display: none;}
 .spinner.error .x * {  display: block;}
 .message {  text-align: right;}
+
+.spin {  animation: spin 1.5s infinite linear;}
+.shake {  animation: shake 0.75s ease;}
+
+@keyframes spin {
+  0% {
+      transform: rotate(0deg);
+  }
+  100% {
+      transform: rotate(359deg);
+  }
+}
+
+@keyframes pulse {
+    0% {
+      background-color: #111;
+    }
+    50% {
+      background-color: #333;
+    }
+    100% {
+      background-color: #111;
+    }
+}
+
+@keyframes shake {
+  10%, 90% {
+    transform: translate3d(-1px, 0, 0);
+  }
+  20%, 80% {
+    transform: translate3d(2px, 0, 0);
+  }
+  30%, 50%, 70% {
+    transform: translate3d(-4px, 0, 0);
+  }
+  40%, 60% {
+    transform: translate3d(4px, 0, 0);
+  }
+}
+
+@media (orientation: portrait) {
+    #bottom-right {
+      font-size: 4vw;
+    }
+}

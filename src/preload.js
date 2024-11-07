@@ -10,6 +10,8 @@ contextBridge.exposeInMainWorld("api", {
             "upgrade_firmware",
             "update_app",
             "change_rotation",
+            "get_screen_resolutions",
+            "set_screen_resolution",
             "search_after_networks",
             "connect_to_network",
             "go_to_app",
@@ -38,6 +40,7 @@ contextBridge.exposeInMainWorld("api", {
             "recieve_system_stats",
             "finished_qr_code",
             "dns_registred",
+            "send_screen_resolutions",
             "open_toaster",
         ];
         if (validChannels.includes(channel)) {
