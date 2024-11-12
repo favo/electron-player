@@ -58,6 +58,14 @@ window.onload = function () {
             case "update_app":
                 sendMessageToMain("update_app");
                 break;
+            case "pincode":
+                // Gets pincode from butler
+                sendMessageToMain("pincode", {pincode: request.pincode})
+                break;
+            case "factory-reset":
+                // Gets pincode from butler
+                sendMessageToMain("factory-reset")
+                break;
             case "upgrade_firmware":
                 sendMessageToMain("upgrade_firmware");
                 break;

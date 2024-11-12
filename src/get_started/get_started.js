@@ -10,6 +10,7 @@ window.onload = async () => {
 
     window.api.receive("connect_to_network_status", (data) => {
         resetSpinner();
+
         if (data.success && data.stdout.toString() == "1") {
             setConnected();
         } else {
@@ -24,7 +25,6 @@ window.onload = async () => {
     });
 
     getFromStore("uuid", null, (uuid) => {
-        console.log(uuid);
         document.querySelector(".random-id").innerHTML = uuid;
     });
 
@@ -38,10 +38,13 @@ window.onload = async () => {
         }
     });
 
-    window.api.send("create_qr_code", { path: "/connect", lightColor: "#000000", darkColor: "#ffffff" });
-    window.api.receive("finished_qr_code", (data) => {
-        canvas.src = data;
+    window.api.receive("is_connecting", () => {
+        resetSpinner();
+        setConnecting();
     });
+
+    window.api.receive("finished_qr_code", (data) => canvas.src = data);
+    window.api.send("create_qr_code", { path: "/connect", lightColor: "#000000", darkColor: "#ffffff" });
 };
 
 /*

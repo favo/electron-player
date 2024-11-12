@@ -9,12 +9,15 @@ contextBridge.exposeInMainWorld("api", {
             "request_device_info",
             "upgrade_firmware",
             "update_app",
+            "pincode",
+            "factory-reset",
             "change_rotation",
             "get_screen_resolutions",
             "set_screen_resolution",
             "search_after_networks",
             "connect_to_network",
-            "go_to_app",
+            "finish_setup",
+            "go_to_screen",
             "set_host",
             "set_lang",
             "connect_to_dns",
@@ -25,6 +28,8 @@ contextBridge.exposeInMainWorld("api", {
             "check_server_connection",
             "remove_mouse",
             "ethernet_status",
+            "is_connecting",
+            "connecting_result"
         ];
         if (validChannels.includes(channel)) {
             ipcRenderer.send(channel, data);
@@ -35,6 +40,7 @@ contextBridge.exposeInMainWorld("api", {
             "send_device_info",
             "list_of_networks",
             "connect_to_network_status",
+            "is_connecting",
             "request_physical_id",
             "ethernet_status",
             "recieve_system_stats",

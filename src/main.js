@@ -2,7 +2,6 @@ const { rebootDevice, restartApp, sendDeviceInfo, updateApp, updateFirmware, get
 const NetworkManager = require("./networkManager");
 
 const { app, BrowserWindow, ipcMain, globalShortcut } = require("electron");
-const nodeChildProcess = require("child_process");
 
 const Appsignal = require("@appsignal/javascript").default;
 const appsignal = new Appsignal({ key: "b2bdf969-f795-467e-b710-6b735163281f" });
@@ -20,7 +19,6 @@ const store = new Store();
 const pjson = require("../package.json");
 
 const crypto = require("crypto");
-const utils = require("./utils");
 
 let mainWindow;
 let systemStatsStream;
@@ -37,19 +35,19 @@ app.commandLine.appendSwitch("ignore-gpu-blacklist");
 const createWindow = () => {
     mainWindow = new BrowserWindow({
         alwaysOnTop: false,
+        backgroundColor: '#000000',
         width: 1920,
         height: 1080,
         kiosk: true,
+        frame: false,
         webPreferences: {
             nodeIntegration: false,
             contextIsolation: true,
             enableRemoteModule: false,
             preload: path.join(__dirname, "preload.js"),
         },
-        frame: false,
         icon: path.join(__dirname, "../assets/icon/png/logo256.png"),
     });
-    mainWindow.setBackgroundColor('#000000');
 
     if (!store.has("host")) {
         store.set("host", "app.pintomind.com");
@@ -64,7 +62,6 @@ const createWindow = () => {
         store.set("lang", "en");
     }
 
-    console.log(! store.has("firstTime"));
     if (!store.has("firstTime")) {
         NetworkManager.enableBLE();
         NetworkManager.checkEthernetConnectionInterval()
@@ -72,10 +69,6 @@ const createWindow = () => {
     } else {
         mainWindow.loadFile(path.join(__dirname, "index/index.html"));
     }
-
-    mainWindow.once("ready-to-show", () => {
-        mainWindow.show();
-    });
 
     mainWindow.on("closed", function () {
         mainWindow = null;
@@ -150,14 +143,7 @@ app.whenReady().then(() => {
 
     /* https://medium.com/how-to-electron/how-to-reset-application-data-in-electron-48bba70b5a49 */
     globalShortcut.register("CommandOrControl+D+S", async () => {
-        store.clear();
-        await NetworkManager.deleteAllConnections();
-        await resetRotationFile();
-
-        const getAppPath = path.join(app.getPath("appData"), pjson.name);
-        fs.unlink(getAppPath, () => {
-            rebootDevice();
-        });
+        factoryReset()
     });
 });
 
@@ -204,6 +190,14 @@ ipcMain.on("update_app", (event, arg) => {
     updateApp();
 });
 
+ipcMain.on("pincode", (event, pincode) => {
+    NetworkManager.sendPincodeToBluetooth(pincode)
+});
+
+ipcMain.on("factory-reset", (event, arh) => {
+    factoryReset()
+});
+
 ipcMain.on("check_server_connection", async (event, arg) => {
     const status = await NetworkManager.checkConnectionToServer();
     mainWindow.webContents.send("connect_to_network_status", status);
@@ -230,13 +224,20 @@ ipcMain.on("request_system_stats", (event, arg) => {
 
         systemStatsStream = setInterval(async () => {
             const systemStats = await getSystemStats();
-            console.log(systemStats);
             mainWindow.webContents.send("recieve_system_stats", systemStats);
         }, arg.interval);
     }
 
     const systemStats = getSystemStats();
     mainWindow.webContents.send("recieve_system_stats", systemStats);
+});
+
+ipcMain.on("is_connecting", async (_event, arg) => {
+    mainWindow.webContents.send("is_connecting");
+});
+
+ipcMain.on("connecting_result", async (_event, arg) => {
+    mainWindow.webContents.send("connect_to_network_status", arg);
 });
 
 /* 
@@ -251,8 +252,8 @@ ipcMain.on("change_rotation", (_event, arg) => {
     setRotation(arg);
 });
 
-ipcMain.on("set_screen_resolution", (event, arg) => {
-    setScreenResolution(arg);
+ipcMain.on("set_screen_resolution", (event, resolution) => {
+    setScreenResolution(resolution);
 });
 
 ipcMain.on("get_screen_resolutions", async (event, arg) => {
@@ -272,10 +273,13 @@ ipcMain.on("set_host", (event, data) => {
     }
 });
 
-ipcMain.on("go_to_app", (_event, _arg) => {
+ipcMain.on("finish_setup", (_event, _arg) => {
     store.set("firstTime", "false");
     NetworkManager.disableBLE();
     NetworkManager.stopEthernetInterval();
+});
+
+ipcMain.on("go_to_screen", (_event, _arg) => {
     mainWindow.loadFile(path.join(__dirname, "index/index.html"));
 });
 
@@ -286,6 +290,7 @@ ipcMain.on("connect_to_dns", async (event, arg) => {
 
 ipcMain.on("ethernet_status", (_event, result) => {
     mainWindow.webContents.send("connect_to_network_status", result);
+    NetworkManager.updateEthernetStatusToBluetooth(result)
 });
 
 ipcMain.on("remove_mouse", (_event, _arg) => {
@@ -353,3 +358,15 @@ autoUpdater.on("update-downloaded", (info) => {
     autoUpdater.quitAndInstall();
     mainWindow.webContents.send("open_toaster", "Update downloaded");
 });
+
+
+async function factoryReset() {
+    store.clear();
+    await NetworkManager.deleteAllConnections();
+    await resetRotationFile();
+
+    const getAppPath = path.join(app.getPath("appData"), pjson.name);
+    fs.unlink(getAppPath, () => {
+        rebootDevice();
+    });
+}

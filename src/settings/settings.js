@@ -139,6 +139,11 @@ window.onload = async () => {
     });
     window.api.send("create_qr_code", { path: "/connect", lightColor: "#000000", darkColor: "#828282" });
     
+    window.api.receive("is_connecting", () => {
+        resetSpinner();
+        setConnecting();
+    });
+
     window.api.receive("send_screen_resolutions", (data) => {
         if (data) {
             data.list.forEach((res) => {
@@ -274,18 +279,19 @@ function displayListOfNetworks(data) {
 }
 
 function registerDNS() {
-    const delay = Date.now();
     if (isRegistringDns) return
 
     window.api.receive("dns_registred", (data) => {
         isRegistringDns = false
 
+        resetSpinner()
         if (data == true) {
             setStatusMessage(languageData["dns_registred"]);
+            spinner.classList.add("success");
         } else {
             setStatusMessage(languageData["dns_error"]);
+            spinner.classList.add("error");
         }
-        resetSpinner
     });
 
     const name = dns.value;

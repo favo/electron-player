@@ -1,4 +1,4 @@
-.settings {display: flex; flex-direction: column; align-items: center; justify-content: center; color: #828282; max-width: 60vw; margin: auto; height: 100vh;}
+.settings {display: flex; flex-direction: column; align-items: center; justify-content: center; color: #828282; max-width: 75vw; margin: auto; height: 100vh;}
 
 button, input, select {
   border: 1px solid #666; 
@@ -52,8 +52,8 @@ body[data-has-had-connection="true"] #lets-go-button {display: block;}
 body[data-dev-mode="true"] #dev-mode {display: flex; flex-direction: column; gap: 0.3em;}
 
 #bottom-left {position: absolute;bottom: 0;left: 0;padding: 1vw;height: 50%; pointer-events: none;}
-#top-right {position: absolute;top: 0;right: 0;padding: 1vw;height: 16%; pointer-events: none;}
-#canvas {position: absolute; bottom: 4em; right: 1vw; height: 16%;}
+#top-right {position: absolute;top: 0;right: 0;padding: 1vw; height: 16%; pointer-events: none;}
+#canvas {position: absolute; bottom: 5vw; right: 1rem; height: 16%;}
 
 #error-message {font-size: 0.8em;}
 
@@ -62,33 +62,30 @@ body[data-dev-mode="true"] #dev-mode {display: flex; flex-direction: column; gap
 
 
 @media (orientation: portrait) {  
-  :root {
-    font-size: 3vw;
-  }
 
   #bottom-left {
     position: absolute;
     bottom: 0;
     left: 0;
-    padding: 1vw;
-    height: 33%;
+    padding: 1rem;
+    height: 15rem;
   }
   #top-right {
     position: absolute;
     top: 0;
     right: 0;
-    padding: 1vw;
-    height: 12%;
+    padding: 1rem;
+    height: 6rem;
   }
 
   #canvas {
     height: 10%;
+    bottom: 9vw;
   }
-
 }
 
 @media (orientation: landscape) {
   :root {
-    font-size: 1.4vw;
+    font-size: clamp(10px, 3vmin, 2vh);
   }
 }

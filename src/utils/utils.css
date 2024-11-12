@@ -41,12 +41,12 @@ p {
 
 @media (orientation: landscape) {
     :root {
-        font-size: 1.7vw;
+        font-size: 3vmin;
     }
 }
   
 @media (orientation: portrait) {
     :root {
-        font-size: 3vw;
+        font-size: clamp(40px, 3vw, 2.3vh);
     }
 }

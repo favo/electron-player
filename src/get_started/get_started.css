@@ -7,21 +7,21 @@ main {
 
 h1 {
     color: white; 
-    padding: 2vw 4vw 0 2vw;
+    padding: 1rem 6rem 0 1rem;
 }
 
 #logo-top-right {
     position: absolute;
     top: 0;
     right: 0;
-    padding: 2vw;
-    height: 16%;
+    padding: 1rem;
+    height: 4rem;
 }
 
 .container {
     display: flex;
     flex-grow: 1;
-    padding: 1vw 2vw 2vw 2vw;
+    padding: 1rem;
 }
 
 .wireless-container {  
@@ -45,7 +45,7 @@ h1 {
     left: 50%;
     top: 50%;
     transform: translate(-50%, -50%);
-    padding: 1em 0;
+    padding: 1rem 0;
 }
 
 .keyboard-container {
@@ -56,16 +56,16 @@ h1 {
 .qr-code-container {
     display: flex;
     justify-content: center;
-    margin: 0.7em 0;
+    margin: 0.7rem 0;
 }
 .qr-code-container img {
-    height: 10vw;
+    height: 6rem;
 }
 
 .random-id {
     font-size: 2rem;
     font-weight: bold;
-    margin: 0.7em 0;
+    margin: 0.7rem 0;
     color: white;
     text-align: center;
     text-transform: uppercase;
@@ -81,10 +81,6 @@ h1 {
   @media (orientation: portrait) {
     .container {
       flex-direction: column;
-    }
-
-    #logo-top-right {
-        height: 10%;
     }
 
     .or-container {

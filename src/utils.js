@@ -2,7 +2,6 @@ const nodeChildProcess = require("child_process");
 const pjson = require("../package.json");
 const si = require("systeminformation");
 const fs = require("fs");
-const quote = require("shell-quote/quote");
 
 const { promisify } = require("util");
 const execAsync = promisify(nodeChildProcess.exec);

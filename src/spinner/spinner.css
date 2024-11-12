@@ -1,4 +1,4 @@
-#bottom-right {position: absolute;bottom: 0;right: 0;padding: 1vw; font-size: 2vw; pointer-events: none; color: rgb(130, 130, 130); overflow: hidden;}
+#bottom-right {position: absolute; bottom: 0;right: 0; padding: 1vw; font-size: 2vw; pointer-events: none; color: rgb(130, 130, 130); overflow: hidden;}
 
 .center-flex {  display: -webkit-flex;  display: flex;  justify-content: center;  align-items: center;}
 .message {  font-size: 0.7em;  margin-right: 0.7em;}
@@ -51,7 +51,7 @@
 }
 
 @media (orientation: portrait) {
-    #bottom-right {
-      font-size: 4vw;
-    }
+  #bottom-right {
+    font-size: 4vw;
+  }
 }

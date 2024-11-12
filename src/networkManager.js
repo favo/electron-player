@@ -58,7 +58,6 @@ const networkManager = (module.exports = {
      * return {JSONObject}
      */
     async resolveNetworkConnection(connection, ssid) {
-        console.log("resolveNetworkConnection", connection);
         if (connection.success) {
             /* Connection succesful added */
 
@@ -347,19 +346,27 @@ const networkManager = (module.exports = {
             setRotation(rotation);
         });
 
+        bleSocket.on("get-network-list", async () => {
+            const result = await networkManager.searchNetwork();
+
+            if (result.success) {
+                const networkList = findUniqueSSIDs(result.stdout.toString());
+                bleSocket.emit("list-of-networks", networkList);
+            }
+        });
+
         bleSocket.on("wifi", async (data) => {
+            ipcMain.emit("is_connecting");
             const result = await networkManager.connectToNetwork(JSON.parse(data));
+            ipcMain.emit("connecting_result", null, result);
+
             bleSocket.emit("network-connection-result", result);
         });
 
         bleSocket.on("host", (host) => {
             ipcMain.emit("set_host", null, { host: host.toString(), reload: true });
         });
-
-        bleSocket.on("finish-setup", () => {
-            ipcMain.emit("go_to_app");
-        });
-
+        
         bleSocket.on("check-ethernet-status", async () => {
             const result = await networkManager.checkEthernetConnection();
             bleSocket.emit("ethernet-status", result);
@@ -371,19 +378,18 @@ const networkManager = (module.exports = {
             bleSocket.emit("list-of-resolutions", result);
         });
 
-        bleSocket.on("set-resolution", (res) => {
-            setScreenResolution(res)
+        bleSocket.on("resolution", (res) => {
+            ipcMain.emit("set_screen_resolution", null, res);
         });
 
-        bleSocket.on("get-network-list", async () => {
-            const result = await networkManager.searchNetwork();
-
-            console.log("get-network-list", result);
-            if (result.success) {
-                const networkList = findUniqueSSIDs(result.stdout.toString());
-                bleSocket.emit("list-of-networks", networkList);
-            }
+        bleSocket.on("finish-setup", () => {
+            ipcMain.emit("finish_setup");
         });
+
+        bleSocket.on("go-to-screen", () => {
+            ipcMain.emit("go_to_screen");
+        });
+
 
         bleSocket.emit("ble-enable", store.get("uuid"));
     },
@@ -394,4 +400,19 @@ const networkManager = (module.exports = {
     disableBLE() {
         bleSocket.emit("ble-disable");
     },
+
+    /*
+     *  Sends pincode to bleSocket
+     */
+    sendPincodeToBluetooth(pincode) {
+        bleSocket.emit("pincode", pincode)
+    },
+
+    /*
+     *  Sends pincode to bleSocket
+     */
+    updateEthernetStatusToBluetooth(result) {
+        bleSocket.emit("ethernet-status", result);
+    }
+
 });
