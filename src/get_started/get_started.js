@@ -24,27 +24,51 @@ window.onload = async () => {
         window.api.send("check_server_connection");
     });
 
-    getFromStore("uuid", null, (uuid) => {
-        document.querySelector(".random-id").innerHTML = uuid;
+    getFromStore("bluetooth_id", null, (bluetooth_id) => {
+        
     });
 
     getFromStore("host", null, (host) => {
         hostName.innerHTML = host;
-
+        console.log(host);
         if (host == "app.infoskjermen.no") {
             changeLanguage("no");
         } else if (host == "app.pintomind.com") {
             changeLanguage("en");
+        } else {
+            changeLanguage("en");
         }
     });
+
+    window.api.receive("dns_registred", (data) => {
+        resetSpinner()
+        if (data == true) {
+            setStatusMessage(languageData["dns_registred"]);
+            spinner.classList.add("success");
+        } else {
+            setStatusMessage(languageData["dns_error"]);
+            spinner.classList.add("error");
+        }
+    });
+
+    window.api.receive("dns_registerering", () => {
+        resetSpinner()
+        spinner.classList.add("spin");
+        setStatusMessage(languageData["dns_registring"]);
+    })
 
     window.api.receive("is_connecting", () => {
         resetSpinner();
         setConnecting();
     });
 
+    window.api.receive("get_bluetooth_id", (bluetooth_id) => {
+        document.querySelector(".random-id").innerHTML = bluetooth_id.slice(0, 6);
+    });
+    window.api.send("get_bluetooth_id");
+
     window.api.receive("finished_qr_code", (data) => canvas.src = data);
-    window.api.send("create_qr_code", { path: "/connect", lightColor: "#000000", darkColor: "#ffffff" });
+    window.api.send("create_qr_code", { lightColor: "#000000", darkColor: "#ffffff" });
 };
 
 /*

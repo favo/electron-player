@@ -107,7 +107,7 @@ window.onload = async () => {
         }
     });
 
-    letsGoButton.addEventListener("click", () => window.api.send("go_to_app"));
+    letsGoButton.addEventListener("click", () => window.api.send("go_to_screen"));
     connectButton.addEventListener("click", () => connectToNetwork());
     dnsButton.addEventListener("click", () => registerDNS());
     connectHostButton.addEventListener("click", () => connectToHost());
@@ -137,7 +137,7 @@ window.onload = async () => {
     window.api.receive("finished_qr_code", (data) => {
         canvas.src = data;
     });
-    window.api.send("create_qr_code", { path: "/connect", lightColor: "#000000", darkColor: "#828282" });
+    window.api.send("create_qr_code", { lightColor: "#000000", darkColor: "#828282" });
     
     window.api.receive("is_connecting", () => {
         resetSpinner();
@@ -294,11 +294,14 @@ function registerDNS() {
         }
     });
 
+    window.api.receive("dns_registerering", () => {
+        resetSpinner()
+        spinner.classList.add("spin");
+        setStatusMessage(languageData["dns_registring"]);
+    })
+
     const name = dns.value;
     dns.placeholder = name;
-    resetSpinner()
-    setStatusMessage(languageData["dns_registring"]);
-    spinner.classList.add("spin");
 
     myStorage.setItem("dns", name);
     window.api.send("connect_to_dns", name);

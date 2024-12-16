@@ -1,4 +1,4 @@
-const { rebootDevice, restartApp, sendDeviceInfo, updateApp, updateFirmware, getSystemStats, setRotation, resetRotationFile, setScreenResolution, getAllScreenResolution } = require("./utils");
+const { rebootDevice, restartApp, sendDeviceInfo, updateApp, updateFirmware, getSystemStats, setRotation, resetRotationFile, setScreenResolution, getAllScreenResolution, readBluetoothID, resetScreenResolution } = require("./utils");
 const NetworkManager = require("./networkManager");
 
 const { app, BrowserWindow, ipcMain, globalShortcut } = require("electron");
@@ -18,8 +18,6 @@ const store = new Store();
 
 const pjson = require("../package.json");
 
-const crypto = require("crypto");
-
 let mainWindow;
 let systemStatsStream;
 
@@ -32,7 +30,7 @@ app.commandLine.appendSwitch("enable-features", "Vulkan");
 app.commandLine.appendSwitch("disable-gpu-driver-workarounds");
 app.commandLine.appendSwitch("ignore-gpu-blacklist");
 
-const createWindow = () => {
+const createWindow = async () => {
     mainWindow = new BrowserWindow({
         alwaysOnTop: false,
         backgroundColor: '#000000',
@@ -49,27 +47,24 @@ const createWindow = () => {
         icon: path.join(__dirname, "../assets/icon/png/logo256.png"),
     });
 
-    if (!store.has("host")) {
+    if (! store.has("host")) {
         store.set("host", "app.pintomind.com");
     }
 
-    if (!store.has("uuid")) {
-        const uuid = crypto.randomBytes(3).toString("hex");
-        store.set("uuid", uuid);
-    }
-
-    if (!store.has("lang")) {
+    if (! store.has("lang")) {
         store.set("lang", "en");
     }
 
-    if (!store.has("firstTime")) {
-        NetworkManager.enableBLE();
+    NetworkManager.enableBLE();
+
+    if (store.get("firstTime", true)) {
         NetworkManager.checkEthernetConnectionInterval()
         mainWindow.loadFile(path.join(__dirname, "get_started/get_started.html"));
     } else {
         mainWindow.loadFile(path.join(__dirname, "index/index.html"));
     }
 
+    
     mainWindow.on("closed", function () {
         mainWindow = null;
     });
@@ -111,13 +106,13 @@ app.whenReady().then(() => {
         console.log("Updating firmware...");
         updateFirmware();
     });
+
     // Opens settings page
     globalShortcut.register("CommandOrControl+I", () => {
         mainWindow.loadFile(path.join(__dirname, "settings/settings.html"));
     });
     // Opens player page
     globalShortcut.register("CommandOrControl+P", () => {
-        NetworkManager.disableBLE();
         NetworkManager.stopEthernetInterval();
         mainWindow.loadFile(path.join(__dirname, "index/index.html"));
     });
@@ -125,6 +120,7 @@ app.whenReady().then(() => {
     globalShortcut.register("CommandOrControl+G", () => {
         mainWindow.loadFile(path.join(__dirname, "get_started/get_started.html"));
     });
+    
     // Enables devmode
     globalShortcut.register("CommandOrControl+D+M", () => {
         const devMode = store.get("devMode", false);
@@ -176,9 +172,9 @@ ipcMain.on("restart_app", (event, arg) => {
     app.exit();
 });
 
-ipcMain.on("request_device_info", (event, arg) => {
+ipcMain.on("request_device_info", async (event, arg) => {
     const host = store.get("host");
-    const deviceInfo = sendDeviceInfo(host);
+    const deviceInfo = await sendDeviceInfo(host);
     mainWindow.webContents.send("send_device_info", deviceInfo);
 });
 
@@ -194,7 +190,7 @@ ipcMain.on("pincode", (event, pincode) => {
     NetworkManager.sendPincodeToBluetooth(pincode)
 });
 
-ipcMain.on("factory-reset", (event, arh) => {
+ipcMain.on("factory_reset", (event, arg) => {
     factoryReset()
 });
 
@@ -265,6 +261,11 @@ ipcMain.on("set_lang", (_event, lang) => {
     store.set("lang", lang);
 });
 
+ipcMain.on("get_bluetooth_id", async () => {
+    const bluetooth_id = await readBluetoothID()
+    mainWindow.webContents.send("get_bluetooth_id", bluetooth_id);    
+});
+
 ipcMain.on("set_host", (event, data) => {
     store.set("host", data.host);
 
@@ -274,17 +275,18 @@ ipcMain.on("set_host", (event, data) => {
 });
 
 ipcMain.on("finish_setup", (_event, _arg) => {
-    store.set("firstTime", "false");
-    NetworkManager.disableBLE();
+    store.set("firstTime", false);
     NetworkManager.stopEthernetInterval();
 });
 
 ipcMain.on("go_to_screen", (_event, _arg) => {
+    store.set("firstTime", false);
     mainWindow.loadFile(path.join(__dirname, "index/index.html"));
 });
 
-ipcMain.on("connect_to_dns", async (event, arg) => {
-    const result = await NetworkManager.addDNS(arg);
+ipcMain.on("connect_to_dns", async (event, dns) => {
+    mainWindow.webContents.send("dns_registerering");
+    const result = await NetworkManager.addDNS(dns);
     mainWindow.webContents.send("dns_registred", result.success);
 });
 
@@ -301,9 +303,10 @@ ipcMain.on("remove_mouse", (_event, _arg) => {
     });
 });
 
-ipcMain.on("create_qr_code", (event, options) => {
+ipcMain.on("create_qr_code", async (event, options) => {
     const host = store.get("host");
-    const qrcodeURI = host + options.path || "";
+    const uuid = await readBluetoothID()
+    const qrcodeURI =  `https://${host}/remote/connect?device=rpi&code=${uuid}`;
 
     const opts = {
         errorCorrectionLevel: "H",
@@ -362,8 +365,22 @@ autoUpdater.on("update-downloaded", (info) => {
 
 async function factoryReset() {
     store.clear();
+
+    const ses = mainWindow.webContents.session;
+
+    ses.clearStorageData({
+      storages: ['localstorage']
+    }).then(() => {
+      console.log('Local storage cleared!');
+    });
+
+    ses.clearCache(() => {
+        console.log('Cache cleared!');
+    });
+
     await NetworkManager.deleteAllConnections();
     await resetRotationFile();
+    await resetScreenResolution();
 
     const getAppPath = path.join(app.getPath("appData"), pjson.name);
     fs.unlink(getAppPath, () => {

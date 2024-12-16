@@ -10,7 +10,7 @@ contextBridge.exposeInMainWorld("api", {
             "upgrade_firmware",
             "update_app",
             "pincode",
-            "factory-reset",
+            "factory_reset",
             "change_rotation",
             "get_screen_resolutions",
             "set_screen_resolution",
@@ -29,7 +29,8 @@ contextBridge.exposeInMainWorld("api", {
             "remove_mouse",
             "ethernet_status",
             "is_connecting",
-            "connecting_result"
+            "connecting_result",
+            "get_bluetooth_id"
         ];
         if (validChannels.includes(channel)) {
             ipcRenderer.send(channel, data);
@@ -46,8 +47,10 @@ contextBridge.exposeInMainWorld("api", {
             "recieve_system_stats",
             "finished_qr_code",
             "dns_registred",
+            "dns_registerering",
             "send_screen_resolutions",
             "open_toaster",
+            "get_bluetooth_id"
         ];
         if (validChannels.includes(channel)) {
             ipcRenderer.on(channel, (event, ...args) => func(...args));

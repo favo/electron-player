@@ -1,11 +1,11 @@
 const quote = require("shell-quote/quote");
-const { setRotation, executeCommand, findUniqueSSIDs, getAllScreenResolution, setScreenResolution } = require("./utils.js");
+const { setRotation, executeCommand, findUniqueSSIDs, getAllScreenResolution, setScreenResolution, readBluetoothID } = require("./utils.js");
 const fs = require("fs");
 
 const io = require("socket.io-client");
 let bleSocket = io("ws://127.0.0.1:3333");
 
-const { ipcMain } = require("electron");
+const { ipcMain, net } = require("electron");
 
 const Store = require("electron-store");
 const store = new Store();
@@ -212,7 +212,7 @@ const networkManager = (module.exports = {
     async checkConnectionToServer() {
         const host = store.get("host");
 
-        const command = `curl -I https://${host}/up | grep Status | grep -q 200 && echo 1 || echo 0`;
+        const command = `curl -I https://${host}/up | grep HTTP | grep -q 200 && echo 1 || echo 0`;
 
         return await executeCommand(command, "server connection");
     },
@@ -241,11 +241,9 @@ const networkManager = (module.exports = {
     },
 
     async deleteConnectionBySSID(ssid) {
-        console.log("Deleting connection:", ssid);
         const deleteCommand = quote(["nmcli", "connection", "delete", ssid]);
         const deleteResult = await executeCommand(deleteCommand, "delete ssid");
         lastConnectionSSID = null;
-        console.log("Connection deleted:", deleteResult);
         return deleteResult.success;
     },
 
@@ -257,7 +255,6 @@ const networkManager = (module.exports = {
 
         const result = await executeCommand(deleteAllCommand, "Delete all connections");
 
-        console.log("all connections", result);
         const lines = result.stdout.split("\n");
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i].split(":");
@@ -278,11 +275,46 @@ const networkManager = (module.exports = {
 
         const result = await executeCommand(command);
 
-        if (result.success && result.stdout == "1") {
+        if (result.success && result.stdout.trim() == "1") {
             return await networkManager.attemptServerConnection();
         } else {
             return result;
         }
+    },
+
+    /*
+    *   Checks if device is connected via Wi-Fi
+    */
+    async checkWifiConnection() {
+        const command = "nmcli device status | grep wifi | grep -q connected && echo 1 || echo 0";
+
+        const result = await executeCommand(command);
+
+        if (result.success && result.stdout.trim() == "1") {
+            return await networkManager.attemptServerConnection();
+        } else {
+            return result;
+        }
+    },
+
+    /*
+    *   Check overall network status and connection type
+    */
+    async checkNetworkStatus() {
+        const ethernetResult = await networkManager.checkEthernetConnection();
+
+        if (ethernetResult.success && ethernetResult.stdout.trim() == "1") {
+            return { connectionType: "Ethernet", ...ethernetResult };
+        }
+
+        const wifiResult = await networkManager.checkWifiConnection();
+
+        if (wifiResult.success && wifiResult.stdout.trim() == "1") {
+            const connectionName = await networkManager.getConnectionName()
+            return { connectionType: "Wi-Fi", connectionName: connectionName.stdout.trim(), ...wifiResult };
+        }
+
+        return { success: false, error: "No active network connection" };
     },
 
     /*
@@ -316,15 +348,16 @@ const networkManager = (module.exports = {
      *   Adds dns address to /etc/resolv
      */
     async addDNS(dns) {
-        const connectionName = await executeCommand("nmcli -t -f active,ssid dev wifi | grep '^yes' | cut -d':' -f2")
+        const connectionNameResult = await networkManager.getConnectionName()
+        
+        if (connectionNameResult.success) {
+            const connectionName = connectionNameResult.stdout
 
-        if (connectionName.success) {
-
-            const modifyDNS = await executeCommand(quote(["nmcli", "con", "mod", `${connectionName.stdout}`, "ipv4.dns", `${dns}`]))
+            const modifyDNS = await executeCommand(quote(["nmcli", "con", "mod", `${connectionName}`, "ipv4.dns", `${dns}`]))
             if (modifyDNS.success) {
-                const disableAutoDNS = await executeCommand(quote(["nmcli", "con", "mod", `${connectionName.stdout}`, "ipv4.ignore-auto-dns", 'yes']));
+                const disableAutoDNS = await executeCommand(quote(["nmcli", "con", "mod", `${connectionName}`, "ipv4.ignore-auto-dns", 'yes']));
                 if (disableAutoDNS) {
-                    return await executeCommand(`nmcli con down ${connectionName.stdout} | nmcli con up ${connectionName.stdout}`);
+                    return await executeCommand(`nmcli con down ${connectionName} | nmcli con up ${connectionName}`);
                 } else {
                     return disableAutoDNS
                 }
@@ -334,10 +367,18 @@ const networkManager = (module.exports = {
         }
     },
 
+
+    /*
+     *   Returns execute command object with connection name
+     */
+    async getConnectionName() {
+        return await executeCommand("nmcli -t -f active,ssid dev wifi | grep '^yes' | cut -d':' -f2")
+    },
+
     /*
      *  Enables BLE by connecting to the local BLE bridge, and registers listeners for BLE events
      */
-    enableBLE() {
+    async enableBLE() {
         bleSocket.on("ble-enabled", () => {
             console.log("BLE enabled");
         });
@@ -367,9 +408,21 @@ const networkManager = (module.exports = {
             ipcMain.emit("set_host", null, { host: host.toString(), reload: true });
         });
         
-        bleSocket.on("check-ethernet-status", async () => {
-            const result = await networkManager.checkEthernetConnection();
-            bleSocket.emit("ethernet-status", result);
+        bleSocket.on("dns", (dns) => {
+            ipcMain.emit("connect_to_dns", null, dns);
+        });
+        
+        bleSocket.on("check-network-status", async () => {
+            const result = await networkManager.checkNetworkStatus();
+            console.log("checking result", result);
+
+            if (result.success && result.stdout.trim() == "1") {
+                if (result.connectionType == "Ethernet") {
+                    bleSocket.emit("ethernet-status", result);
+                } else if (result.connectionType == "Wi-Fi") {
+                    bleSocket.emit("network-connection-result", result);
+                }
+            }
         });
 
         bleSocket.on("get-resolution-list", async () => {
@@ -386,12 +439,17 @@ const networkManager = (module.exports = {
             ipcMain.emit("finish_setup");
         });
 
+        bleSocket.on("factory_reset", () => {
+            ipcMain.emit("factory_reset");
+        });
+
         bleSocket.on("go-to-screen", () => {
             ipcMain.emit("go_to_screen");
         });
 
 
-        bleSocket.emit("ble-enable", store.get("uuid"));
+        const bluetooth_id = await readBluetoothID()
+        bleSocket.emit("ble-enable", {bluetooth_id: bluetooth_id, firstTime: store.get("firstTime", true)});
     },
 
     /*

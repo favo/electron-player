@@ -9,6 +9,8 @@ const execAsync = promisify(nodeChildProcess.exec);
 const Store = require("electron-store");
 const store = new Store();
 
+const crypto = require("crypto");
+
 const Appsignal = require("@appsignal/javascript").default;
 const appsignal = new Appsignal({
     key: "b2bdf969-f795-467e-b710-6b735163281f",
@@ -116,12 +118,13 @@ const utils = (module.exports = {
     /*
      *   Sends device info to mainWindow
      */
-    sendDeviceInfo(host) {
+    async sendDeviceInfo(host) {
         var options = {};
         options["Host"] = host;
         options["App-version"] = pjson.version;
         options["Platform"] = "Electron";
         options["App-name"] = pjson.name;
+        options["Bluetooth-ID"] = await utils.readBluetoothID();
 
         return options;
     },
@@ -154,6 +157,44 @@ const utils = (module.exports = {
 
     async resetRotationFile() {
         fs.writeFileSync("./rotation", "normal");
+    },
+
+     /*
+     *   sets bluetooth_id 
+     */
+    async setBluetoothID(id) {
+        fs.writeFileSync("./bluetooth_id", id);
+    },
+
+    /*
+     *   Read bluetooth_id from frile
+     */
+    async readBluetoothID() {
+        let bluetooth_id;
+
+        try {
+            // Try to read the file
+            bluetooth_id = fs.readFileSync('./bluetooth_id', { encoding: 'utf8', flag: 'r' });
+            
+            if (bluetooth_id.trim() === "") {
+                // If the file exists but is empty, generate a new ID
+                bluetooth_id = crypto.randomBytes(10).toString("hex");
+                fs.writeFileSync('./bluetooth_id', bluetooth_id); // Write the new ID to the file
+                utils.setBluetoothID(bluetooth_id); // Call the utility function
+            }
+        } catch (err) {
+            if (err.code === 'ENOENT') {
+                // If the file does not exist, create it and write a new ID
+                bluetooth_id = crypto.randomBytes(10).toString("hex");
+                fs.writeFileSync('./bluetooth_id', bluetooth_id); // Write the new ID to the file
+                utils.setBluetoothID(bluetooth_id); // Call the utility function
+            } else {
+                // Re-throw any other errors
+                throw err;
+            }
+        }
+    
+        return bluetooth_id;
     },
 
     /*
@@ -189,6 +230,11 @@ const utils = (module.exports = {
         const command = "/home/pi/.adjust_video.sh";
 
         await utils.executeCommand(command);
+    },
+
+
+    async resetScreenResolution() {
+        fs.writeFileSync("./resolution", "1920x1080");
     },
 
     /*

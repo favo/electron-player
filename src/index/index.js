@@ -38,6 +38,7 @@ window.onload = function () {
      */
     window.addEventListener("message", (e) => {
         var request = e.data;
+        console.log(request.action);
 
         switch (request.action) {
             case "request_device_info":
@@ -62,9 +63,8 @@ window.onload = function () {
                 // Gets pincode from butler
                 sendMessageToMain("pincode", {pincode: request.pincode})
                 break;
-            case "factory-reset":
-                // Gets pincode from butler
-                sendMessageToMain("factory-reset")
+            case "factory_reset":
+                sendMessageToMain("factory_reset")
                 break;
             case "upgrade_firmware":
                 sendMessageToMain("upgrade_firmware");
