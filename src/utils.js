@@ -125,6 +125,8 @@ const utils = (module.exports = {
         options["Platform"] = "Electron";
         options["App-name"] = pjson.name;
         options["Bluetooth-ID"] = await utils.readBluetoothID();
+        const screenResolution = await utils.getAllScreenResolution()
+        options["Screen-resolution"] = screenResolution.current
 
         return options;
     },
