@@ -38,7 +38,6 @@ window.onload = function () {
      */
     window.addEventListener("message", (e) => {
         var request = e.data;
-        console.log(request.action);
 
         switch (request.action) {
             case "request_device_info":
@@ -61,10 +60,22 @@ window.onload = function () {
                 break;
             case "pincode":
                 // Gets pincode from butler
-                sendMessageToMain("pincode", {pincode: request.pincode})
+                sendMessageToMain("pincode", {pincode: request.pincode});
+                break;
+            case "wake":
+                sendMessageToMain("wake");
+                break;
+            case "sleep":
+                sendMessageToMain("sleep");
+                break;
+            case "set_screen_resolution":
+                sendMessageToMain("set_screen_resolution", request.resolution);
+                break;
+            case "set_screen_rotation":
+                sendMessageToMain("set_screen_rotation", request.rotation);
                 break;
             case "factory_reset":
-                sendMessageToMain("factory_reset")
+                sendMessageToMain("factory_reset");
                 break;
             case "upgrade_firmware":
                 sendMessageToMain("upgrade_firmware");

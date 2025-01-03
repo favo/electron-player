@@ -11,7 +11,7 @@ contextBridge.exposeInMainWorld("api", {
             "update_app",
             "pincode",
             "factory_reset",
-            "change_rotation",
+            "set_screen_rotation",
             "get_screen_resolutions",
             "set_screen_resolution",
             "search_after_networks",
@@ -30,7 +30,9 @@ contextBridge.exposeInMainWorld("api", {
             "ethernet_status",
             "is_connecting",
             "connecting_result",
-            "get_bluetooth_id"
+            "get_bluetooth_id",
+            "wake",
+            "sleep"
         ];
         if (validChannels.includes(channel)) {
             ipcRenderer.send(channel, data);

@@ -155,6 +155,10 @@ const utils = (module.exports = {
         await utils.executeCommand(command);
     },
 
+    async getRotation() {
+        return fs.readFileSync('./rotation', { encoding: 'utf8', flag: 'r' });
+    },
+
     async resetRotationFile() {
         fs.writeFileSync("./rotation", "normal");
     },
@@ -164,6 +168,18 @@ const utils = (module.exports = {
      */
     async setBluetoothID(id) {
         fs.writeFileSync("./bluetooth_id", id);
+    },
+
+    async turnDisplayOff() {
+        const command = "/home/pi/.turn_off_display.sh";
+
+        return await utils.executeCommand(command);
+    },
+
+    async turnDisplayOn() {
+        const command = "/home/pi/.adjust_video.sh";
+
+        return await utils.executeCommand(command);
     },
 
     /*
@@ -189,8 +205,7 @@ const utils = (module.exports = {
                 fs.writeFileSync('./bluetooth_id', bluetooth_id); // Write the new ID to the file
                 utils.setBluetoothID(bluetooth_id); // Call the utility function
             } else {
-                // Re-throw any other errors
-                throw err;
+                return null;
             }
         }
     
@@ -203,6 +218,7 @@ const utils = (module.exports = {
     async getAllScreenResolution() {
         const command = "export DISPLAY=:0 | xrandr"
         const xrandrOutput = await utils.executeCommand(command);
+        const rotation = await utils.getRotation()
 
         if (xrandrOutput.success) {
             const resolutionPattern = /\b\d{3,4}x\d{3,4}\b/g;
@@ -210,12 +226,14 @@ const utils = (module.exports = {
 
             return {
                 list: xrandrOutput.stdout.match(resolutionPattern),
-                current: xrandrOutput.stdout.match(currentResolutionPattern)[0]
+                current: xrandrOutput.stdout.match(currentResolutionPattern)[0],
+                rotation: rotation
             };
         } else {
             return {
                 list: null, 
-                current: null
+                current: null,
+                rotation: null
             }
         }
 

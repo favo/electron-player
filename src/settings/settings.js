@@ -259,7 +259,7 @@ function changeRotation(e) {
     Array.from(e.target.parentElement.children).forEach((el) => {
         el.classList.toggle("selected", el == e.target);
     });
-    window.api.send("change_rotation", orientation);
+    window.api.send("set_screen_rotation", orientation);
 }
 
 function displayListOfNetworks(data) {

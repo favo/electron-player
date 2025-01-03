@@ -1,4 +1,5 @@
-const { rebootDevice, restartApp, sendDeviceInfo, updateApp, updateFirmware, getSystemStats, setRotation, resetRotationFile, setScreenResolution, getAllScreenResolution, readBluetoothID, resetScreenResolution } = require("./utils");
+const { rebootDevice, restartApp, sendDeviceInfo, updateApp, updateFirmware, getSystemStats, setRotation, resetRotationFile, 
+    setScreenResolution, getAllScreenResolution, readBluetoothID, resetScreenResolution, turnDisplayOff, turnDisplayOn } = require("./utils");
 const NetworkManager = require("./networkManager");
 
 const { app, BrowserWindow, ipcMain, globalShortcut } = require("electron");
@@ -190,8 +191,16 @@ ipcMain.on("pincode", (event, pincode) => {
     NetworkManager.sendPincodeToBluetooth(pincode)
 });
 
+ipcMain.on("wake", (event, arg) => {
+    turnDisplayOn();
+});
+
+ipcMain.on("sleep", (event, arg) => {
+    turnDisplayOff();
+});
+
 ipcMain.on("factory_reset", (event, arg) => {
-    factoryReset()
+    factoryReset();
 });
 
 ipcMain.on("check_server_connection", async (event, arg) => {
@@ -244,8 +253,8 @@ ipcMain.on("getFromStore", (_event, key) => {
     mainWindow.webContents.send(key, value);
 });
 
-ipcMain.on("change_rotation", (_event, arg) => {
-    setRotation(arg);
+ipcMain.on("set_screen_rotation", (_event, rotation) => {
+    setRotation(rotation);
 });
 
 ipcMain.on("set_screen_resolution", (event, resolution) => {
