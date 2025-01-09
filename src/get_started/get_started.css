@@ -1,96 +1,113 @@
 main {
-    display: flex;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     min-width: 100vw; 
     min-height: 100vh;  
-    flex-direction: column;
-}
-
-h1 {
-    color: white; 
-    padding: 1rem 6rem 0 1rem;
-}
-
-#logo-top-right {
-    position: absolute;
-    top: 0;
-    right: 0;
-    padding: 1rem;
-    height: 4rem;
 }
 
 .container {
     display: flex;
+    flex-direction: column;
     flex-grow: 1;
     padding: 1rem;
 }
 
-.wireless-container {  
-    min-height: 100%;
-    flex-basis: 50%;
+.container.right {
+    align-items: center;
+    justify-content: center;
+    padding-left: 6vmax;
+}
+.container.left {
+    justify-content: space-around;
+    padding: 3rem 0 3rem 8vmax;
 }
 
-.or-container {
-    border: 2px #C4C4C4 solid;
-    min-height: 100%;
-    position: relative;
-    margin: 1em 2em;
+h2 {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
 }
 
-.or-container::after {
-    content: "OR";
-    background-color: black;
-    font-size: 1.7rem;
-    color: #D9D9D9;
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%);
-    padding: 1rem 0;
+h2 img {
+    height: 1.3em;
+    width: 1.3em;
+    color: white;
+}
+ul {
+    list-style: decimal;
+    margin: 0.5rem 0;
 }
 
-.keyboard-container {
-    min-height: 100%;
-    flex-basis: 50%;
+.logo {
+    height: 4rem;
+    width: fit-content;
 }
 
 .qr-code-container {
     display: flex;
     justify-content: center;
-    margin: 0.7rem 0;
+    margin: 4rem 0;
 }
 .qr-code-container img {
-    height: 6rem;
+    height: 10rem;
+}
+
+.device-id {
+    color: #5A5A5A;
+    font-weight: bold;
+    font-size: 1.2rem;
 }
 
 .random-id {
-    font-size: 2rem;
+    font-size: 2.5rem;
     font-weight: bold;
-    margin: 0.7rem 0;
+    line-height: 1em;
     color: white;
-    text-align: center;
     text-transform: uppercase;
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
+}
+
+#top-right {
+    position: absolute;
+    top: 2vw;
+    right: 2vw;
+    height: 21%; 
+    pointer-events: none;
 }
 
 
 @media (orientation: landscape) {
-    .container {
-      flex-direction: row;
-    }
   }
   
   @media (orientation: portrait) {
-    .container {
-      flex-direction: column;
-    }
 
-    .or-container {
-        margin: 2em 1em;
+    main {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto auto;
     }
-    .or-container::after {
-        padding: 0 1em;
+    .qr-code-container {
+        margin: 0 2rem 0 0;
     }
 
     .qr-code-container img {
         height: 20vw;
+    }
+
+    .logo {
+        margin-top: 6vmax;
+        margin-bottom: 1rem;
+    }
+
+    .container.left, .container.right {
+        padding: 5vmax 5vmax 5vmax 7vmax;
+    }
+
+    .container.right {
+        justify-content: left;
+        flex-direction: row;
+    }
+
+    #top-right {
+        height: 10%;
     }
 }

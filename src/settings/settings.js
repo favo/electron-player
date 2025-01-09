@@ -24,7 +24,7 @@ window.onload = async () => {
      */
     const letsGoButton = document.getElementById("lets-go-button");
     const connectButton = document.getElementById("connect-button");
-    const rotationButtons = document.getElementById("rotation-buttons").querySelectorAll("button");
+    const rotationButtons = dconnectAnotherButtonocument.getElementById("rotation-buttons").querySelectorAll("button");
     const connectAnotherButton = document.getElementById("connect-another-button");
     const screenResolutionButton = document.getElementById("set-screen-resolution");
     const dnsButton = document.getElementById("register-dns");

@@ -12,7 +12,7 @@
         <link rel="stylesheet" type="text/css" href="../spinner/spinner.css" />
     </head>
     <body>
-        <img id="logo-top-right" src="../../assets/logo.svg" alt="" />
+        <img src="../../assets/dots.svg" id="top-right" alt="" />
 
         <div id="bottom-right">
             <div class="center-flex">
@@ -39,30 +39,36 @@
         </div>
 
         <main>
-            <h1>Get started with PinToMind</h1>
+            <div class="container left">
+                <img class="logo" src="../../assets/logo-p2m.svg" alt="">
 
-            <div class="container">
                 <div class="wireless-container">
-                    <h2>Wireless (PinToMind GO)</h2>
-                    <p>1. Go to PinToMind GO on your mobile or scan the QR-code below</p>
-
-                    <div class="qr-code-container">
-                        <img id="canvas" />
-                    </div>
-
-                    <p>2. Go to profile -> connect to device</p>
-                    <p>3. Click on device with the following code</p>
-
-                    <div class="random-id">ABC123</div>
-
-                    <p>4. Follow the instructions in the app</p>
+                    <h2><img src="../../assets/hand-point.svg" alt=""> Setup with app</h2>
+                    <ul>
+                        <li>Download PinToMind Go from the App Store for iOS or Google Play for Android</li>
+                        <li>Open the app and go to profile > connect to device</li>
+                        <li>Click on the device (ABC123), and follow the instructions to setup network and device settings</li>
+                    </ul>
                 </div>
-                <div class="or-container"></div>
+
                 <div class="keyboard-container">
-                    <h2>With keyboard</h2>
-                    <p>1. Connect keyboard to your device</p>
-                    <p>2. Press <b>CTRL + I</b> to open settings</p>
-                    <p>3. Follow instructions to setup network and device settings</p>
+                    <h2><img src="../../assets/keyboard.svg" alt=""> Setup with keyboard</h2>
+                    <ul>
+                        <li>Connect a keyboard to your device</li>
+                        <li>Press <b>CTRL + I</b> to open setting</li>
+                        <li>Follow instructions to setup network and device settings</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="container right">
+                <div class="qr-code-container">
+                    <img id="canvas" />
+                </div>
+
+                <div>
+                    <div class="device-id">DEVICE-ID</div>
+                    <div class="random-id">ABC123</div>
                 </div>
             </div>
         </main>

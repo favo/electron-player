@@ -24,10 +24,6 @@ window.onload = async () => {
         window.api.send("check_server_connection");
     });
 
-    getFromStore("bluetooth_id", null, (bluetooth_id) => {
-        
-    });
-
     getFromStore("host", null, (host) => {
         hostName.innerHTML = host;
         console.log(host);
@@ -63,8 +59,10 @@ window.onload = async () => {
     });
 
     window.api.receive("get_bluetooth_id", (bluetooth_id) => {
-        document.querySelector(".random-id").innerHTML = bluetooth_id.slice(0, 6);
+        const formattedString = bluetooth_id.slice(0, 9).match(/.{1,3}/g).join('-');
+        document.querySelector(".random-id").innerHTML = formattedString;
     });
+
     window.api.send("get_bluetooth_id");
 
     window.api.receive("finished_qr_code", (data) => canvas.src = data);

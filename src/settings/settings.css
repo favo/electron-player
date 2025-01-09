@@ -1,4 +1,12 @@
-.settings {display: flex; flex-direction: column; align-items: center; justify-content: center; color: #828282; max-width: 75vw; margin: auto; height: 100vh;}
+main {
+  display: flex; 
+  flex-direction: column; 
+  align-items: center; 
+  justify-content: center; 
+  max-width: 75vw; 
+  height: 100vh;
+  margin: auto; 
+}
 
 button, input, select {
   border: 1px solid #666; 
@@ -18,7 +26,7 @@ button:hover, input:hover, select:hover {background-color: #333;}
 button[data-status="pending"] {animation: pulse 2s ease-in-out infinite;}
 button img {height: 3em; width: auto; pointer-events: none;}
 
-label {text-transform: uppercase; margin-bottom: 0.3em;}
+label {margin-bottom: 0.3em; font-size: 1.4rem;}
 label.small {text-transform: none; font-size: 0.8em; margin: 0;}
 label + input { min-width: 10em;}
 input, select { min-width: 15em;}

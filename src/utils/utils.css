@@ -12,6 +12,10 @@
     font-style: normal;
 }
 
+:root {
+    font-size: 2.6vmin;
+}
+
 body { 
     margin: 0; 
     padding: 0; 
@@ -27,7 +31,7 @@ h1 {
 }
 
 h2 {
-   font-size: 1.7rem; 
+   font-size: 1.4rem; 
    margin: 0;
    color: white; 
 }
@@ -37,16 +41,4 @@ p {
     line-height: 150%;
     padding: 0;
     margin: 0;
-}
-
-@media (orientation: landscape) {
-    :root {
-        font-size: 3vmin;
-    }
-}
-  
-@media (orientation: portrait) {
-    :root {
-        font-size: clamp(40px, 3vw, 2.3vh);
-    }
 }

@@ -135,7 +135,6 @@ app.whenReady().then(() => {
             autoUpdater.allowPrerelease = true;
             mainWindow.webContents.send("devMode", true);
         }
-        autoUpdater.allowPrerelease = true;
     });
 
     /* https://medium.com/how-to-electron/how-to-reset-application-data-in-electron-48bba70b5a49 */
