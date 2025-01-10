@@ -91,7 +91,7 @@ window.onload = async () => {
     refreshButton.addEventListener("click", () => {
         window.api.send("search_after_networks");
         refreshButton.dataset.status = "pending";
-        setInterval(() => {
+        setTimeout(() => {
             refreshButton.dataset.status = null;
         }, 5000);
     });
@@ -163,6 +163,7 @@ window.onload = async () => {
     window.api.receive("connect_to_network_status", (data) => {
         resetSpinner();
         isConnecting = false;
+
         if (data.success && data.stdout.toString() == "1") {
             setConnected();
             window.document.body.dataset.showNetworkSettings = false;
@@ -250,15 +251,14 @@ function updateHost() {
 
 function setHost(host) {
     window.api.send("set_host", { host: host, reload: false });
-    document.getElementById("host-name").innerHTML = host;
+    hostName.innerHTML = host;
     hostAddress.value = host;
 }
 
 function changeRotation(e) {
     const orientation = e.target.value;
-    Array.from(e.target.parentElement.children).forEach((el) => {
-        el.classList.toggle("selected", el == e.target);
-    });
+    Array.from(e.target.parentElement.children).forEach((el) => el.classList.toggle("selected", el == e.target) );
+
     window.api.send("set_screen_rotation", orientation);
 }
 

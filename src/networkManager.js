@@ -439,7 +439,7 @@ const networkManager = (module.exports = {
             ipcMain.emit("finish_setup");
         });
 
-        bleSocket.on("factory_reset", () => {
+        bleSocket.on("factory-reset", () => {
             ipcMain.emit("factory_reset");
         });
 

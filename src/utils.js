@@ -126,7 +126,7 @@ const utils = (module.exports = {
         options["App-name"] = pjson.name;
         options["Bluetooth-ID"] = await utils.readBluetoothID();
         const screenResolution = await utils.getAllScreenResolution()
-        options["Screen-resolution"] = screenResolution.current
+        options["Screen-resolutions"] = screenResolution
 
         return options;
     },
