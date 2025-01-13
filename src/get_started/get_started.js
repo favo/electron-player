@@ -26,7 +26,7 @@ window.onload = async () => {
 
     getFromStore("host", null, (host) => {
         hostName.innerHTML = host;
-        console.log(host);
+        
         if (host == "app.infoskjermen.no") {
             changeLanguage("no");
         } else if (host == "app.pintomind.com") {

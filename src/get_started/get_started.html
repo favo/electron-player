@@ -17,8 +17,8 @@
         <div id="bottom-right">
             <div class="center-flex">
                 <div class="message">
-                    <strong id="host-name">app.pintomind.com</strong>
-                    <div data-i18n="host_name" id="status-message">Connecting...</div>
+                    <strong data-i18n="host_name" id="host-name">app.pintomind.com</strong>
+                    <div data-i18n="not_connected" id="status-message">Not connected...</div>
                 </div>
                 <svg class="spinner spin" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <circle class="spinner-circle" cx="50" cy="50" r="42" stroke="#333333" stroke-width="12"></circle>
@@ -40,23 +40,23 @@
 
         <main>
             <div class="container left">
-                <img class="logo" src="../../assets/logo-p2m.svg" alt="">
+                <img data-i18n-src="logo"  class="logo" src="../../assets/logo-p2m.svg" alt="">
 
                 <div class="wireless-container">
-                    <h2><img src="../../assets/hand-point.svg" alt=""> Setup with app</h2>
+                    <h2><img src="../../assets/hand-point.svg" alt=""> <span data-i18n="setup-app-title">Setup with app</span></h2>
                     <ul>
-                        <li>Download PinToMind Go from the App Store for iOS or Google Play for Android</li>
-                        <li>Open the app and go to profile > connect to device</li>
-                        <li>Click on the device (<span class="bluetooth-id">ABC-123</span>), and follow the instructions to setup network and device settings</li>
+                        <li data-i18n="setup-app-1">Download PinToMind Go from the App Store for iOS or Google Play for Android</li>
+                        <li data-i18n="setup-app-2">Open the app and go to profile > connect to device</li>
+                        <li data-i18n="setup-app-3">Click on the device (<span class="bluetooth-id">ABC-123</span>), and follow the instructions to setup network and device settings</li>
                     </ul>
                 </div>
 
                 <div class="keyboard-container">
-                    <h2><img src="../../assets/keyboard.svg" alt=""> Setup with keyboard</h2>
+                    <h2><img src="../../assets/keyboard.svg" alt=""> <span data-i18n="setup-app-title">Setup with keyboard</span></h2>
                     <ul>
-                        <li>Connect a keyboard to your device</li>
-                        <li>Press <b>CTRL + I</b> to open setting</li>
-                        <li>Follow instructions to setup network and device settings</li>
+                        <li data-i18n="setup-keyboard-1">Connect a keyboard to your device</li>
+                        <li data-i18n="setup-keyboard-2">Press <b>CTRL + I</b> to open setting</li> 
+                        <li data-i18n="setup-keyboard-3">Follow instructions to setup network and device settings</li>
                     </ul>
                 </div>
             </div>
@@ -67,7 +67,7 @@
                 </div>
 
                 <div>
-                    <div class="device-id">DEVICE-ID</div>
+                    <div data-i18n="device-id" class="device-id">DEVICE-ID</div>
                     <div class="random-id bluetooth-id">ABC123</div>
                 </div>
             </div>

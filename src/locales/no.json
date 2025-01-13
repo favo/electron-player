@@ -1,5 +1,6 @@
 {
     "title": "Infoskjermen Player",
+    "logo": "../../assets/logo-infoskjermen.svg",
     "host_name": "infoskjermen.no",
     "select_product": "Velg produkt",
     "ethernet_title": "Vi ser du er koblet til via ethernet!",
@@ -26,5 +27,14 @@
     "dns_error": "Kunne ikke registrere DNS",
     "dns_registring": "Registrerer DNS..",
     "select_screen_resolution": "Velg oppløsning",
-    "set_screen_res": "Sett oppløsning"
+    "set_screen_res": "Sett oppløsning",
+    "setup-app-title": "Oppsett med app",
+    "setup-app-1": "Last ned PinToMind Go fra App Store for iOS eller Google Play for Android",
+    "setup-app-2": "Åpne appen og gå til profil > koble til enhet",
+    "setup-app-3": "Klikk på enheten (<span class='bluetooth-id'>ABC-123</span>), og følg instruksjonene for å sette opp nettverk og enhetsinnstillinger",
+    "setup-keyboard-title": "Oppsett med tastatur",
+    "setup-keyboard-1": "Koble et tastatur til enheten din",
+    "setup-keyboard-2": "Trykk <b>CTRL + I</b> for å åpne innstillinger",
+    "setup-keyboard-3": "Følg instruksjonene for å sette opp nettverk og enhetsinnstillinger",
+    "device-id": "ENHETS-ID"
 }

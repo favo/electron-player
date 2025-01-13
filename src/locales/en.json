@@ -1,5 +1,6 @@
 {
     "title": "PinToMind Player",
+    "logo": "../../assets/logo-p2m.svg",
     "host_name": "pintomind.com",
     "select_product": "Select product",
     "ethernet_title": "We see you are connected with ethernet!",
@@ -26,5 +27,14 @@
     "dns_error": "Could not register DNS",
     "dns_registring": "Registring DNS..",
     "select_screen_resolution": "Choose resolution",
-    "set_screen_res": "Set resolution"
+    "set_screen_res": "Set resolution",
+    "setup-app-title": "Setup with app",
+    "setup-app-1": "Download PinToMind Go from the App Store for iOS or Google Play for Android",
+    "setup-app-2": "Open the app and go to profile > connect to device",
+    "setup-app-3": "Click on the device (<span class='bluetooth-id'>ABC-123</span>), and follow the instructions to setup network and device settings",
+    "setup-keyboard-title": "Setup with keyboard",
+    "setup-keyboard-1": "Connect a keyboard to your device",
+    "setup-keyboard-2": "Press <b>CTRL + I</b> to open setting",
+    "setup-keyboard-3": "Follow instructions to setup network and device settings",
+    "device-id": "DEVICE-ID"
 }

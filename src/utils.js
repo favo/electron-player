@@ -146,6 +146,16 @@ const utils = (module.exports = {
         }
     },
 
+    async getPlayerConfig() {
+        try {
+            const config = fs.readFileSync('./player-config.json', 'utf8').trim();
+            return config ? JSON.parse(config) : { brand: "pintomind", host: "app.pintomind.com", language: "en" };
+        } catch {
+            return { brand: "pintomind", host: "app.pintomind.com", language: "en" };
+        }
+    },
+    
+
     /*
      *   Simple to rotate the screen using scripts we have added
      */

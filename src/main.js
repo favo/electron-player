@@ -1,5 +1,5 @@
 const { rebootDevice, restartApp, sendDeviceInfo, updateApp, updateFirmware, getSystemStats, setRotation, resetRotationFile, 
-    setScreenResolution, getAllScreenResolution, readBluetoothID, resetScreenResolution, turnDisplayOff, turnDisplayOn, setBluetoothID } = require("./utils");
+    setScreenResolution, getAllScreenResolution, readBluetoothID, resetScreenResolution, turnDisplayOff, turnDisplayOn, setBluetoothID, getPlayerConfig } = require("./utils");
 const NetworkManager = require("./networkManager");
 
 const { app, BrowserWindow, ipcMain, globalShortcut } = require("electron");
@@ -48,13 +48,7 @@ const createWindow = async () => {
         icon: path.join(__dirname, "../assets/icon/png/logo256.png"),
     });
 
-    if (! store.has("host")) {
-        store.set("host", "app.pintomind.com");
-    }
-
-    if (! store.has("lang")) {
-        store.set("lang", "en");
-    }
+    await setSettingsFromPlayerConfig()
 
     NetworkManager.enableBLE();
 
@@ -66,12 +60,24 @@ const createWindow = async () => {
     }
 
     
-    mainWindow.on("closed", function () {
+    mainWindow.on("closed", () => {
         mainWindow = null;
     });
 
     updateApp(autoUpdater);
 };
+
+async function setSettingsFromPlayerConfig() {
+    const config = await getPlayerConfig()
+
+    if (! store.has("host")) {
+        store.set("host", config["host"]);
+    }
+
+    if (! store.has("lang")) {
+        store.set("lang", config["language"]);
+    }
+}
 
 /*
  *   Listeners from user key commands
