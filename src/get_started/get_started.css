@@ -39,7 +39,7 @@ ul {
 }
 
 .logo {
-    height: 4rem;
+    height: 3.5rem;
     width: fit-content;
 }
 
@@ -56,6 +56,10 @@ ul {
     color: #5A5A5A;
     font-weight: bold;
     font-size: 1.2rem;
+}
+
+.bluetooth-id {
+    text-transform: uppercase;
 }
 
 .random-id {

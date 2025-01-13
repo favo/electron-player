@@ -16,7 +16,6 @@ contextBridge.exposeInMainWorld("api", {
             "set_screen_resolution",
             "search_after_networks",
             "connect_to_network",
-            "finish_setup",
             "go_to_screen",
             "set_host",
             "set_lang",

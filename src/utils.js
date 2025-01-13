@@ -198,14 +198,12 @@ const utils = (module.exports = {
                 // If the file exists but is empty, generate a new ID
                 bluetooth_id = crypto.randomBytes(10).toString("hex");
                 fs.writeFileSync('./bluetooth_id', bluetooth_id); // Write the new ID to the file
-                utils.setBluetoothID(bluetooth_id); // Call the utility function
             }
         } catch (err) {
             if (err.code === 'ENOENT') {
                 // If the file does not exist, create it and write a new ID
                 bluetooth_id = crypto.randomBytes(10).toString("hex");
                 fs.writeFileSync('./bluetooth_id', bluetooth_id); // Write the new ID to the file
-                utils.setBluetoothID(bluetooth_id); // Call the utility function
             } else {
                 return null;
             }

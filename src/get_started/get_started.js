@@ -60,7 +60,9 @@ window.onload = async () => {
 
     window.api.receive("get_bluetooth_id", (bluetooth_id) => {
         const formattedString = bluetooth_id.slice(0, 9).match(/.{1,3}/g).join('-');
-        document.querySelector(".random-id").innerHTML = formattedString;
+        Array.from(document.querySelectorAll(".bluetooth-id")).forEach(el => {
+            el.innerHTML = formattedString;
+        })
     });
 
     window.api.send("get_bluetooth_id");

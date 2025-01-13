@@ -379,8 +379,19 @@ const networkManager = (module.exports = {
      *  Enables BLE by connecting to the local BLE bridge, and registers listeners for BLE events
      */
     async enableBLE() {
+        let restartOnDisconnect = false
+
         bleSocket.on("ble-enabled", () => {
+            restartOnDisconnect = false
             console.log("BLE enabled");
+        });
+
+        bleSocket.on("ble-disabled", () => {
+            console.log("BLE disabled");
+
+            if (restartOnDisconnect) {
+                networkManager.startBle()
+            }
         });
 
         bleSocket.on("rotation", (rotation) => {
@@ -435,8 +446,9 @@ const networkManager = (module.exports = {
             ipcMain.emit("set_screen_resolution", null, res);
         });
 
-        bleSocket.on("finish-setup", () => {
-            ipcMain.emit("finish_setup");
+        bleSocket.on("restart-bluetooth", () => {
+            restartOnDisconnect = true
+            bleSocket.emit("ble-disable");
         });
 
         bleSocket.on("factory-reset", () => {
@@ -447,7 +459,10 @@ const networkManager = (module.exports = {
             ipcMain.emit("go_to_screen");
         });
 
+        networkManager.startBle()
+    },
 
+    async startBle() {
         const bluetooth_id = await readBluetoothID()
         bleSocket.emit("ble-enable", {bluetooth_id: bluetooth_id, firstTime: store.get("firstTime", true)});
     },

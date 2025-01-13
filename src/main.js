@@ -1,5 +1,5 @@
 const { rebootDevice, restartApp, sendDeviceInfo, updateApp, updateFirmware, getSystemStats, setRotation, resetRotationFile, 
-    setScreenResolution, getAllScreenResolution, readBluetoothID, resetScreenResolution, turnDisplayOff, turnDisplayOn } = require("./utils");
+    setScreenResolution, getAllScreenResolution, readBluetoothID, resetScreenResolution, turnDisplayOff, turnDisplayOn, setBluetoothID } = require("./utils");
 const NetworkManager = require("./networkManager");
 
 const { app, BrowserWindow, ipcMain, globalShortcut } = require("electron");
@@ -282,13 +282,9 @@ ipcMain.on("set_host", (event, data) => {
     }
 });
 
-ipcMain.on("finish_setup", (_event, _arg) => {
-    store.set("firstTime", false);
-    NetworkManager.stopEthernetInterval();
-});
-
 ipcMain.on("go_to_screen", (_event, _arg) => {
     store.set("firstTime", false);
+    NetworkManager.stopEthernetInterval();
     mainWindow.loadFile(path.join(__dirname, "index/index.html"));
 });
 
@@ -389,6 +385,7 @@ async function factoryReset() {
     await NetworkManager.deleteAllConnections();
     await resetRotationFile();
     await resetScreenResolution();
+    await setBluetoothID("");
 
     const getAppPath = path.join(app.getPath("appData"), pjson.name);
     fs.unlink(getAppPath, () => {

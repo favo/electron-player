@@ -27,6 +27,7 @@ button[data-status="pending"] {animation: pulse 2s ease-in-out infinite;}
 button img {height: 3em; width: auto; pointer-events: none;}
 
 label {margin-bottom: 0.3em; font-size: 1.4rem;}
+label.uppercase {text-transform: uppercase;}
 label.small {text-transform: none; font-size: 0.8em; margin: 0;}
 label + input { min-width: 10em;}
 input, select { min-width: 15em;}
@@ -61,7 +62,7 @@ body[data-dev-mode="true"] #dev-mode {display: flex; flex-direction: column; gap
 
 #bottom-left {position: absolute;bottom: 0;left: 0;padding: 1vw;height: 50%; pointer-events: none;}
 #top-right {position: absolute;top: 0;right: 0;padding: 1vw; height: 16%; pointer-events: none;}
-#canvas {position: absolute; bottom: 5vw; right: 1rem; height: 16%;}
+#canvas {position: absolute; bottom: 6vw; right: 1rem; height: 16%;}
 
 #error-message {font-size: 0.8em;}
 

@@ -24,7 +24,7 @@ window.onload = async () => {
      */
     const letsGoButton = document.getElementById("lets-go-button");
     const connectButton = document.getElementById("connect-button");
-    const rotationButtons = dconnectAnotherButtonocument.getElementById("rotation-buttons").querySelectorAll("button");
+    const rotationButtons = document.getElementById("rotation-buttons").querySelectorAll("button");
     const connectAnotherButton = document.getElementById("connect-another-button");
     const screenResolutionButton = document.getElementById("set-screen-resolution");
     const dnsButton = document.getElementById("register-dns");
@@ -144,6 +144,26 @@ window.onload = async () => {
         setConnecting();
     });
 
+    window.api.receive("dns_registred", (data) => {
+        isRegistringDns = false
+
+        resetSpinner()
+        if (data == true) {
+            setStatusMessage(languageData["dns_registred"]);
+            spinner.classList.add("success");
+        } else {
+            setStatusMessage(languageData["dns_error"]);
+            spinner.classList.add("error");
+        }
+    });
+
+    window.api.receive("dns_registerering", () => {
+        isRegistringDns = true
+        resetSpinner()
+        spinner.classList.add("spin");
+        setStatusMessage(languageData["dns_registring"]);
+    })
+
     window.api.receive("send_screen_resolutions", (data) => {
         if (data) {
             data.list.forEach((res) => {
@@ -155,6 +175,10 @@ window.onload = async () => {
                 }
                 screenResolution.appendChild(option)
             })
+
+            Array.from(rotationButtons).forEach((button) => {
+                button.classList.toggle("selected", button.value === data.rotation )
+            });
         }
     });
     window.api.send("get_screen_resolutions");
@@ -280,25 +304,6 @@ function displayListOfNetworks(data) {
 
 function registerDNS() {
     if (isRegistringDns) return
-
-    window.api.receive("dns_registred", (data) => {
-        isRegistringDns = false
-
-        resetSpinner()
-        if (data == true) {
-            setStatusMessage(languageData["dns_registred"]);
-            spinner.classList.add("success");
-        } else {
-            setStatusMessage(languageData["dns_error"]);
-            spinner.classList.add("error");
-        }
-    });
-
-    window.api.receive("dns_registerering", () => {
-        resetSpinner()
-        spinner.classList.add("spin");
-        setStatusMessage(languageData["dns_registring"]);
-    })
 
     const name = dns.value;
     dns.placeholder = name;
