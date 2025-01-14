@@ -20,20 +20,23 @@ window.onload = async () => {
 
     getFromStore("lang", null, async (lang) => {
         languageData = await fetchLanguageData(lang);
+        changeLanguage(lang);
+
         setConnecting();
         window.api.send("check_server_connection");
+
+        window.api.receive("get_bluetooth_id", (bluetooth_id) => {
+            const formattedString = bluetooth_id.slice(0, 9).match(/.{1,3}/g).join('-');
+            Array.from(document.querySelectorAll(".bluetooth-id")).forEach(el => {
+                el.innerHTML = formattedString;
+            })
+        });
+
+        window.api.send("get_bluetooth_id");
     });
 
     getFromStore("host", null, (host) => {
         hostName.innerHTML = host;
-        
-        if (host == "app.infoskjermen.no") {
-            changeLanguage("no");
-        } else if (host == "app.pintomind.com") {
-            changeLanguage("en");
-        } else {
-            changeLanguage("en");
-        }
     });
 
     window.api.receive("dns_registred", (data) => {
@@ -58,14 +61,6 @@ window.onload = async () => {
         setConnecting();
     });
 
-    window.api.receive("get_bluetooth_id", (bluetooth_id) => {
-        const formattedString = bluetooth_id.slice(0, 9).match(/.{1,3}/g).join('-');
-        Array.from(document.querySelectorAll(".bluetooth-id")).forEach(el => {
-            el.innerHTML = formattedString;
-        })
-    });
-
-    window.api.send("get_bluetooth_id");
 
     window.api.receive("finished_qr_code", (data) => canvas.src = data);
     window.api.send("create_qr_code", { lightColor: "#000000", darkColor: "#ffffff" });

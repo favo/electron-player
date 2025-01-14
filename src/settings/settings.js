@@ -56,6 +56,8 @@ window.onload = async () => {
      */
     window.api.resultFromStore("lang", async (lang) => {
         languageData = await fetchLanguageData(lang);
+        changeLanguage(lang);
+
         checkServerConnection();
 
         const dnsAddress = myStorage.getItem("dns");

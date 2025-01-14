@@ -1,5 +1,5 @@
 const quote = require("shell-quote/quote");
-const { setRotation, executeCommand, findUniqueSSIDs, getAllScreenResolution, setScreenResolution, readBluetoothID } = require("./utils.js");
+const { setRotation, executeCommand, findUniqueSSIDs, readBluetoothID, getDeviceSettings } = require("./utils.js");
 const fs = require("fs");
 
 const io = require("socket.io-client");
@@ -322,15 +322,17 @@ const networkManager = (module.exports = {
      */
     async checkEthernetConnectionInterval() {
         ethernetInterval = setInterval(async () => {
-            const result = await networkManager.checkEthernetConnection();
-            if (result.success && result.stdout == "1") {
-                ipcMain.emit("ethernet_status", result)
-                
-                if (ethernetInterval) {
-                    clearInterval(ethernetInterval);
-                    ethernetInterval = null;
+            try {
+                const result = await networkManager.checkEthernetConnection();
+                if (result.success && result.stdout == "1") {
+                    ipcMain.emit("ethernet_status", result)
+                    
+                    if (ethernetInterval) {
+                        clearInterval(ethernetInterval);
+                        ethernetInterval = null;
+                    }
                 }
-            }
+            } catch {}
         }, 2000);
     },
 
@@ -436,10 +438,10 @@ const networkManager = (module.exports = {
             }
         });
 
-        bleSocket.on("get-resolution-list", async () => {
-            const result = await getAllScreenResolution();
+        bleSocket.on("get-device-settings", async () => {
+            const result = await getDeviceSettings();
 
-            bleSocket.emit("list-of-resolutions", result);
+            bleSocket.emit("device-settings", result);
         });
 
         bleSocket.on("resolution", (res) => {

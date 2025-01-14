@@ -15,8 +15,11 @@ function setLanguagePreference(lang) {
 }
 
 async function fetchLanguageData(lang) {
-    if (lang != undefined) {
+    try {
         const response = await fetch(`../locales/${lang}.json`);
+        return response.json();
+    } catch {
+        const response = await fetch(`../locales/en.json`);
         return response.json();
     }
 }

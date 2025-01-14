@@ -5,7 +5,7 @@
     "select_product": "Velg produkt",
     "ethernet_title": "Vi ser du er koblet til via ethernet!",
     "ethernet_description": "Trykk på hvilken som helst knapp ellers blir du omdirigert til skjermen din om <span id='countdown'>15</span>",
-    "select_screen_rotation": "Velg skjerm rotasjon",
+    "select_screen_rotation": "Velg skjermrotasjon",
     "connected_to_internet": "Du er tilkoblet til internett!",
     "connect_to_another": "Koble til et annet nettverk",
     "select_network": "Velg nettverk",

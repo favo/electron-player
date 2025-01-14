@@ -297,6 +297,9 @@ ipcMain.on("go_to_screen", (_event, _arg) => {
 ipcMain.on("connect_to_dns", async (event, dns) => {
     mainWindow.webContents.send("dns_registerering");
     const result = await NetworkManager.addDNS(dns);
+    if (result.success) {
+        store.set("dns", dns)
+    }
     mainWindow.webContents.send("dns_registred", result.success);
 });
 

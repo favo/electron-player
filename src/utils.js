@@ -146,12 +146,16 @@ const utils = (module.exports = {
         }
     },
 
+    updateBleBridge() {
+
+    },
+
     async getPlayerConfig() {
         try {
             const config = fs.readFileSync('./player-config.json', 'utf8').trim();
             return config ? JSON.parse(config) : { brand: "pintomind", host: "app.pintomind.com", language: "en" };
         } catch {
-            return { brand: "pintomind", host: "app.pintomind.com", language: "en" };
+            return { brand: "pintomind", host: "app.pintomind.com", language: "nb" };
         }
     },
     
@@ -160,7 +164,7 @@ const utils = (module.exports = {
      *   Simple to rotate the screen using scripts we have added
      */
     async setRotation(rotation) {
-        fs.writeFileSync("./rotation", rotation);
+        fs.writeFileSync("./rotation", rotation);   
 
         const command = "/home/pi/.adjust_video.sh";
 
@@ -247,6 +251,18 @@ const utils = (module.exports = {
             }
         }
 
+    },
+
+    async getDeviceSettings() {
+        const screenSettings = await getAllScreenResolution()
+        const dns = store.get("dns")
+        const host = store.get("host")
+
+        return {
+            screen: screenSettings,
+            dns: dns,
+            host: host,
+        }
     },
 
     /*
