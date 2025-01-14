@@ -29,4 +29,5 @@ async function changeLanguage(lang) {
 
     languageData = await fetchLanguageData(lang);
     updateContent(languageData);
+    return languageData
 }

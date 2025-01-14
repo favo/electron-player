@@ -55,8 +55,7 @@ window.onload = async () => {
      *  Sets language
      */
     window.api.resultFromStore("lang", async (lang) => {
-        languageData = await fetchLanguageData(lang);
-        changeLanguage(lang);
+        languageData = await changeLanguage(lang);
 
         checkServerConnection();
 
@@ -75,7 +74,7 @@ window.onload = async () => {
     infoskjermenButton.addEventListener("click", (e) => {
         Array.from(e.target.parentElement.children).forEach((el) => el.classList.toggle("selected", el == e.target));
         setHost(e.target.value);
-        changeLanguage("no");
+        changeLanguage("nb");
         checkServerConnection();
     });
 
@@ -264,10 +263,8 @@ function updateHost() {
         hostName.innerHTML = host;
         hostAddress.value = host;
         if (host == "app.infoskjermen.no") {
-            changeLanguage("no");
             infoskjermenButton.classList.add("selected");
         } else if (host == "app.pintomind.com") {
-            changeLanguage("en");
             pinToMindButton.classList.add("selected");
         }
     });

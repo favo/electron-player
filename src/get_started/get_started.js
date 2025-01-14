@@ -19,8 +19,7 @@ window.onload = async () => {
     });
 
     getFromStore("lang", null, async (lang) => {
-        languageData = await fetchLanguageData(lang);
-        changeLanguage(lang);
+        languageData = await changeLanguage(lang);
 
         setConnecting();
         window.api.send("check_server_connection");

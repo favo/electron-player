@@ -155,7 +155,7 @@ const utils = (module.exports = {
             const config = fs.readFileSync('./player-config.json', 'utf8').trim();
             return config ? JSON.parse(config) : { brand: "pintomind", host: "app.pintomind.com", language: "en" };
         } catch {
-            return { brand: "pintomind", host: "app.pintomind.com", language: "nb" };
+            return { brand: "pintomind", host: "app.pintomind.com", language: "en" };
         }
     },
     
