@@ -254,7 +254,7 @@ const utils = (module.exports = {
     },
 
     async getDeviceSettings() {
-        const screenSettings = await getAllScreenResolution()
+        const screenSettings = await utils.getAllScreenResolution()
         const dns = store.get("dns")
         const host = store.get("host")
 
