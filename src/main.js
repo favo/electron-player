@@ -29,9 +29,19 @@ autoUpdater.allowPrerelease = false;
 app.commandLine.appendSwitch("use-vulkan");
 app.commandLine.appendSwitch("enable-features", "Vulkan");
 app.commandLine.appendSwitch("disable-gpu-driver-workarounds");
-app.commandLine.appendSwitch("ignore-gpu-blacklist");
+app.commandLine.appendSwitch("ignore-gpu-blocklist");
+
+//app.commandLine.appendSwitch('gl', 'egl')
+//app.commandLine.appendSwitch('enable-gpu-rasterization');  // GPU for video rendering
+//app.commandLine.appendSwitch('ignore-gpu-blocklist');  // Enable all GPU features
+//app.commandLine.appendSwitch('enable-zero-copy');  // Efficient video frame handling
+//app.commandLine.appendSwitch('disable-software-video-decoder');  // Force hardware decoding
+//app.commandLine.appendSwitch('enable-native-gpu-memory-buffers');
+//app.commandLine.appendSwitch('disable-gpu-driver-bug-workarounds');
 
 const createWindow = async () => {
+    console.log("creating window");
+
     mainWindow = new BrowserWindow({
         alwaysOnTop: false,
         backgroundColor: '#000000',
@@ -46,13 +56,16 @@ const createWindow = async () => {
             enableRemoteModule: false,
             preload: path.join(__dirname, "preload.js"),
         },
-        icon: path.join(__dirname, "../assets/icon/png/logo256.png"),
     });
 
     mainWindow.once('ready-to-show', () => {
+        console.log("ready to show");
         mainWindow.show()
     })
-    
+
+    // use to debug gpu settings
+    //mainWindow.loadURL("chrome://gpu")
+
     if (store.get("firstTime", true)) {
         NetworkManager.checkEthernetConnectionInterval()
         mainWindow.loadFile(path.join(__dirname, "get_started/get_started.html"));
@@ -154,6 +167,8 @@ app.whenReady().then(() => {
 });
 
 app.on("ready", () => {
+    console.log("app ready");
+
     createWindow();
 });
 
