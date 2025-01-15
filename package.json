@@ -6,7 +6,10 @@
     "scripts": {
         "test": "echo \"Error: no test specified\" && exit 1",
         "start": "electron .",
-        "dist": "electron-builder --linux"
+        "dist": "electron-builder --linux",
+        "log": "scripts/log",
+        "publish": "scripts/publish",
+        "build_and_publish": "npm run dist && npm run publish --"
     },
     "repository": {
         "type": "git",

@@ -1,0 +1,25 @@
+#!/bin/bash
+
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
+
+SERVER=$1
+STOP_COMMAND="systemctl --user stop pintomind-player"
+START_COMMAND="systemctl --user start pintomind-player"
+
+for arg in "$@"; do
+  case "$arg" in
+  "--build") BUILD="1"; shift ;;
+  esac
+done
+
+if [ -n "$BUILD" ]; then
+  cd "$SCRIPT_DIR/.." || exit 1
+  npm run dist
+fi
+
+echo "Stopping pintomind player..."
+"$SCRIPT_DIR/ssh" "$SERVER" "$STOP_COMMAND"
+echo "Copying app to pi..."
+"$SCRIPT_DIR/scp" "$SCRIPT_DIR/../dist/pintomind-player.AppImage" "$SERVER:/home/pi/pintomind-player.AppImage"
+echo "Starting pintomind player..."
+"$SCRIPT_DIR/ssh" "$SERVER" "$START_COMMAND"

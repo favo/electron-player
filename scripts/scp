@@ -1,0 +1,23 @@
+#!/bin/bash
+
+SOURCE=$1
+DESTINATION=$2
+
+
+if [ -z "$SOURCE" ]; then
+  echo "FEIL: Oppgi fil du ønsker å kopiere"
+  exit 1
+fi
+
+if [ -z "$DESTINATION" ]; then
+  echo "FEIL: Oppgi ip addresse eller servernavn til pi'en du vil publisere til"
+  exit 1
+fi
+
+DESTINATION="pi@$DESTINATION"
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
+
+source "$SCRIPT_DIR/options"
+
+echo "Copying file from $SOURCE to $DESTINATION..."
+scp $SSH_OPTIONS $SOURCE $DESTINATION
