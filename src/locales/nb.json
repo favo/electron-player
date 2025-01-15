@@ -2,7 +2,6 @@
     "title": "Infoskjermen Player",
     "logo": "../../assets/logo-infoskjermen.svg",
     "host_name": "infoskjermen.no",
-    "select_product": "Velg produkt",
     "ethernet_title": "Vi ser du er koblet til via ethernet!",
     "ethernet_description": "Trykk på hvilken som helst knapp ellers blir du omdirigert til skjermen din om <span id='countdown'>15</span>",
     "select_screen_rotation": "Velg skjermrotasjon",

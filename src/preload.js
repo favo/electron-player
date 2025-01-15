@@ -46,10 +46,10 @@ contextBridge.exposeInMainWorld("api", {
             "request_physical_id",
             "ethernet_status",
             "recieve_system_stats",
-            "finished_qr_code",
+            "create_qr_code",
             "dns_registred",
             "dns_registerering",
-            "send_screen_resolutions",
+            "get_screen_resolutions",
             "open_toaster",
             "get_bluetooth_id"
         ];

@@ -3,8 +3,6 @@ var countdownInterval;
 var isConnecting = false;
 var isRegistringDns = false;
 var statusMessage;
-var pinToMindButton;
-var infoskjermenButton;
 var screenResolution
 var refreshButton;
 var passwordField;
@@ -20,28 +18,13 @@ var dns;
 
 window.onload = async () => {
     /*
-     *  Queryies all elemets neeeded
-     */
-    const letsGoButton = document.getElementById("lets-go-button");
-    const connectButton = document.getElementById("connect-button");
-    const rotationButtons = document.getElementById("rotation-buttons").querySelectorAll("button");
-    const connectAnotherButton = document.getElementById("connect-another-button");
-    const screenResolutionButton = document.getElementById("set-screen-resolution");
-    const dnsButton = document.getElementById("register-dns");
-    const connectHostButton = document.getElementById("connect-to-host");
-    const toggleButton = document.getElementById("toggleButton");
-    const hiddenNetworkButton = document.getElementById("hidden-network-button");
-    
-    /*
     *  Queryies elements needed also later
     */
     screenResolution = document.getElementById("screen-resolution");
-    infoskjermenButton = document.getElementById("infoskjermen");
     hiddenSsidField = document.getElementById("hidden-network");
     statusMessage = document.getElementById("status-message");
     refreshButton = document.getElementById("refresh-button");
     errorMessage = document.getElementById("error-message");
-    pinToMindButton = document.getElementById("pintomind");
     hostAddress = document.getElementById("host-address");
     passwordField = document.getElementById("password");
     hostName = document.getElementById("host-name");
@@ -51,10 +34,9 @@ window.onload = async () => {
     dns = document.getElementById("dns");
     myStorage = window.localStorage;
 
-    /*
-     *  Sets language
-     */
-    window.api.resultFromStore("lang", async (lang) => {
+    setButtonEvents()
+
+    getFromStore("lang", null, async (lang) => {
         languageData = await changeLanguage(lang);
 
         checkServerConnection();
@@ -65,81 +47,17 @@ window.onload = async () => {
         } else {
             dns.value = languageData["ip_address"];
         }
-    });
-    window.api.getFromStore("lang");
+    })
 
-    /* 
-      Adds events in elements
-    */
-    infoskjermenButton.addEventListener("click", (e) => {
-        Array.from(e.target.parentElement.children).forEach((el) => el.classList.toggle("selected", el == e.target));
-        setHost(e.target.value);
-        changeLanguage("nb");
-        checkServerConnection();
-    });
-
-    pinToMindButton.addEventListener("click", (e) => {
-        Array.from(e.target.parentElement.children).forEach((el) => el.classList.toggle("selected", el == e.target));
-        setHost(e.target.value);
-        changeLanguage("en");
-        checkServerConnection();
-    });
-
-    toggleButton.addEventListener("click", () => {
-        passwordField.type === "password" ? (passwordField.type = "text") : (passwordField.type = "password");
-    });
-
-    refreshButton.addEventListener("click", () => {
-        window.api.send("search_after_networks");
-        refreshButton.dataset.status = "pending";
-        setTimeout(() => {
-            refreshButton.dataset.status = null;
-        }, 5000);
-    });
-
-    hiddenNetworkButton.addEventListener("click", () => {
-        const el = document.querySelector(".network-settings");
-        if (el.dataset.hiddenSsid === "1") {
-            el.dataset.hiddenSsid = "0";
-            hiddenSSID = 0;
-        } else {
-            el.dataset.hiddenSsid = "1";
-            hiddenSSID = 1;
-        }
-    });
-
-    letsGoButton.addEventListener("click", () => window.api.send("go_to_screen"));
-    connectButton.addEventListener("click", () => connectToNetwork());
-    dnsButton.addEventListener("click", () => registerDNS());
-    connectHostButton.addEventListener("click", () => connectToHost());
-    screenResolutionButton.addEventListener("click", () => setScreenResolution());
-    passwordField.addEventListener("input", () => (errorMessage.innerHTML = null));
-
-    updateHost();
-
-    [...rotationButtons].forEach((button) => {
-        button.addEventListener("click", changeRotation);
-    });
-
-    connectAnotherButton.addEventListener("click", () => {
-        window.document.body.dataset.showNetworkSettings = true;
-        window.api.send("search_after_networks");
-    });
+    getFromStore("host", null, (host) => {
+        hostName.innerHTML = host;
+        hostAddress.value = host;
+    })
 
     window.api.receive("list_of_networks", (data) => {
         displayListOfNetworks(data);
     });
 
-    window.api.resultFromStore("devMode", (devMode) => {
-        window.document.body.dataset.devMode = devMode;
-    });
-    window.api.getFromStore("devMode");
-
-    window.api.receive("finished_qr_code", (data) => {
-        canvas.src = data;
-    });
-    window.api.send("create_qr_code", { lightColor: "#000000", darkColor: "#828282" });
-    
     window.api.receive("is_connecting", () => {
         resetSpinner();
         setConnecting();
@@ -165,7 +83,15 @@ window.onload = async () => {
         setStatusMessage(languageData["dns_registring"]);
     })
 
-    window.api.receive("send_screen_resolutions", (data) => {
+    sendRecieveToMain("devMode", null, (devMode) => {
+        window.document.body.dataset.devMode = devMode;
+    })
+
+    sendRecieveToMain("create_qr_code", { lightColor: "#000000", darkColor: "#828282" }, (data) => {
+        canvas.src = data;
+    })
+
+    sendRecieveToMain("get_screen_resolutions", {}, (data) => {
         if (data) {
             data.list.forEach((res) => {
                 const option = document.createElement("option");
@@ -181,8 +107,7 @@ window.onload = async () => {
                 button.classList.toggle("selected", button.value === data.rotation )
             });
         }
-    });
-    window.api.send("get_screen_resolutions");
+    })
 
     // Callback for when connecting to a network
     window.api.receive("connect_to_network_status", (data) => {
@@ -205,9 +130,52 @@ window.onload = async () => {
         }
     });
 
-    const hasHadConnection = myStorage.getItem("has-had-connection", "false");
-    window.document.body.dataset.hasHadConnection = hasHadConnection;
+    window.document.body.dataset.hasHadConnection = myStorage.getItem("has-had-connection", "false");;
 };
+
+function setButtonEvents() {
+    const letsGoButton = document.getElementById("lets-go-button");
+    const connectButton = document.getElementById("connect-button");
+    const rotationButtons = document.getElementById("rotation-buttons").querySelectorAll("button");
+    const connectAnotherButton = document.getElementById("connect-another-button");
+    const screenResolutionButton = document.getElementById("set-screen-resolution");
+    const dnsButton = document.getElementById("register-dns");
+    const connectHostButton = document.getElementById("connect-to-host");
+    const toggleButton = document.getElementById("toggleButton");
+    const hiddenNetworkButton = document.getElementById("hidden-network-button");
+
+    connectAnotherButton.addEventListener("click", () => {
+        window.document.body.dataset.showNetworkSettings = true;
+        window.api.send("search_after_networks");
+    });
+
+    refreshButton.addEventListener("click", () => {
+        window.api.send("search_after_networks");
+        refreshButton.dataset.status = "pending";
+        setTimeout(() => {
+            refreshButton.dataset.status = null;
+        }, 5000);
+    });
+
+    hiddenNetworkButton.addEventListener("click", () => {
+        const el = document.querySelector(".network-settings");
+        if (el.dataset.hiddenSsid === "1") {
+            el.dataset.hiddenSsid = "0";
+            hiddenSSID = 0;
+        } else {
+            el.dataset.hiddenSsid = "1";
+            hiddenSSID = 1;
+        }
+    });
+
+    toggleButton.addEventListener("click", () => passwordField.type === "password" ? (passwordField.type = "text") : (passwordField.type = "password"));
+    letsGoButton.addEventListener("click", () => window.api.send("go_to_screen"));
+    connectButton.addEventListener("click", () => connectToNetwork());
+    dnsButton.addEventListener("click", () => registerDNS());
+    connectHostButton.addEventListener("click", () => connectToHost());
+    screenResolutionButton.addEventListener("click", () => setScreenResolution());
+    [...rotationButtons].forEach((button) => button.addEventListener("click", changeRotation));
+}
 
 function connectToNetwork() {
     /* If is connection then returning preventing mulitple calls */
@@ -256,20 +224,6 @@ function connectToNetwork() {
 function checkServerConnection() {
     setConnecting();
     window.api.send("check_server_connection");
-}
-
-function updateHost() {
-    window.api.resultFromStore("host", (host) => {
-        hostName.innerHTML = host;
-        hostAddress.value = host;
-        if (host == "app.infoskjermen.no") {
-            infoskjermenButton.classList.add("selected");
-        } else if (host == "app.pintomind.com") {
-            pinToMindButton.classList.add("selected");
-        }
-    });
-
-    window.api.getFromStore("host");
 }
 
 function setHost(host) {

@@ -39,6 +39,7 @@ const createWindow = async () => {
         height: 1080,
         kiosk: true,
         frame: false,
+        show: false, 
         webPreferences: {
             nodeIntegration: false,
             contextIsolation: true,
@@ -48,10 +49,10 @@ const createWindow = async () => {
         icon: path.join(__dirname, "../assets/icon/png/logo256.png"),
     });
 
-    await setSettingsFromPlayerConfig()
-
-    NetworkManager.enableBLE();
-
+    mainWindow.once('ready-to-show', () => {
+        mainWindow.show()
+    })
+    
     if (store.get("firstTime", true)) {
         NetworkManager.checkEthernetConnectionInterval()
         mainWindow.loadFile(path.join(__dirname, "get_started/get_started.html"));
@@ -59,7 +60,10 @@ const createWindow = async () => {
         mainWindow.loadFile(path.join(__dirname, "index/index.html"));
     }
 
-    
+    await setSettingsFromPlayerConfig()
+
+    NetworkManager.enableBLE();
+
     mainWindow.on("closed", () => {
         mainWindow = null;
     });
@@ -268,7 +272,7 @@ ipcMain.on("set_screen_resolution", (event, resolution) => {
 
 ipcMain.on("get_screen_resolutions", async (event, arg) => {
     const screenResolutions = await getAllScreenResolution();
-    mainWindow.webContents.send("send_screen_resolutions", screenResolutions);    
+    mainWindow.webContents.send("get_screen_resolutions", screenResolutions);    
 });
 
 ipcMain.on("set_lang", (_event, lang) => {
@@ -333,7 +337,7 @@ ipcMain.on("create_qr_code", async (event, options) => {
     };
 
     QRCode.toDataURL(qrcodeURI, opts, (err, url) => {
-        mainWindow.webContents.send("finished_qr_code", url);
+        mainWindow.webContents.send("create_qr_code", url);
     });
 });
 

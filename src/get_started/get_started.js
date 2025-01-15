@@ -26,9 +26,7 @@ window.onload = async () => {
 
         window.api.receive("get_bluetooth_id", (bluetooth_id) => {
             const formattedString = bluetooth_id.slice(0, 9).match(/.{1,3}/g).join('-');
-            Array.from(document.querySelectorAll(".bluetooth-id")).forEach(el => {
-                el.innerHTML = formattedString;
-            })
+            Array.from(document.querySelectorAll(".bluetooth-id")).forEach(el => el.innerHTML = formattedString)
         });
 
         window.api.send("get_bluetooth_id");
@@ -60,18 +58,8 @@ window.onload = async () => {
         setConnecting();
     });
 
+    sendRecieveToMain("create_qr_code", { lightColor: "#000000", darkColor: "#ffffff" }, (data) => {
+        canvas.src = data
+    })
 
-    window.api.receive("finished_qr_code", (data) => canvas.src = data);
-    window.api.send("create_qr_code", { lightColor: "#000000", darkColor: "#ffffff" });
 };
-
-/*
- * Function from getting value from Store in main prosess based on key. Key needs to be whitelisted in preload.js
- * @param {String} key
- * @param {JSONObject} data
- * @param {function} callback
- */
-function getFromStore(key, data = null, callback) {
-    window.api.getFromStore(key, data);
-    window.api.resultFromStore(key, callback);
-}

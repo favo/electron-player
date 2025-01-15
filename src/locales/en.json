@@ -2,7 +2,6 @@
     "title": "PinToMind Player",
     "logo": "../../assets/logo-p2m.svg",
     "host_name": "pintomind.com",
-    "select_product": "Select product",
     "ethernet_title": "We see you are connected with ethernet!",
     "ethernet_description": "Press any button or else you will be redirected to your screen in <span id='countdown'>15</span>",
     "select_screen_rotation": "Select screen rotation",
