@@ -1,0 +1,34 @@
+#!/bin/bash
+
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
+source "$SCRIPT_DIR/ip.sh"
+
+get_local_ip(){
+  interface=$(route get default | awk '/interface/ {print $2}')
+  ip=$(ipconfig getifaddr "$interface")
+
+  echo "$ip"
+}
+
+CONNECTION=$("$SCRIPT_DIR/ssh" "nmcli -t -f name connection | head -n1" | tail -n1)
+LOCAL_IP=$(get_local_ip)
+
+echo "Setter opp $CONNECTION på $SERVER til å bruke $LOCAL_IP som dns..."
+
+"$SCRIPT_DIR/ssh" "sudo nmcli con mod \"$CONNECTION\" ipv4.dns $LOCAL_IP"
+"$SCRIPT_DIR/ssh" "sudo nmcli con mod \"$CONNECTION\" ipv4.ignore-auto-dns yes"
+
+echo "Sørger for at logging er skrudd på.."
+
+"$SCRIPT_DIR/ssh" "sudo sed -i /etc/xdg/systemd/user/pintomind-player.service -e 's/^StandardOutput=null$/#StandardOutput=null/'"
+"$SCRIPT_DIR/ssh" "sudo sed -i /etc/xdg/systemd/user/pintomind-player.service -e 's/^StandardError=null$/#StandardError=null/'"
+
+if [ -n "$1" ]; then
+   HOST=$1
+
+   echo "Legger inn host: $HOST"
+   "$SCRIPT_DIR/ssh" "sed -i /home/pi/player-config.json -e 's/\"host\":.*$/\"host\": \"$HOST\",/'"
+fi
+
+echo "Restarter..."
+"$SCRIPT_DIR/ssh" "sudo reboot"

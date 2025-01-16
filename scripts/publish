@@ -19,8 +19,8 @@ fi
 source "$SCRIPT_DIR/ip.sh"
 
 echo "Stopping pintomind player..."
-"$SCRIPT_DIR/ssh" "$SERVER" "$STOP_COMMAND"
+"$SCRIPT_DIR/ssh" "$STOP_COMMAND"
 echo "Copying app to pi..."
 "$SCRIPT_DIR/scp" "$SCRIPT_DIR/../dist/pintomind-player.AppImage" "$SERVER:/home/pi/pintomind-player.AppImage"
 echo "Starting pintomind player..."
-"$SCRIPT_DIR/ssh" "$SERVER" "$START_COMMAND"
+"$SCRIPT_DIR/ssh" "$START_COMMAND"
