@@ -127,6 +127,8 @@ const utils = (module.exports = {
         options["Bluetooth-ID"] = await utils.readBluetoothID();
         const screenResolution = await utils.getAllScreenResolution()
         options["Screen-resolutions"] = screenResolution
+        const osInfo = await si.osInfo();
+        options["Kernel-version"]  = osInfo["Kernel"]
 
         return options;
     },
