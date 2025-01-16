@@ -351,15 +351,15 @@ const networkManager = (module.exports = {
      */
     async addDNS(dns) {
         const connectionNameResult = await networkManager.getConnectionName()
-        
         if (connectionNameResult.success) {
             const connectionName = connectionNameResult.stdout
-
-            const modifyDNS = await executeCommand(quote(["nmcli", "con", "mod", `${connectionName}`, "ipv4.dns", `${dns}`]))
+            
+            const modifyDNS = await executeCommand(`nmcli con mod "${connectionName}" ipv4.dns ${dns}`)
             if (modifyDNS.success) {
-                const disableAutoDNS = await executeCommand(quote(["nmcli", "con", "mod", `${connectionName}`, "ipv4.ignore-auto-dns", 'yes']));
+                const disableAutoDNS = await executeCommand(`nmcli con mod "${connectionName}" ipv4.ignore-auto-dns yes`);
+                
                 if (disableAutoDNS) {
-                    return await executeCommand(`nmcli con down ${connectionName} | nmcli con up ${connectionName}`);
+                    return await executeCommand(`nmcli con down "${connectionName}" | nmcli con up "${connectionName}"`);
                 } else {
                     return disableAutoDNS
                 }
