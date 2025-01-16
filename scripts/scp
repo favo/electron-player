@@ -17,7 +17,7 @@ fi
 DESTINATION="pi@$DESTINATION"
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 
-source "$SCRIPT_DIR/options"
+source "$SCRIPT_DIR/options.sh"
 
 echo "Copying file from $SOURCE to $DESTINATION..."
 scp $SSH_OPTIONS $SOURCE $DESTINATION

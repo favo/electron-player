@@ -1,18 +1,11 @@
 #!/bin/bash
 
-SERVER=$1
-
-if [ -z "$SERVER" ]; then
-  echo "FEIL: Oppgi ip addresse eller servernavn til pi'en du vil ssh'e til"
-  exit 1
-fi
-
-shift
-
-DESTINATION="pi@$SERVER"
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 
-source "$SCRIPT_DIR/options"
+source "$SCRIPT_DIR/options.sh"
+source "$SCRIPT_DIR/ip.sh"
+
+DESTINATION="pi@$SERVER"
 
 echo "Connecting to $DESTINATION..."
 ssh $SSH_OPTIONS "$DESTINATION" "$@"

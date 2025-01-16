@@ -109,3 +109,5 @@ rotation
 resolution
 bluetooth_id
 .idea
+
+scripts/last_ip_address.txt

@@ -31,7 +31,7 @@ nmap -sn "$SUBNET" > /dev/null
 
 # Check ARP table for Raspberry Pi MAC addresses
 arp -a | grep -Ei "(b8:27:eb|dc:a6:32|e4:5f:01|28:cd:c1|d8:3a:dd|dc:44:6d)" | while read -r line; do
-    echo "Raspberry Pi Found: $line"
+    echo $line | awk '{gsub(/[()]/, "", $2); printf "Found Raspberry Pi: %s\n", $2}'
 done
 
 echo "Scan complete."

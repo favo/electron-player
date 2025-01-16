@@ -250,11 +250,12 @@ const networkManager = (module.exports = {
      * Deletes all wifi connections
      */
     async deleteAllConnections() {
-        const deleteAllCommand = quote(["nmcli", "-t", "-f", "name,type", "connection", "show"]);
+        const deleteAllCommand = "nmcli -t -f name,type connection show";
 
         const result = await executeCommand(deleteAllCommand, "Delete all connections");
 
         const lines = result.stdout.split("\n");
+
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i].split(":");
             const ssid = line[0];

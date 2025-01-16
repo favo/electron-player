@@ -2,7 +2,6 @@
 
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 
-SERVER=$1
 STOP_COMMAND="systemctl --user stop pintomind-player"
 START_COMMAND="systemctl --user start pintomind-player"
 
@@ -16,6 +15,8 @@ if [ -n "$BUILD" ]; then
   cd "$SCRIPT_DIR/.." || exit 1
   npm run dist
 fi
+
+source "$SCRIPT_DIR/ip.sh"
 
 echo "Stopping pintomind player..."
 "$SCRIPT_DIR/ssh" "$SERVER" "$STOP_COMMAND"
