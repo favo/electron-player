@@ -1,0 +1,37 @@
+#!/bin/bash
+
+# Function to detect the local subnet on macOS
+get_subnet() {
+    iface=$(route get default | awk '/interface/ {print $2}')
+    ip=$(ipconfig getifaddr "$iface")
+    subnet=$(echo "$ip" | awk -F. '{print $1"."$2"."$3".0/24"}')
+    echo "$subnet"
+}
+
+# Check if nmap is installed
+if ! command -v nmap &> /dev/null; then
+    echo "nmap is not installed. Install it with: brew install nmap"
+    exit 1
+fi
+
+# Check if arp is available
+if ! command -v arp &> /dev/null; then
+    echo "arp is not available. This script requires arp."
+    exit 1
+fi
+
+# Get the subnet
+SUBNET=$(get_subnet)
+
+echo "Scanning network: $SUBNET"
+echo "Looking for Raspberry Pi devices..."
+
+# Run nmap scan to populate ARP cache
+nmap -sn "$SUBNET" > /dev/null
+
+# Check ARP table for Raspberry Pi MAC addresses
+arp -a | grep -Ei "(b8:27:eb|dc:a6:32|e4:5f:01|28:cd:c1|d8:3a:dd|dc:44:6d)" | while read -r line; do
+    echo "Raspberry Pi Found: $line"
+done
+
+echo "Scan complete."
