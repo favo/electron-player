@@ -2,6 +2,7 @@ var languageData;
 var countdownInterval;
 var isConnecting = false;
 var isRegistringDns = false;
+var rotationButtons;
 var statusMessage;
 var screenResolution
 var refreshButton;
@@ -20,6 +21,7 @@ window.onload = async () => {
     /*
     *  Queryies elements needed also later
     */
+    rotationButtons = document.getElementById("rotation-buttons").querySelectorAll("button");
     screenResolution = document.getElementById("screen-resolution");
     hiddenSsidField = document.getElementById("hidden-network");
     statusMessage = document.getElementById("status-message");
@@ -104,8 +106,6 @@ window.onload = async () => {
                 screenResolution.appendChild(option)
             })
 
-            const rotationButtons = document.getElementById("rotation-buttons").querySelectorAll("button");
-
             Array.from(rotationButtons).forEach((button) => {
                 button.classList.toggle("selected", button.value === data.rotation )
             });
@@ -139,7 +139,6 @@ window.onload = async () => {
 function setButtonEvents() {
     const letsGoButton = document.getElementById("lets-go-button");
     const connectButton = document.getElementById("connect-button");
-    const rotationButtons = document.getElementById("rotation-buttons").querySelectorAll("button");
     const connectAnotherButton = document.getElementById("connect-another-button");
     const screenResolutionButton = document.getElementById("set-screen-resolution");
     const dnsButton = document.getElementById("register-dns");
