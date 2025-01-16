@@ -247,9 +247,9 @@ const networkManager = (module.exports = {
     },
 
     /*
-     * Deletes all wifi connections
+     * Resets all wifi connections and reset dns settings for ethernet connections
      */
-    async deleteAllConnections() {
+    async resetAllConnections() {
         const deleteAllCommand = "nmcli -t -f name,type connection show";
 
         const result = await executeCommand(deleteAllCommand, "Delete all connections");
@@ -258,11 +258,15 @@ const networkManager = (module.exports = {
 
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i].split(":");
-            const ssid = line[0];
+            const name = line[0];
             const type = line[1];
 
             if (type === "802-11-wireless") {
-                networkManager.deleteConnectionBySSID(ssid);
+                await networkManager.deleteConnectionBySSID(name);
+            }
+            else if(type === "802-3-ethernet") {
+                await executeCommand(`nmcli con mod "${name}" ipv4.dns ""`)
+                await executeCommand(`nmcli con mod "${name}" ipv4.ignore-auto-dns no`)
             }
         }
     },

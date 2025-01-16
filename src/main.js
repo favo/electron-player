@@ -398,7 +398,7 @@ async function factoryReset() {
         console.log('Cache cleared!');
     });
 
-    await NetworkManager.deleteAllConnections();
+    await NetworkManager.resetAllConnections();
     await resetRotationFile();
     await resetScreenResolution();
     await setBluetoothID("");
