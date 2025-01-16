@@ -1,11 +1,10 @@
 const quote = require("shell-quote/quote");
 const { setRotation, executeCommand, findUniqueSSIDs, readBluetoothID, getDeviceSettings } = require("./utils.js");
-const fs = require("fs");
 
 const io = require("socket.io-client");
 let bleSocket = io("ws://127.0.0.1:3333");
 
-const { ipcMain, net } = require("electron");
+const { ipcMain } = require("electron");
 
 const Store = require("electron-store");
 const store = new Store();
@@ -71,7 +70,7 @@ const networkManager = (module.exports = {
                 /* Attemps to connect to server */
                 const serverConnectionResult = await networkManager.attemptServerConnection();
 
-                if (serverConnectionResult.success && serverConnectionResult.stdout.toString() == "1") {
+                if (serverConnectionResult.success && serverConnectionResult.stdout.toString() === "1") {
                     /* Successfully pings server */
                     return serverConnectionResult;
                 } else {
@@ -141,7 +140,7 @@ const networkManager = (module.exports = {
                 /* Attemps to connect to server */
                 const serverConnectionResult = await networkManager.attemptServerConnection();
 
-                if (serverConnectionResult.success && serverConnectionResult.stdout.toString() == "1") {
+                if (serverConnectionResult.success && serverConnectionResult.stdout.toString() === "1") {
                     /* Successfully pings server */
                     return serverConnectionResult;
                 } else {
@@ -212,7 +211,7 @@ const networkManager = (module.exports = {
     async checkConnectionToServer() {
         const host = store.get("host");
 
-        const command = `curl -I https://${host}/up | grep HTTP | grep -q 200 && echo 1 || echo 0`;
+        const command = `curl -sI https://${host}/up | grep HTTP | grep -q 200 && echo 1 || echo 0`;
 
         return await executeCommand(command, "server connection");
     },
@@ -227,7 +226,7 @@ const networkManager = (module.exports = {
         while (attempts < 20) {
             connection = await networkManager.checkConnectionToServer();
 
-            if (connection.success && connection.stdout.toString() == "1") {
+            if (connection.success && connection.stdout.toString() === "1") {
                 return connection;
             } else {
                 attempts++;
@@ -261,7 +260,7 @@ const networkManager = (module.exports = {
             const ssid = line[0];
             const type = line[1];
 
-            if (type == "802-11-wireless") {
+            if (type === "802-11-wireless") {
                 networkManager.deleteConnectionBySSID(ssid);
             }
         }
@@ -275,7 +274,7 @@ const networkManager = (module.exports = {
 
         const result = await executeCommand(command);
 
-        if (result.success && result.stdout.trim() == "1") {
+        if (result.success && result.stdout.trim() === "1") {
             return await networkManager.attemptServerConnection();
         } else {
             return result;
@@ -290,7 +289,7 @@ const networkManager = (module.exports = {
 
         const result = await executeCommand(command);
 
-        if (result.success && result.stdout.trim() == "1") {
+        if (result.success && result.stdout.trim() === "1") {
             return await networkManager.attemptServerConnection();
         } else {
             return result;
@@ -303,14 +302,14 @@ const networkManager = (module.exports = {
     async checkNetworkStatus() {
         const ethernetResult = await networkManager.checkEthernetConnection();
 
-        if (ethernetResult.success && ethernetResult.stdout.trim() == "1") {
+        if (ethernetResult.success && ethernetResult.stdout.trim() === "1") {
             return { connectionType: "Ethernet", ...ethernetResult };
         }
 
         const wifiResult = await networkManager.checkWifiConnection();
 
-        if (wifiResult.success && wifiResult.stdout.trim() == "1") {
-            const connectionName = await networkManager.getConnectionName()
+        if (wifiResult.success && wifiResult.stdout.trim() === "1") {
+            const connectionName = await networkManager.getSSID()
             return { connectionType: "Wi-Fi", connectionName: connectionName.stdout.trim(), ...wifiResult };
         }
 
@@ -324,7 +323,7 @@ const networkManager = (module.exports = {
         ethernetInterval = setInterval(async () => {
             try {
                 const result = await networkManager.checkEthernetConnection();
-                if (result.success && result.stdout == "1") {
+                if (result.success && result.stdout === "1") {
                     ipcMain.emit("ethernet_status", result)
                     
                     if (ethernetInterval) {
@@ -350,7 +349,7 @@ const networkManager = (module.exports = {
      *   Adds dns address to /etc/resolv
      */
     async addDNS(dns) {
-        const connectionNameResult = await networkManager.getConnectionName()
+        const connectionNameResult = await networkManager.getActiveConnection()
         if (connectionNameResult.success) {
             const connectionName = connectionNameResult.stdout
             
@@ -359,7 +358,7 @@ const networkManager = (module.exports = {
                 const disableAutoDNS = await executeCommand(`nmcli con mod "${connectionName}" ipv4.ignore-auto-dns yes`);
                 
                 if (disableAutoDNS) {
-                    return await executeCommand(`nmcli con down "${connectionName}" | nmcli con up "${connectionName}"`);
+                    return await executeCommand(`nmcli con down "${connectionName}" && nmcli con up "${connectionName}"`);
                 } else {
                     return disableAutoDNS
                 }
@@ -373,8 +372,12 @@ const networkManager = (module.exports = {
     /*
      *   Returns execute command object with connection name
      */
-    async getConnectionName() {
+    async getSSID() {
         return await executeCommand("nmcli -t -f active,ssid dev wifi | grep '^yes' | cut -d':' -f2")
+    },
+
+    async getActiveConnection(){
+        return await executeCommand("nmcli -g active,uuid con | grep '^yes' | cut -d':' -f2 | head -n 1")
     },
 
     /*
@@ -429,10 +432,10 @@ const networkManager = (module.exports = {
             const result = await networkManager.checkNetworkStatus();
             console.log("checking result", result);
 
-            if (result.success && result.stdout.trim() == "1") {
-                if (result.connectionType == "Ethernet") {
+            if (result.success && result.stdout.trim() === "1") {
+                if (result.connectionType === "Ethernet") {
                     bleSocket.emit("ethernet-status", result);
-                } else if (result.connectionType == "Wi-Fi") {
+                } else if (result.connectionType === "Wi-Fi") {
                     bleSocket.emit("network-connection-result", result);
                 }
             }

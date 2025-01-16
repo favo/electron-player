@@ -103,6 +103,8 @@ window.onload = async () => {
                 screenResolution.appendChild(option)
             })
 
+            const rotationButtons = document.getElementById("rotation-buttons").querySelectorAll("button");
+
             Array.from(rotationButtons).forEach((button) => {
                 button.classList.toggle("selected", button.value === data.rotation )
             });

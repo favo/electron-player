@@ -4,6 +4,8 @@ const NetworkManager = require("./networkManager");
 
 const { app, BrowserWindow, ipcMain, globalShortcut } = require("electron");
 
+console.log("loading main.js")
+
 const Appsignal = require("@appsignal/javascript").default;
 const appsignal = new Appsignal({ key: "b2bdf969-f795-467e-b710-6b735163281f" });
 
@@ -26,18 +28,19 @@ autoUpdater.autoDownload = false;
 autoUpdater.autoInstallOnAppQuit = true;
 autoUpdater.allowPrerelease = false;
 
-app.commandLine.appendSwitch("use-vulkan");
-app.commandLine.appendSwitch("enable-features", "Vulkan");
-app.commandLine.appendSwitch("disable-gpu-driver-workarounds");
-app.commandLine.appendSwitch("ignore-gpu-blocklist");
+//app.commandLine.appendSwitch("use-vulkan");
+//app.commandLine.appendSwitch("enable-features", "Vulkan");
+//app.commandLine.appendSwitch("disable-gpu-driver-workarounds");
+//app.commandLine.appendSwitch("ignore-gpu-blocklist");
 
-//app.commandLine.appendSwitch('gl', 'egl')
-//app.commandLine.appendSwitch('enable-gpu-rasterization');  // GPU for video rendering
-//app.commandLine.appendSwitch('ignore-gpu-blocklist');  // Enable all GPU features
-//app.commandLine.appendSwitch('enable-zero-copy');  // Efficient video frame handling
-//app.commandLine.appendSwitch('disable-software-video-decoder');  // Force hardware decoding
-//app.commandLine.appendSwitch('enable-native-gpu-memory-buffers');
-//app.commandLine.appendSwitch('disable-gpu-driver-bug-workarounds');
+app.commandLine.appendSwitch('gl', 'egl')
+app.commandLine.appendSwitch('enable-gpu-rasterization');  // GPU for video rendering
+app.commandLine.appendSwitch('ignore-gpu-blocklist');  // Enable all GPU features
+app.commandLine.appendSwitch('enable-zero-copy');  // Efficient video frame handling
+app.commandLine.appendSwitch('disable-software-video-decoder');  // Force hardware decoding
+app.commandLine.appendSwitch('enable-native-gpu-memory-buffers');
+app.commandLine.appendSwitch('disable-gpu-driver-bug-workarounds');
+
 
 const createWindow = async () => {
     console.log("creating window");
