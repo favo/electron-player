@@ -89,13 +89,17 @@ const createWindow = async () => {
 
 async function setSettingsFromPlayerConfig() {
     const config = await getPlayerConfig()
-
+    
     if (! store.has("host")) {
         store.set("host", config["host"]);
     }
 
     if (! store.has("lang")) {
         store.set("lang", config["language"]);
+    }
+
+    if (config["devMode"]) {
+        store.set("devMode", config["devMode"]);
     }
 }
 

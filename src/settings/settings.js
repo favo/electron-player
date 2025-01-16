@@ -83,9 +83,10 @@ window.onload = async () => {
         setStatusMessage(languageData["dns_registring"]);
     })
 
-    sendRecieveToMain("devMode", null, (devMode) => {
+    window.api.resultFromStore("devMode", (devMode) => {
         window.document.body.dataset.devMode = devMode;
-    })
+    });
+    window.api.getFromStore("devMode");
 
     sendRecieveToMain("create_qr_code", { lightColor: "#000000", darkColor: "#828282" }, (data) => {
         canvas.src = data;
