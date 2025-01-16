@@ -430,7 +430,6 @@ const networkManager = (module.exports = {
         
         bleSocket.on("check-network-status", async () => {
             const result = await networkManager.checkNetworkStatus();
-            console.log("checking result", result);
 
             if (result.success && result.stdout.trim() === "1") {
                 if (result.connectionType === "Ethernet") {
@@ -485,12 +484,5 @@ const networkManager = (module.exports = {
     sendPincodeToBluetooth(pincode) {
         bleSocket.emit("pincode", pincode)
     },
-
-    /*
-     *  Sends pincode to bleSocket
-     */
-    updateEthernetStatusToBluetooth(result) {
-        bleSocket.emit("ethernet-status", result);
-    }
 
 });

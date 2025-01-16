@@ -4,8 +4,6 @@ const NetworkManager = require("./networkManager");
 
 const { app, BrowserWindow, ipcMain, globalShortcut } = require("electron");
 
-console.log("loading main.js")
-
 const Appsignal = require("@appsignal/javascript").default;
 const appsignal = new Appsignal({ key: "b2bdf969-f795-467e-b710-6b735163281f" });
 
@@ -43,14 +41,14 @@ app.commandLine.appendSwitch('disable-gpu-driver-bug-workarounds');
 
 
 const createWindow = async () => {
-    console.log("creating window");
+
+    await setSettingsFromPlayerConfig()
 
     mainWindow = new BrowserWindow({
         alwaysOnTop: false,
         backgroundColor: '#000000',
         width: 1920,
         height: 1080,
-        kiosk: true,
         frame: false,
         show: false, 
         webPreferences: {
@@ -62,7 +60,7 @@ const createWindow = async () => {
     });
 
     mainWindow.once('ready-to-show', () => {
-        console.log("ready to show");
+        mainWindow.kiosk = true
         mainWindow.show()
     })
 
@@ -75,8 +73,6 @@ const createWindow = async () => {
     } else {
         mainWindow.loadFile(path.join(__dirname, "index/index.html"));
     }
-
-    await setSettingsFromPlayerConfig()
 
     NetworkManager.enableBLE();
 
@@ -107,52 +103,47 @@ async function setSettingsFromPlayerConfig() {
  *   Listeners from user key commands
  */
 app.whenReady().then(() => {
-    //  Restarts app
-    globalShortcut.register("CommandOrControl+B", () => {
-        console.log("Restarting app..");
-        restartApp();
-    });
-    //  reboot device
+    /* reboot device */
     globalShortcut.register("CommandOrControl+A", () => {
         console.log("Rebooting device..");
         rebootDevice();
     });
-    //  Opens devTools
+
+    /* Opens devTools */
     globalShortcut.register("CommandOrControl+D+T", () => {
         console.log("Opening DevTools..");
         mainWindow.webContents.openDevTools();
     });
-    // Exits kiosk mode
+
+    /* Exits kiosk mode */
     globalShortcut.register("CommandOrControl+K", () => {
         console.log("Exiting kiosk mode..");
         mainWindow.kiosk = !mainWindow.kiosk;
     });
-    // Updates app
+
+    /* Update app */
     globalShortcut.register("CommandOrControl+U", () => {
         console.log("Checking and Updating App..");
         updateApp(autoUpdater);
     });
-    //Updates firmware
-    globalShortcut.register("CommandOrControl+F", () => {
-        console.log("Updating firmware...");
-        updateFirmware();
-    });
-
-    // Opens settings page
+    
+    /* Opens settings page */
     globalShortcut.register("CommandOrControl+I", () => {
         mainWindow.loadFile(path.join(__dirname, "settings/settings.html"));
     });
-    // Opens player page
+
+    /* Opens player page */
     globalShortcut.register("CommandOrControl+P", () => {
         NetworkManager.stopEthernetInterval();
         mainWindow.loadFile(path.join(__dirname, "index/index.html"));
     });
-    // Opens get started page
+
+    /* Opens get started page */
     globalShortcut.register("CommandOrControl+G", () => {
         mainWindow.loadFile(path.join(__dirname, "get_started/get_started.html"));
     });
     
-    // Enables devmode
+    /* Toggle devMode */
     globalShortcut.register("CommandOrControl+D+M", () => {
         const devMode = store.get("devMode", false);
 
@@ -167,23 +158,18 @@ app.whenReady().then(() => {
         }
     });
 
-    /* https://medium.com/how-to-electron/how-to-reset-application-data-in-electron-48bba70b5a49 */
+    /* Factory reset */
     globalShortcut.register("CommandOrControl+D+S", async () => {
         factoryReset()
     });
 });
 
 app.on("ready", () => {
-    console.log("app ready");
-
     createWindow();
 });
 
 app.on("window-all-closed", () => {
-    if (process.platform !== "darwin") {
-        app.quit();
-    }
-    printInfo = false;
+    app.exit(1);
 });
 
 app.on("activate", () => {
@@ -197,11 +183,6 @@ app.on("activate", () => {
  */
 ipcMain.on("reboot_device", (event, arg) => {
     rebootDevice();
-});
-
-ipcMain.on("restart_app", (event, arg) => {
-    app.relaunch();
-    app.exit();
 });
 
 ipcMain.on("request_device_info", async (event, arg) => {
@@ -331,7 +312,6 @@ ipcMain.on("connect_to_dns", async (event, dns) => {
 
 ipcMain.on("ethernet_status", (_event, result) => {
     mainWindow.webContents.send("connect_to_network_status", result);
-    NetworkManager.updateEthernetStatusToBluetooth(result)
 });
 
 ipcMain.on("remove_mouse", (_event, _arg) => {
@@ -403,6 +383,7 @@ autoUpdater.on("update-downloaded", (info) => {
 
 
 async function factoryReset() {
+    /* https://medium.com/how-to-electron/how-to-reset-application-data-in-electron-48bba70b5a49 */
     store.clear();
 
     const ses = mainWindow.webContents.session;

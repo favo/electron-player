@@ -52,9 +52,6 @@ window.onload = function () {
             case "reboot":
                 sendMessageToMain("reboot_device");
                 break;
-            case "restart":
-                sendMessageToMain("restart_app");
-                break;
             case "update_app":
                 sendMessageToMain("update_app");
                 break;
