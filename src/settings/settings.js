@@ -246,7 +246,7 @@ function displayListOfNetworks(data) {
     select.innerHTML = "";
     refreshButton.dataset.status = null;
 
-    const list = findUniqueSSIDs(data);
+    const list = parseWiFiScanResults(data);
 
     list.forEach((network) => {
         const option = document.createElement("option");
@@ -277,7 +277,7 @@ function setScreenResolution() {
     window.api.send("set_screen_resolution", res);
 }
 
-function findUniqueSSIDs(inputString) {
+function parseWiFiScanResults(inputString) {
     const lines = inputString.split("\n");
     const uniqueSSIDs = [];
     const uniqueSSIDNames = new Set();

@@ -1,5 +1,5 @@
 const { rebootDevice, sendDeviceInfo, updateApp, updateFirmware, getSystemStats, setScreenRotation, 
-    setScreenResolution, getAllScreenResolution, readBluetoothID, turnDisplayOff, updateDisplayConfiguration, setBluetoothID, getPlayerConfig } = require("./utils");
+    setScreenResolution, getAllScreenResolution, readBluetoothID, turnDisplayOff, updateDisplayConfiguration, setBluetoothID, getPlayerConfig, parseWiFiScanResults } = require("./utils");
 const NetworkManager = require("./networkManager");
 
 const { app, BrowserWindow, ipcMain, globalShortcut } = require("electron");
@@ -229,7 +229,7 @@ ipcMain.on("connect_to_network", async (_event, arg) => {
 });
 
 ipcMain.on("search_after_networks", async (event, arg) => {
-    const result = await NetworkManager.searchNetwork();
+    const result = await NetworkManager.scanAvailableNetworks();
 
     if (result.success) {
         mainWindow.webContents.send("list_of_networks", result.stdout.toString());

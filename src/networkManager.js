@@ -1,5 +1,5 @@
 const quote = require("shell-quote/quote");
-const { setScreenRotation, executeCommand, findUniqueSSIDs, readBluetoothID, getDeviceSettings } = require("./utils.js");
+const { setScreenRotation, executeCommand, parseWiFiScanResults, readBluetoothID, getDeviceSettings } = require("./utils.js");
 
 const io = require("socket.io-client");
 let bleSocket = io("ws://127.0.0.1:3333");
@@ -13,19 +13,87 @@ let lastConnectionSSID;
 let ethernetInterval;
 
 const networkManager = (module.exports = {
-    /*
-     *  Function for searching after local networks
-     *  return {String} string with ssid and security
+    /**
+     * Scans available Wi-Fi networks and retrieves the SSID and security information.
+     * 
+     * This function runs the `nmcli` command to list available Wi-Fi networks, including their SSID
+     * and security settings, in a terse format. It returns the output of the scan, which can then be 
+     * parsed to extract relevant network details such as network names (SSIDs) and their security protocols.
+     * 
+     * @returns {Promise<string>} A promise that resolves with the output of the `nmcli` command, which includes
+     *   a list of available Wi-Fi networks along with their SSID and security information.
+     * 
+     * @example
+     * const networkList = await scanAvailableNetworks();
+     * console.log(networkList);
+     * // Output: "SSID: Network1\nSECURITY: WPA2\nSSID: Network2\nSECURITY: WEP"
      */
-    async searchNetwork() {
+    async scanAvailableNetworks() {
         const command = "nmcli --fields SSID,SECURITY --terse --mode multiline dev wifi list";
-
         return await executeCommand(command);
     },
+    /**
+     * Retrieves the SSID of the active Wi-Fi network.
+     * 
+     * This function runs the `nmcli` command to get the SSID of the active Wi-Fi connection.
+     * It returns the SSID as a string.
+     * 
+     * @returns {Promise<string>} A promise that resolves with the SSID of the active Wi-Fi network.
+     * 
+     * @example
+     * const activeSSID = await getActiveSSID();
+     * console.log(activeSSID);
+     * // Output: "MyNetwork"
+     */
+    async getActiveSSID() {
+        return await executeCommand("nmcli -t -f active,ssid dev wifi | grep '^yes' | cut -d':' -f2");
+    },
 
-    /*
-     * Base function. Decides security and type of network
-     * @param {Object} data
+    /**
+     * Retrieves the UUID of the active network connection.
+     * 
+     * This function runs the `nmcli` command to retrieve the UUID of the active connection.
+     * It returns the UUID as a string.
+     * 
+     * @returns {Promise<string>} A promise that resolves with the UUID of the active network connection.
+     * 
+     * @example
+     * const activeConnectionUUID = await getActiveConnectionUUID();
+     * console.log(activeConnectionUUID);
+     * // Output: "123e4567-e89b-12d3-a456-426614174000"
+     */
+    async getActiveConnectionUUID() {
+        return await executeCommand("nmcli -g active,uuid con | grep '^yes' | cut -d':' -f2 | head -n 1");
+    },
+
+    /**
+     * Connects to a specified Wi-Fi network based on its security type and other options.
+     * 
+     * This function determines the security type of the network (e.g., WPA or unsecured) and 
+     * connects to the network accordingly. If the network is hidden, it will attempt to connect 
+     * to the hidden network. If the network is WPA secured, it will require a password. 
+     * For unsecured networks, no password is required. 
+     * 
+     * It also ensures that any previous active connection (from a different SSID) is deleted 
+     * before connecting to the new network.
+     * 
+     * @param {Object} data - The data object containing network connection details.
+     * @param {string} data.ssid - The SSID (network name) of the Wi-Fi network to connect to.
+     * @param {string} [data.password] - The password for the Wi-Fi network (if secured).
+     * @param {string} [data.security=""] - The security type of the Wi-Fi network (e.g., WPA, WEP).
+     * @param {Object} [data.options={}] - Additional options for network connection.
+     * @param {boolean} [data.options.hidden=false] - Whether the network is a hidden SSID.
+     * 
+     * @returns {Promise} A promise that resolves when the network connection is successful.
+     * 
+     * @example
+     * const connectionData = {
+     *     ssid: "MyNetwork",
+     *     password: "password123",
+     *     security: "WPA2",
+     *     options: { hidden: false }
+     * };
+     * await connectToNetwork(connectionData);
      */
     async connectToNetwork(data) {
         const ssid = data.ssid;
@@ -33,19 +101,23 @@ const networkManager = (module.exports = {
         const security = data.security || "";
         const options = data.options || {};
 
+        // Disconnect from previous network if any
         if (lastConnectionSSID != null) {
             await networkManager.deleteConnectionBySSID(lastConnectionSSID);
         }
 
         lastConnectionSSID = ssid;
 
+        // Connect to hidden network if specified
         if (options.hidden) {
             return await networkManager.connectToHiddenNetwork(ssid, password);
         }
 
+        // Connect to WPA secured network if password is provided
         if (security.includes("WPA") && password) {
             return await networkManager.connectToWPANetwork(ssid, password);
         } else {
+            // Connect to unsecured network
             return await networkManager.connectToUnsecureNetwork(ssid);
         }
     },
@@ -62,7 +134,6 @@ const networkManager = (module.exports = {
 
             /* Checks and wait if connection is active */
             const activeConnection = await networkManager.waitForActiveConnection(ssid);
-            console.log("activeConnection", activeConnection);
 
             if (activeConnection.success) {
                 /* Connection is active */
@@ -129,13 +200,11 @@ const networkManager = (module.exports = {
 
         const connectionResult = await executeCommand(addConnectionCommand, "Network connection");
 
-        console.log("connectionResult", connectionResult);
         if (connectionResult.success && connectionResult.stdout.includes("successfully added")) {
             const connectCommand = quote(["nmcli", "conn", "up", ssid]);
 
             const connectResult = await executeCommand(connectCommand);
 
-            console.log("connectResult", connectResult);
             if (connectResult.success && connectResult.stdout.includes("Connection successfully activated")) {
                 /* Attemps to connect to server */
                 const serverConnectionResult = await networkManager.attemptServerConnection();
@@ -174,13 +243,11 @@ const networkManager = (module.exports = {
         while (attempts < 75) {
             connectionState = await executeCommand(connectionStateCommand);
 
-            console.log("waitForActiveConnection", connectionState);
             if (connectionState.success && connectionState.stdout.includes("activated")) {
                 return connectionState;
             } else if (connectionState.success && connectionState.stdout.includes("activating")) {
                 lastConnectionState = "activating";
                 attempts++;
-                console.log(`waitForActiveConnection: Attempt ${attempts} failed. Retrying in 0.5 second...`);
                 await new Promise((resolve) => setTimeout(resolve, 500));
             } else if (connectionState.success && connectionState.stdout.includes("deactivated")) {
                 connectionState.success = false;
@@ -194,7 +261,6 @@ const networkManager = (module.exports = {
                     return connectionState;
                 } else {
                     attempts++;
-                    console.log(`waitForActiveConnection: Attempt ${attempts} failed. Retrying in 0.5 second...`);
                     await new Promise((resolve) => setTimeout(resolve, 500));
                 }
             }
@@ -230,12 +296,10 @@ const networkManager = (module.exports = {
                 return connection;
             } else {
                 attempts++;
-                console.log(`Attempt ${attempts} failed. Retrying in 0.5 second...`);
                 await new Promise((resolve) => setTimeout(resolve, 500)); // Wait for 1 second before retrying
             }
         }
 
-        console.log("Exceeded maximum attempts. Operation failed.");
         return connection;
     },
 
@@ -304,7 +368,7 @@ const networkManager = (module.exports = {
     /*
     *   Check overall network status and connection type
     */
-    async checkNetworkStatus() {
+    async checkNetworkConnection() {
         const ethernetResult = await networkManager.checkEthernetConnection();
 
         if (ethernetResult.success && ethernetResult.stdout.trim() === "1") {
@@ -314,7 +378,7 @@ const networkManager = (module.exports = {
         const wifiResult = await networkManager.checkWifiConnection();
 
         if (wifiResult.success && wifiResult.stdout.trim() === "1") {
-            const connectionName = await networkManager.getSSID()
+            const connectionName = await networkManager.getActiveSSID()
             return { connectionType: "Wi-Fi", connectionName: connectionName.stdout.trim(), ...wifiResult };
         }
 
@@ -328,13 +392,10 @@ const networkManager = (module.exports = {
         ethernetInterval = setInterval(async () => {
             try {
                 const result = await networkManager.checkEthernetConnection();
+                
                 if (result.success && result.stdout === "1") {
                     ipcMain.emit("ethernet_status", result)
-                    
-                    if (ethernetInterval) {
-                        clearInterval(ethernetInterval);
-                        ethernetInterval = null;
-                    }
+                    networkManager.stopEthernetInterval()
                 }
             } catch {}
         }, 2000);
@@ -354,7 +415,7 @@ const networkManager = (module.exports = {
      *   Adds dns address to /etc/resolv
      */
     async addDNS(dns) {
-        const connectionNameResult = await networkManager.getActiveConnection()
+        const connectionNameResult = await networkManager.getActiveConnectionUUID()
         if (connectionNameResult.success) {
             const connectionName = connectionNameResult.stdout
             
@@ -374,16 +435,7 @@ const networkManager = (module.exports = {
     },
 
 
-    /*
-     *   Returns execute command object with connection name
-     */
-    async getSSID() {
-        return await executeCommand("nmcli -t -f active,ssid dev wifi | grep '^yes' | cut -d':' -f2")
-    },
 
-    async getActiveConnection(){
-        return await executeCommand("nmcli -g active,uuid con | grep '^yes' | cut -d':' -f2 | head -n 1")
-    },
 
     /*
      *  Enables BLE by connecting to the local BLE bridge, and registers listeners for BLE events
@@ -409,10 +461,10 @@ const networkManager = (module.exports = {
         });
 
         bleSocket.on("get-network-list", async () => {
-            const result = await networkManager.searchNetwork();
+            const result = await networkManager.scanAvailableNetworks();
 
             if (result.success) {
-                const networkList = findUniqueSSIDs(result.stdout.toString());
+                const networkList = parseWiFiScanResults(result.stdout.toString());
                 bleSocket.emit("list-of-networks", networkList);
             }
         });
@@ -434,7 +486,7 @@ const networkManager = (module.exports = {
         });
         
         bleSocket.on("check-network-status", async () => {
-            const result = await networkManager.checkNetworkStatus();
+            const result = await networkManager.checkNetworkConnection();
 
             if (result.success && result.stdout.trim() === "1") {
                 if (result.connectionType === "Ethernet") {

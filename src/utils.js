@@ -512,11 +512,11 @@ const utils = (module.exports = {
      * 
      * @example
      * const inputString = "SSID: MyNetwork\nSECURITY: WPA2\nSSID: AnotherNetwork\nSECURITY: WEP\nSSID: MyNetwork\nSECURITY: WPA2";
-     * const uniqueSSIDs = findUniqueSSIDs(inputString);
+     * const uniqueSSIDs = parseWiFiScanResults(inputString);
      * console.log(uniqueSSIDs);
      * // Output: [{ ssid: 'MyNetwork', security: 'WPA2' }, { ssid: 'AnotherNetwork', security: 'WEP' }]
      */
-    findUniqueSSIDs(inputString) {
+     parseWiFiScanResults(inputString) {
         const lines = inputString.split("\n");
         const uniqueSSIDs = [];
         const uniqueSSIDNames = new Set();
