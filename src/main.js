@@ -1,6 +1,7 @@
 const { rebootDevice, sendDeviceInfo, updateApp, updateFirmware, getSystemStats, setScreenRotation, 
     setScreenResolution, getAllScreenResolution, readBluetoothID, turnDisplayOff, updateDisplayConfiguration, setBluetoothID, getPlayerConfig } = require("./utils");
 const NetworkManager = require("./networkManager");
+const BleManager = require("./bleManager");
 
 const { app, BrowserWindow, ipcMain, globalShortcut } = require("electron");
 
@@ -18,6 +19,8 @@ const Store = require("electron-store");
 const store = new Store();
 
 const pjson = require("../package.json");
+
+
 
 let mainWindow;
 let systemStatsStream;
@@ -74,7 +77,7 @@ const createWindow = async () => {
         mainWindow.loadFile(path.join(__dirname, "index/index.html"));
     }
 
-    NetworkManager.enableBLE();
+    BleManager.enableBle();
 
     mainWindow.on("closed", () => {
         mainWindow = null;
@@ -203,7 +206,7 @@ ipcMain.on("update_app", (event, arg) => {
 });
 
 ipcMain.on("pincode", (event, pincode) => {
-    NetworkManager.sendPincodeToBluetooth(pincode)
+    BleManager.sendPincodeToBluetooth(pincode)
 });
 
 ipcMain.on("wake", (event, arg) => {

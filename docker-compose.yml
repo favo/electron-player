@@ -1,0 +1,18 @@
+version: '3'
+
+services:
+  electron-builder:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/usr/src/app
+      - node_modules:/usr/src/app/node_modules
+    environment:
+      - DISPLAY=:99
+      - ELECTRON_CACHE=/usr/src/app/cache/electron
+      - ELECTRON_BUILDER_CACHE=/usr/src/app/cache/electron-builder
+    command: npm run build
+
+volumes:
+  node_modules:

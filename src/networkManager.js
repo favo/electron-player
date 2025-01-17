@@ -1,8 +1,5 @@
 const quote = require("shell-quote/quote");
-const { setScreenRotation, executeCommand, findUniqueSSIDs, readBluetoothID, getDeviceSettings } = require("./utils.js");
-
-const io = require("socket.io-client");
-let bleSocket = io("ws://127.0.0.1:3333");
+const {executeCommand } = require("./utils.js");
 
 const { ipcMain } = require("electron");
 
@@ -383,111 +380,6 @@ const networkManager = (module.exports = {
 
     async getActiveConnection(){
         return await executeCommand("nmcli -g active,uuid con | grep '^yes' | cut -d':' -f2 | head -n 1")
-    },
-
-    /*
-     *  Enables BLE by connecting to the local BLE bridge, and registers listeners for BLE events
-     */
-    async enableBLE() {
-        let restartOnDisconnect = false
-
-        bleSocket.on("ble-enabled", () => {
-            restartOnDisconnect = false
-            console.log("BLE enabled");
-        });
-
-        bleSocket.on("ble-disabled", () => {
-            console.log("BLE disabled");
-
-            if (restartOnDisconnect) {
-                networkManager.startBle()
-            }
-        });
-
-        bleSocket.on("rotation", (rotation) => {
-            setScreenRotation(rotation);
-        });
-
-        bleSocket.on("get-network-list", async () => {
-            const result = await networkManager.searchNetwork();
-
-            if (result.success) {
-                const networkList = findUniqueSSIDs(result.stdout.toString());
-                bleSocket.emit("list-of-networks", networkList);
-            }
-        });
-
-        bleSocket.on("wifi", async (data) => {
-            ipcMain.emit("is_connecting");
-            const result = await networkManager.connectToNetwork(JSON.parse(data));
-            ipcMain.emit("connecting_result", null, result);
-
-            bleSocket.emit("network-connection-result", result);
-        });
-
-        bleSocket.on("host", (host) => {
-            ipcMain.emit("set_host", null, { host: host.toString(), reload: true });
-        });
-        
-        bleSocket.on("dns", (dns) => {
-            ipcMain.emit("connect_to_dns", null, dns);
-        });
-        
-        bleSocket.on("check-network-status", async () => {
-            const result = await networkManager.checkNetworkStatus();
-
-            if (result.success && result.stdout.trim() === "1") {
-                if (result.connectionType === "Ethernet") {
-                    bleSocket.emit("ethernet-status", result);
-                } else if (result.connectionType === "Wi-Fi") {
-                    bleSocket.emit("network-connection-result", result);
-                }
-            }
-        });
-
-        bleSocket.on("get-device-settings", async () => {
-            const result = await getDeviceSettings();
-
-            bleSocket.emit("device-settings", result);
-        });
-
-        bleSocket.on("resolution", (res) => {
-            ipcMain.emit("set_screen_resolution", null, res);
-        });
-
-        bleSocket.on("restart-bluetooth", () => {
-            restartOnDisconnect = true
-            bleSocket.emit("ble-disable");
-        });
-
-        bleSocket.on("factory-reset", () => {
-            ipcMain.emit("factory_reset");
-        });
-
-        bleSocket.on("go-to-screen", () => {
-            ipcMain.emit("go_to_screen");
-        });
-
-        networkManager.startBle()
-    },
-
-    async startBle() {
-        const bluetooth_id = await readBluetoothID()
-        bleSocket.emit("ble-enable", {bluetooth_id: bluetooth_id, firstTime: store.get("firstTime", true)});
-    },
-
-    /*
-     *  Disables BLE
-     */
-    disableBLE() {
-        bleSocket.emit("ble-disable");
-    },
-
-    /*
-     *  Sends pincode to bleSocket
-     */
-    sendPincodeToBluetooth(pincode) {
-        bleSocket.emit("pincode", pincode)
-    },
+    }
 
 });
