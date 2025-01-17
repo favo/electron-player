@@ -1,5 +1,5 @@
-const { rebootDevice, restartApp, sendDeviceInfo, updateApp, updateFirmware, getSystemStats, setRotation, resetRotationFile, 
-    setScreenResolution, getAllScreenResolution, readBluetoothID, resetScreenResolution, turnDisplayOff, turnDisplayOn, setBluetoothID, getPlayerConfig } = require("./utils");
+const { rebootDevice, sendDeviceInfo, updateApp, updateFirmware, getSystemStats, setScreenRotation, 
+    setScreenResolution, getAllScreenResolution, readBluetoothID, turnDisplayOff, updateDisplayConfiguration, setBluetoothID, getPlayerConfig } = require("./utils");
 const NetworkManager = require("./networkManager");
 
 const { app, BrowserWindow, ipcMain, globalShortcut } = require("electron");
@@ -190,8 +190,7 @@ ipcMain.on("reboot_device", (event, arg) => {
 });
 
 ipcMain.on("request_device_info", async (event, arg) => {
-    const host = store.get("host");
-    const deviceInfo = await sendDeviceInfo(host);
+    const deviceInfo = await sendDeviceInfo();
     mainWindow.webContents.send("send_device_info", deviceInfo);
 });
 
@@ -208,7 +207,7 @@ ipcMain.on("pincode", (event, pincode) => {
 });
 
 ipcMain.on("wake", (event, arg) => {
-    turnDisplayOn();
+    updateDisplayConfiguration();
 });
 
 ipcMain.on("sleep", (event, arg) => {
@@ -270,7 +269,7 @@ ipcMain.on("getFromStore", (_event, key) => {
 });
 
 ipcMain.on("set_screen_rotation", (_event, rotation) => {
-    setRotation(rotation);
+    setScreenRotation(rotation);
 });
 
 ipcMain.on("set_screen_resolution", (event, resolution) => {
@@ -403,8 +402,8 @@ async function factoryReset() {
     });
 
     await NetworkManager.resetAllConnections();
-    await resetRotationFile();
-    await resetScreenResolution();
+    await setScreenRotation("normal");
+    await setScreenResolution("1920x1080");
     await setBluetoothID("");
 
     const getAppPath = path.join(app.getPath("appData"), pjson.name);

@@ -1,5 +1,5 @@
 const quote = require("shell-quote/quote");
-const { setRotation, executeCommand, findUniqueSSIDs, readBluetoothID, getDeviceSettings } = require("./utils.js");
+const { setScreenRotation, executeCommand, findUniqueSSIDs, readBluetoothID, getDeviceSettings } = require("./utils.js");
 
 const io = require("socket.io-client");
 let bleSocket = io("ws://127.0.0.1:3333");
@@ -405,7 +405,7 @@ const networkManager = (module.exports = {
         });
 
         bleSocket.on("rotation", (rotation) => {
-            setRotation(rotation);
+            setScreenRotation(rotation);
         });
 
         bleSocket.on("get-network-list", async () => {
