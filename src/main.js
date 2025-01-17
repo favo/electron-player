@@ -5,7 +5,7 @@ const NetworkManager = require("./networkManager");
 const { app, BrowserWindow, ipcMain, globalShortcut } = require("electron");
 
 const Appsignal = require("@appsignal/javascript").default;
-const appsignal = new Appsignal({ key: "b2bdf969-f795-467e-b710-6b735163281f" });
+let appsignal;
 
 const { autoUpdater } = require("electron-updater");
 
@@ -83,6 +83,20 @@ const createWindow = async () => {
     updateApp(autoUpdater);
 };
 
+app.on("ready", () => {
+    createWindow();
+});
+
+app.on("window-all-closed", () => {
+    app.exit(1);
+});
+
+app.on("activate", () => {
+    if (BrowserWindow.getAllWindows().length === 0) {
+        createWindow();
+    }
+});
+
 async function setSettingsFromPlayerConfig() {
     const config = await getPlayerConfig()
     
@@ -94,8 +108,12 @@ async function setSettingsFromPlayerConfig() {
         store.set("lang", config["language"]);
     }
 
-    if (config["devMode"]) {
+    if (! store.has("lang") && config["devMode"]) {
         store.set("devMode", config["devMode"]);
+    }
+
+    if (config["appsignal-key"]) {
+        appsignal = new Appsignal({ key: config["appsignal-key"] });
     }
 }
 
@@ -162,20 +180,6 @@ app.whenReady().then(() => {
     globalShortcut.register("CommandOrControl+D+S", async () => {
         factoryReset()
     });
-});
-
-app.on("ready", () => {
-    createWindow();
-});
-
-app.on("window-all-closed", () => {
-    app.exit(1);
-});
-
-app.on("activate", () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-        createWindow();
-    }
 });
 
 /*
