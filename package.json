@@ -6,14 +6,15 @@
     "scripts": {
         "test": "echo \"Error: no test specified\" && exit 1",
         "start": "electron .",
-        "build": "npm run rebuild && rpm run dist",
-        "rebuild": "electron-rebuild -f -w @abandonware/bluetooth-hci-socket bleno usb",
         "dist": "electron-builder --linux",
+        "docker_build": "docker compose run --rm electron-builder",
+        "build": "npm install && npm run dist",
         "log": "scripts/log",
         "ssh": "scripts/ssh",
         "publish": "scripts/publish",
-        "build_and_publish": "npm run dist && npm run publish --"
+        "build_and_publish": "npm run docker_build && npm run publish --"
     },
+    "postinstall": "electron-builder install-app-deps",
     "repository": {
         "type": "git",
         "url": "git+https://github.com/favo/electron-player.git"
@@ -43,13 +44,12 @@
     },
     "homepage": "https://github.com/favo/electron-player#readme",
     "devDependencies": {
-        "electron": "^33.2.1",
-        "electron-builder": "^24.1.0",
-        "electron-rebuild": "^3.2.9"
+        "electron": "^34.0.0",
+        "electron-builder": "^24.1.0"
     },
     "dependencies": {
         "@appsignal/javascript": "^1.3.30",
-        "bleno": "npm:@abandonware/bleno@^0.6.1",
+        "@stoprocent/bleno": "^0.8.2",
         "electron-dl": "^3.5.0",
         "electron-json-storage": "^4.6.0",
         "electron-shutdown-command": "^2.0.1",
@@ -58,6 +58,7 @@
         "i": "^0.3.7",
         "qrcode": "^1.5.3",
         "shell-quote": "^1.8.1",
-        "systeminformation": "^5.18.7"
+        "systeminformation": "^5.18.7",
+        "usb": "^2.14.0"
     }
 }

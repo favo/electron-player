@@ -77,8 +77,6 @@ const createWindow = async () => {
         mainWindow.loadFile(path.join(__dirname, "index/index.html"));
     }
 
-    BleManager.enableBle();
-
     mainWindow.on("closed", () => {
         mainWindow = null;
     });

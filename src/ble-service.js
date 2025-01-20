@@ -1,7 +1,7 @@
-import bleno from "bleno";
+const bleno = require("@stoprocent/bleno");
 
 // These can be any sequence of 32 hex digits
-export const SERVICE_UUID = "89496822200000000000000000000000";
+const SERVICE_UUID = "89496822200000000000000000000000";
 
 // Write
 const ROTATION_CHARACTERISTIC_UUID = "89496822201000000000000000000000";
@@ -23,8 +23,7 @@ const NOTIFY_DEVICE_SETTINGS_CHARACTERISTIC_UUID =
 const NOTIFY_PINCODE_CHARACTERISTIC_UUID =
     "89496822211000000000000000000000";
 
-
-export const bleCallbacks = {
+const bleCallbacks = {
   onSetRotation: (rotation) => {},
   onSetWIFI: (ssid) => {},
   onSetHost: (host) => {},
@@ -186,7 +185,7 @@ const goToScreenCharacteristic = new bleno.Characteristic({
 });
 
 
-export const configurationService = new bleno.PrimaryService({
+const configurationService = new bleno.PrimaryService({
   uuid: SERVICE_UUID,
   characteristics: [
     setRotationCharacteristic,
@@ -203,3 +202,8 @@ export const configurationService = new bleno.PrimaryService({
     goToScreenCharacteristic
   ],
 });
+
+
+exports.configurationService = configurationService;
+exports.bleCallbacks = bleCallbacks;
+exports.SERVICE_UUID = SERVICE_UUID;

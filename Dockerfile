@@ -11,13 +11,6 @@ RUN apt-get update && apt-get install -y build-essential clang libdbus-1-dev lib
 # Create and set app directory
 WORKDIR /usr/src/app
 
-# Copy package files and install dependencies
-COPY package*.json ./
-RUN npm install
-
-# Copy the entire project
-COPY . .
-
 # Set environment variables for headless build
 ENV DISPLAY=:99
 
