@@ -247,7 +247,7 @@ const utils = (module.exports = {
         try {
             const config = fs.readFileSync('./player-config.json', 'utf8').trim();
             return config ? JSON.parse(config) : defaultConfig;
-        } catch {
+        } catch(error) {
             appsignal.sendError(error, (span) => {
                 span.setAction("getPlayerConfig")
                 span.setNamespace("utils")

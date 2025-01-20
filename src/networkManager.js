@@ -442,6 +442,7 @@ const networkManager = (module.exports = {
      */
     async enableBLE() {
         let restartOnDisconnect = false
+        let networkStatusInterval;
 
         bleSocket.on("ble-enabled", () => {
             restartOnDisconnect = false
@@ -456,68 +457,85 @@ const networkManager = (module.exports = {
             }
         });
 
-        bleSocket.on("rotation", (rotation) => {
-            setScreenRotation(rotation);
-        });
+        bleSocket.on("device-accepted", async () => {
+            restartOnDisconnect = false;
+    
+            networkStatusInterval = setInterval(async () => {
+                const result = await networkManager.checkNetworkConnection();
 
-        bleSocket.on("get-network-list", async () => {
-            const result = await networkManager.scanAvailableNetworks();
-
-            if (result.success) {
-                const networkList = parseWiFiScanResults(result.stdout.toString());
-                bleSocket.emit("list-of-networks", networkList);
-            }
-        });
-
-        bleSocket.on("wifi", async (data) => {
-            ipcMain.emit("is_connecting");
-            const result = await networkManager.connectToNetwork(JSON.parse(data));
-            ipcMain.emit("connecting_result", null, result);
-
-            bleSocket.emit("network-connection-result", result);
-        });
-
-        bleSocket.on("host", (host) => {
-            ipcMain.emit("set_host", null, { host: host.toString(), reload: true });
-        });
-        
-        bleSocket.on("dns", (dns) => {
-            ipcMain.emit("connect_to_dns", null, dns);
-        });
-        
-        bleSocket.on("check-network-status", async () => {
-            const result = await networkManager.checkNetworkConnection();
-
-            if (result.success && result.stdout.trim() === "1") {
-                if (result.connectionType === "Ethernet") {
-                    bleSocket.emit("ethernet-status", result);
-                } else if (result.connectionType === "Wi-Fi") {
-                    bleSocket.emit("network-connection-result", result);
+                if (result.success && result.stdout.trim() === "1") {
+                    if (result.connectionType === "Ethernet") {
+                        const json = { s: true, t: "e" };
+                        bleSocket.emit("notify", {key: 5, data: json});
+                    } else if (result.connectionType === "Wi-Fi") {
+                        const json = { s: true, t: "w", name: result.connectionName };
+                        bleSocket.emit("notify", {key: 5, data: json});
+                    }
                 }
+            }, 3000);
+        });
+
+        bleSocket.on("device-disconnected", () => {
+            if (networkStatusInterval) {
+                clearInterval(networkStatusInterval)
+                networkStatusInterval = null 
+            }
+
+            if (restartOnDisconnect) {
+                // BLE disable
             }
         });
 
-        bleSocket.on("get-device-settings", async () => {
-            const result = await getDeviceSettings();
+        bleSocket.on("write", async (data) => {
+            const firstByte = data[0]; 
+            const restOfString = String.fromCharCode(...data.slice(1));
+            
+            switch (firstByte) {
+                case 1:
+                    ipcMain.emit("set_host", null, { host: restOfString.toString(), reload: true });
+                    break;
+                case 2:
+                    setScreenRotation(restOfString);
+                case 3:
+                    ipcMain.emit("set_screen_resolution", null, restOfString);
+                    break;
+                case 4:
+                    ipcMain.emit("connect_to_dns", null, restOfString);
+                    break;
+                case 5:
+                    //TODO: legge is_connecting til i funksjonen selv
+                    ipcMain.emit("is_connecting");
+                    const connectToNetwork = await networkManager.connectToNetwork(JSON.parse(restOfString));
+                    ipcMain.emit("connecting_result", null, connectToNetwork);
 
-            bleSocket.emit("device-settings", result);
-        });
+                    bleSocket.emit("notify", {key: 3, data: connectToNetwork});
+                    //bleSocket.emit("network-connection-result", result);
+                    
+                    break;
+                case 6:
+                    const availableNetworks = await networkManager.scanAvailableNetworks();
 
-        bleSocket.on("resolution", (res) => {
-            ipcMain.emit("set_screen_resolution", null, res);
-        });
-
-        bleSocket.on("restart-bluetooth", () => {
-            restartOnDisconnect = true
-            bleSocket.emit("ble-disable");
-        });
-
-        bleSocket.on("factory-reset", () => {
-            ipcMain.emit("factory_reset");
-        });
-
-        bleSocket.on("go-to-screen", () => {
-            ipcMain.emit("go_to_screen");
+                    if (availableNetworks.success) {
+                        const networkList = parseWiFiScanResults(availableNetworks.stdout.toString());
+                        bleSocket.emit("notify", {key: 1, data: [networkList]});
+                    }
+                    break;
+                case 7:
+                    const deviceSettings = await getDeviceSettings();
+                    bleSocket.emit("notify", {key: 3, data: deviceSettings});
+                    break;
+                case 8:
+                    ipcMain.emit("go_to_screen");
+                    break;
+                case 9:
+                    // Finish setup
+                    break;
+                case 10:
+                    ipcMain.emit("factory_reset");
+                    break;
+                default:
+                    break;
+            }
         });
 
         networkManager.startBle()
@@ -539,7 +557,7 @@ const networkManager = (module.exports = {
      *  Sends pincode to bleSocket
      */
     sendPincodeToBluetooth(pincode) {
-        bleSocket.emit("pincode", pincode)
+        bleSocket.emit("notify", {key: 4, data: pincode});
     },
 
 });
