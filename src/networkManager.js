@@ -29,6 +29,7 @@ const networkManager = (module.exports = {
         const command = "nmcli --fields SSID,SECURITY --terse --mode multiline dev wifi list";
         return await executeCommand(command);
     },
+
     /**
      * Retrieves the SSID of the active Wi-Fi network.
      * 
@@ -97,6 +98,9 @@ const networkManager = (module.exports = {
         const password = data.password;
         const security = data.security || "";
         const options = data.options || {};
+        let result;
+
+        ipcMain.emit("is_connecting");
 
         // Disconnect from previous network if any
         if (lastConnectionSSID != null) {
@@ -105,25 +109,25 @@ const networkManager = (module.exports = {
 
         lastConnectionSSID = ssid;
 
-        // Connect to hidden network if specified
         if (options.hidden) {
-            return await networkManager.connectToHiddenNetwork(ssid, password);
-        }
-
-        // Connect to WPA secured network if password is provided
-        if (security.includes("WPA") && password) {
-            return await networkManager.connectToWPANetwork(ssid, password);
+            // Connect to hidden network if specified
+            result = await networkManager.connectToHiddenNetwork(ssid, password);
+        } else if (security.includes("WPA") && password) {
+            // Connect to WPA secured network if password is provided
+            result = await networkManager.connectToWPANetwork(ssid, password);
         } else {
             // Connect to unsecured network
-            return await networkManager.connectToUnsecureNetwork(ssid);
+            result = await networkManager.connectToUnsecureNetwork(ssid);
         }
+
+        ipcMain.emit("connecting_result", null, result);
     },
 
-    /*
+    /**
      * Function for resolving a connection attempt
      * @param {JSONObject} connection
      * @param {String} ssid
-     * return {JSONObject}
+     * @returns {JSONObject}
      */
     async resolveNetworkConnection(connection, ssid) {
         if (connection.success) {
@@ -159,10 +163,10 @@ const networkManager = (module.exports = {
         }
     },
 
-    /*
+    /**
      * Function for connection to a unsecure network
      * @param {String} ssid
-     * return {JSONObject}
+     * @returns {JSONObject}
      */
     async connectToUnsecureNetwork(ssid) {
         const connectCommand = quote(["nmcli", "device", "wifi", "connect", ssid]);
@@ -172,11 +176,11 @@ const networkManager = (module.exports = {
         return await networkManager.resolveNetworkConnection(connection, ssid);
     },
 
-    /*
+    /**
      * Function for connection to a WPA3 network
      * @param {String} ssid
      * @param {String} password
-     * return {JSONObject}
+     * @returns {JSONObject}
      */
     async connectToWPANetwork(ssid, password) {
         const connectCommand = quote(["nmcli", "connection", "add", "type", "wifi", "ifname", "wlan0", "con-name", ssid, "ssid", ssid, "--", "wifi-sec.key-mgmt", "wpa-psk", "wifi-sec.psk", password]);
@@ -186,11 +190,11 @@ const networkManager = (module.exports = {
         return await networkManager.resolveNetworkConnection(connection, ssid);
     },
 
-    /*
+    /**
      * Function for connection to a hidden network. NOT WORKING
      * @param {String} ssid
      * @param {String} password
-     * return {Boolean}
+     * @returns {Boolean}
      */
     async connectToHiddenNetwork(ssid, password) {
         const addConnectionCommand = quote(["nmcli", "conn", "add", "type", "wifi", "ifname", "wlan0", "con-name", ssid, "ssid", ssid, "--", "wifi-sec.key-mgmt", "wpa-psk", "wifi-sec.psk", password]);
@@ -226,10 +230,10 @@ const networkManager = (module.exports = {
         }
     },
 
-    /*
+    /**
      *   Checks and waits for connection to be activated
      *   @param {String} ssid
-     *   return {Boolean}
+     *   @returns {Boolean}
      */
     async waitForActiveConnection(ssid) {
         const connectionStateCommand = quote(["nmcli", "-f", "GENERAL.STATE", "connection", "show", ssid]);
@@ -268,7 +272,7 @@ const networkManager = (module.exports = {
         return connectionState;
     },
 
-    /*
+    /**
      *   Checks connection to server
      */
     async checkConnectionToServer() {
@@ -279,7 +283,7 @@ const networkManager = (module.exports = {
         return await executeCommand(command, "server connection");
     },
 
-    /*
+    /**
      *   Attemps to connect to sever multiple times by running checkConnectionToServer
      */
     async attemptServerConnection() {
@@ -300,6 +304,10 @@ const networkManager = (module.exports = {
         return connection;
     },
 
+    /**
+     *  Deletes connection by ssid
+     *  @param {String} ssid
+     */
     async deleteConnectionBySSID(ssid) {
         const deleteCommand = quote(["nmcli", "connection", "delete", ssid]);
         const deleteResult = await executeCommand(deleteCommand, "delete ssid");
@@ -307,7 +315,7 @@ const networkManager = (module.exports = {
         return deleteResult.success;
     },
 
-    /*
+    /**
      * Resets all wifi connections and reset dns settings for ethernet connections
      */
     async resetAllConnections() {
@@ -332,7 +340,7 @@ const networkManager = (module.exports = {
         }
     },
 
-    /*
+    /**
      *   Checks if device is connected with etherenet
      */
     async checkEthernetConnection() {
@@ -347,9 +355,9 @@ const networkManager = (module.exports = {
         }
     },
 
-    /*
-    *   Checks if device is connected via Wi-Fi
-    */
+    /**
+     *   Checks if device is connected via Wi-Fi
+     */
     async checkWifiConnection() {
         const command = "nmcli device status | grep wifi | grep -q connected && echo 1 || echo 0";
 
@@ -362,9 +370,9 @@ const networkManager = (module.exports = {
         }
     },
 
-    /*
-    *   Check overall network status and connection type
-    */
+    /**
+     *   Check overall network status and connection type
+     */
     async checkNetworkConnection() {
         const ethernetResult = await networkManager.checkEthernetConnection();
 
@@ -382,7 +390,7 @@ const networkManager = (module.exports = {
         return { success: false, error: "No active network connection" };
     },
 
-    /*
+    /**
      *   Checks if device is connected with etherenet in interval
      */
     async checkEthernetConnectionInterval() {
@@ -398,7 +406,7 @@ const networkManager = (module.exports = {
         }, 2000);
     },
 
-    /*
+    /**
      *   Stops ethernetinterval
      */
     async stopEthernetInterval() {
@@ -408,8 +416,8 @@ const networkManager = (module.exports = {
         }
     },
 
-    /*
-     *   Adds dns address to /etc/resolv
+    /**
+     *   Adds dns address 
      */
     async addDNS(dns) {
         const connectionNameResult = await networkManager.getActiveConnectionUUID()

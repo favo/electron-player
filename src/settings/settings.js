@@ -202,22 +202,16 @@ function connectToNetwork() {
 
     if (security.includes("WPA") && passwordstring) {
         /* Case 1: Password field is filled, network network requires it and we try to connect */
-
-        setConnecting();
         window.api.send("connect_to_network", { ssid: ssid, password: passwordstring, security: security, options: options });
     } else if (security.includes("WPA") && !passwordstring) {
         /* Case 2: Password field is empty and network requires it */
-
         isConnecting = false;
         errorMessage.innerHTML = languageData["require_password"];
     } else if (!security) {
         /* Case 3: Network has no security */
-
-        setConnecting();
         window.api.send("connect_to_network", { ssid: ssid });
     } else {
         /* Case 4: Something wrong happened.. */
-
         isConnecting = false;
         errorMessage.innerHTML = languageData["unexpected_error"];
     }

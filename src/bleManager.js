@@ -9,6 +9,23 @@ const { ipcMain } = require("electron");
 const Store = require("electron-store");
 const store = new Store();
 
+const RECEIVE_SET_HOST = 1
+const RECEIVE_SET_ROTATION = 2
+const RECEIVE_SET_RESOLUTION = 3
+const RECEIVE_SET_DNS = 4
+const RECEIVE_CONNECT_TO_WIFI = 5
+const RECEIVE_SCAN_AVAILABLE_NETWORKS = 6
+const RECEIVE_GET_DEVICE_SETTINGS = 7
+const RECEIVE_GO_TO_SCREEN = 8
+const RECEIVE_FINISH_SETUP = 9
+const RECEIVE_FACTORY_RESET = 10
+
+const SEND_AVAILABLE_NETWORK_LIST = 1
+const SEND_CONNECT_WIFI_RESPONSE = 2
+const SEND_NETWORK_STATUS = 3
+const SEND_DEVICE_SETTINGS = 4
+const SEND_PINCODE = 5
+
 const bleManager = (module.exports = {
 
     async startBle() {
@@ -27,21 +44,7 @@ const bleManager = (module.exports = {
      *  Enables BLE by connecting to the local BLE bridge, and registers listeners for BLE events
      */
     async enableBLE() {
-        let restartOnDisconnect = false
         let networkStatusInterval;
-
-        bleSocket.on("ble-enabled", () => {
-            restartOnDisconnect = false
-            console.log("BLE enabled");
-        });
-
-        bleSocket.on("ble-disabled", () => {
-            console.log("BLE disabled");
-
-            if (restartOnDisconnect) {
-                bleManager.startBle()
-            }
-        });
 
         bleSocket.io.on("reconnect", () => {
             console.log("Reconnecting to BLE bridge...");
@@ -50,18 +53,16 @@ const bleManager = (module.exports = {
         })
 
         bleSocket.on("device-accepted", async () => {
-            restartOnDisconnect = false;
-    
             networkStatusInterval = setInterval(async () => {
                 const result = await NetworkManager.checkNetworkConnection();
 
                 if (result.success && result.stdout.trim() === "1") {
                     if (result.connectionType === "Ethernet") {
                         const json = { s: true, t: "e" };
-                        bleSocket.emit("notify", {key: 5, data: json});
+                        bleSocket.emit("notify", {key: SEND_NETWORK_STATUS, data: json});
                     } else if (result.connectionType === "Wi-Fi") {
                         const json = { s: true, t: "w", name: result.connectionName };
-                        bleSocket.emit("notify", {key: 5, data: json});
+                        bleSocket.emit("notify", {key: SEND_NETWORK_STATUS, data: json});
                     }
                 }
             }, 3000);
@@ -73,56 +74,48 @@ const bleManager = (module.exports = {
                 networkStatusInterval = null 
             }
 
-            if (restartOnDisconnect) {
-                // BLE disable
-            }
+            bleManager.startBle()
         });
 
         bleSocket.on("write", async (data) => {
-            const firstByte = data[0]; 
-            const restOfString = String.fromCharCode(...data.slice(1));
+            const dataType = data[0]; 
+            const content = String.fromCharCode(...data.slice(1));
             
-            switch (firstByte) {
-                case 1:
-                    ipcMain.emit("set_host", null, { host: restOfString.toString(), reload: true });
+            switch (dataType) {
+                case RECEIVE_SET_HOST:
+                    ipcMain.emit("set_host", null, { host: content.toString(), reload: true });
                     break;
-                case 2:
-                    setScreenRotation(restOfString);
-                case 3:
-                    ipcMain.emit("set_screen_resolution", null, restOfString);
+                case RECEIVE_SET_ROTATION:
+                    setScreenRotation(content);
+                case RECEIVE_SET_RESOLUTION:
+                    ipcMain.emit("set_screen_resolution", null, content);
                     break;
-                case 4:
-                    ipcMain.emit("connect_to_dns", null, restOfString);
+                case RECEIVE_SET_DNS:
+                    ipcMain.emit("connect_to_dns", null, content);
                     break;
-                case 5:
-                    //TODO: legge is_connecting til i funksjonen selv
-                    ipcMain.emit("is_connecting");
-                    const connectToNetwork = await NetworkManager.connectToNetwork(JSON.parse(restOfString));
-                    ipcMain.emit("connecting_result", null, connectToNetwork);
-
-                    bleSocket.emit("notify", {key: 3, data: connectToNetwork});
-                    //bleSocket.emit("network-connection-result", result);
-                    
+                case RECEIVE_CONNECT_TO_WIFI:
+                    const connectToNetwork = await NetworkManager.connectToNetwork(JSON.parse(content));
+                    bleSocket.emit("notify", {key: SEND_CONNECT_WIFI_RESPONSE, data: connectToNetwork});
                     break;
-                case 6:
+                case RECEIVE_SCAN_AVAILABLE_NETWORKS:
                     const availableNetworks = await NetworkManager.scanAvailableNetworks();
 
                     if (availableNetworks.success) {
                         const networkList = parseWiFiScanResults(availableNetworks.stdout.toString());
-                        bleSocket.emit("notify", {key: 1, data: [networkList]});
+                        bleSocket.emit("notify", {key: SEND_AVAILABLE_NETWORK_LIST, data: networkList });
                     }
                     break;
-                case 7:
+                case RECEIVE_GET_DEVICE_SETTINGS:
                     const deviceSettings = await getDeviceSettings();
-                    bleSocket.emit("notify", {key: 3, data: deviceSettings});
+                    bleSocket.emit("notify", {key: SEND_DEVICE_SETTINGS, data: deviceSettings});
                     break;
-                case 8:
+                case RECEIVE_GO_TO_SCREEN:
                     ipcMain.emit("go_to_screen");
                     break;
-                case 9:
-                    // Finish setup
+                case RECEIVE_FINISH_SETUP:
+                    store.set("firstTime", false)
                     break;
-                case 10:
+                case RECEIVE_FACTORY_RESET:
                     ipcMain.emit("factory_reset");
                     break;
                 default:
@@ -137,6 +130,6 @@ const bleManager = (module.exports = {
      *  Sends pincode to bleSocket
      */
     sendPincodeToBluetooth(pincode) {
-        bleSocket.emit("notify", {key: 4, data: pincode});
+        bleSocket.emit("notify", {key: SEND_PINCODE, data: pincode});
     },
 })
