@@ -132,6 +132,7 @@ const utils = (module.exports = {
         }
     },
 
+
     /**
      * Reboots the device using a system command.
      * 
@@ -177,6 +178,7 @@ const utils = (module.exports = {
             options["Host"] = store.get("host");
             options["App-version"] = pjson.version;
             options["Platform"] = "Electron";
+            options["Build"] = utils.readBuildVersion()
             options["App-name"] = pjson.name;
             options["Bluetooth-ID"] = await utils.readBluetoothID();
             const screenResolution = await utils.getAllScreenResolution()
@@ -215,11 +217,14 @@ const utils = (module.exports = {
         }
     },
 
-    /*
-     *   TODO: Updates ble bridge 
-     */
-    updateBleBridge() {
+    async updateBleBridge() {
+        const devMode = store.get("devMode", false);
+        const branch = devMode ? "develop" : "main"
+        const url = `git+https://github.com/favo/ble-bridge.git\#${branch}`
 
+        await utils.executeCommand("sudo systemctl stop ble-bridge")
+        await utils.executeCommand(`sudo npm install -g ${url}`)
+        await utils.executeCommand("sudo systemctl start ble-bridge")
     },
 
     /**
@@ -397,6 +402,14 @@ const utils = (module.exports = {
         }
     
         return bluetooth_id;
+    },
+
+    readBuildVersion(){
+        try {
+            return fs.readFileSync('./BUILD_VERSION', { encoding: 'utf8', flag: 'r' });
+        } catch (err) {
+            return ""
+        }
     },
 
     /**
