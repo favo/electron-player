@@ -1,4 +1,4 @@
-const { rebootDevice, sendDeviceInfo, updateApp, updateFirmware, getSystemStats, setScreenRotation, 
+const { rebootDevice, sendDeviceInfo, updateApp, updateFirmware, updateBleBridge, getSystemStats, setScreenRotation, 
     setScreenResolution, getAllScreenResolution, readBluetoothID, turnDisplayOff, updateDisplayConfiguration, setBluetoothID, getPlayerConfig, parseWiFiScanResults } = require("./utils");
 const NetworkManager = require("./networkManager");
 const BleManager = require("./bleManager");
@@ -195,7 +195,8 @@ ipcMain.on("request_device_info", async (event, arg) => {
     mainWindow.webContents.send("send_device_info", deviceInfo);
 });
 
-ipcMain.on("upgrade_firmware", (event, arg) => {
+ipcMain.on("upgrade_firmware", async (event, arg) => {
+    await updateBleBridge();
     updateFirmware();
 });
 
