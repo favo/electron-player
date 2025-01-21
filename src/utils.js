@@ -215,11 +215,24 @@ const utils = (module.exports = {
         }
     },
 
-    /*
-     *   TODO: Updates ble bridge 
+    /**
+     * Updates Bluetooth bridge to latest version bast on devMode
      */
     updateBleBridge() {
+        try {
+            const devMode = store.get("devMode", false)
+            const branch = devMode ? "\#develop" : "\#main"
+            const command = "npm install -g git+https://github.com/favo/ble-bridge.git" + branch;
 
+            await utils.executeCommand(command);
+
+        } catch (error) {3
+            appsignal.sendError(error, (span) => {
+                span.setAction("updateBleBridge")
+                span.setNamespace("utils")
+                span.setTags({host: store.get("host"), version: pjson.version });
+            });
+        }
     },
 
     /**
