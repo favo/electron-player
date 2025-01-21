@@ -348,7 +348,7 @@ const networkManager = (module.exports = {
 
         const result = await executeCommand(command);
 
-        if (result.success && result.stdout.trim() === "1") {
+        if (result.success && result.stdout === "1") {
             return await networkManager.attemptServerConnection();
         } else {
             return result;
@@ -363,7 +363,7 @@ const networkManager = (module.exports = {
 
         const result = await executeCommand(command);
 
-        if (result.success && result.stdout.trim() === "1") {
+        if (result.success && result.stdout === "1") {
             return await networkManager.attemptServerConnection();
         } else {
             return result;
@@ -376,15 +376,15 @@ const networkManager = (module.exports = {
     async checkNetworkConnection() {
         const ethernetResult = await networkManager.checkEthernetConnection();
 
-        if (ethernetResult.success && ethernetResult.stdout.trim() === "1") {
+        if (ethernetResult.success && ethernetResult.stdout === "1") {
             return { connectionType: "Ethernet", ...ethernetResult };
         }
 
         const wifiResult = await networkManager.checkWifiConnection();
 
-        if (wifiResult.success && wifiResult.stdout.trim() === "1") {
+        if (wifiResult.success && wifiResult.stdout === "1") {
             const connectionName = await networkManager.getActiveSSID()
-            return { connectionType: "Wi-Fi", connectionName: connectionName.stdout.trim(), ...wifiResult };
+            return { connectionType: "Wi-Fi", connectionName: connectionName.stdout, ...wifiResult };
         }
 
         return { success: false, error: "No active network connection" };

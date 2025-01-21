@@ -1,4 +1,4 @@
-const { setScreenRotation, parseWiFiScanResults, readBluetoothID, getDeviceSettings } = require("./utils.js");
+const { setScreenRotation, setScreenResolution, parseWiFiScanResults, readBluetoothID, getDeviceSettings } = require("./utils.js");
 const NetworkManager = require("./networkManager");
 
 const io = require("socket.io-client");
@@ -34,13 +34,6 @@ const bleManager = (module.exports = {
     },
 
     /*
-     *  Disables BLE
-     */
-    disableBLE() {
-        bleSocket.emit("ble-disable");
-    },
-
-    /*
      *  Enables BLE by connecting to the local BLE bridge, and registers listeners for BLE events
      */
     async enableBLE() {
@@ -56,13 +49,11 @@ const bleManager = (module.exports = {
             networkStatusInterval = setInterval(async () => {
                 const result = await NetworkManager.checkNetworkConnection();
 
-                if (result.success && result.stdout.trim() === "1") {
+                if (result.success && result.stdout === "1") {
                     if (result.connectionType === "Ethernet") {
-                        const json = { s: true, t: "e" };
-                        bleSocket.emit("notify", {key: SEND_NETWORK_STATUS, data: json});
+                        bleManager.send(SEND_NETWORK_STATUS, { s: true, t: "e" })
                     } else if (result.connectionType === "Wi-Fi") {
-                        const json = { s: true, t: "w", name: result.connectionName };
-                        bleSocket.emit("notify", {key: SEND_NETWORK_STATUS, data: json});
+                        bleManager.send(SEND_NETWORK_STATUS, { s: true, t: "w", name: result.connectionName })
                     }
                 }
             }, 3000);
@@ -87,27 +78,29 @@ const bleManager = (module.exports = {
                     break;
                 case RECEIVE_SET_ROTATION:
                     setScreenRotation(content);
+                    break;
                 case RECEIVE_SET_RESOLUTION:
-                    ipcMain.emit("set_screen_resolution", null, content);
+                    setScreenResolution(content);
                     break;
                 case RECEIVE_SET_DNS:
                     ipcMain.emit("connect_to_dns", null, content);
                     break;
                 case RECEIVE_CONNECT_TO_WIFI:
                     const connectToNetwork = await NetworkManager.connectToNetwork(JSON.parse(content));
-                    bleSocket.emit("notify", {key: SEND_CONNECT_WIFI_RESPONSE, data: connectToNetwork});
+                    bleManager.send(SEND_CONNECT_WIFI_RESPONSE, connectToNetwork)
                     break;
                 case RECEIVE_SCAN_AVAILABLE_NETWORKS:
                     const availableNetworks = await NetworkManager.scanAvailableNetworks();
 
                     if (availableNetworks.success) {
                         const networkList = parseWiFiScanResults(availableNetworks.stdout.toString());
-                        bleSocket.emit("notify", {key: SEND_AVAILABLE_NETWORK_LIST, data: networkList });
+                        bleManager.send(SEND_AVAILABLE_NETWORK_LIST, networkList)
                     }
                     break;
                 case RECEIVE_GET_DEVICE_SETTINGS:
                     const deviceSettings = await getDeviceSettings();
-                    bleSocket.emit("notify", {key: SEND_DEVICE_SETTINGS, data: deviceSettings});
+                    bleManager.send(SEND_DEVICE_SETTINGS, deviceSettings)
+
                     break;
                 case RECEIVE_GO_TO_SCREEN:
                     ipcMain.emit("go_to_screen");
@@ -126,10 +119,14 @@ const bleManager = (module.exports = {
         bleManager.startBle()
     },
 
+    send(key, data) {
+        bleSocket.emit("notify", {key: key, data: data});
+    },
+
     /*
      *  Sends pincode to bleSocket
      */
     sendPincodeToBluetooth(pincode) {
-        bleSocket.emit("notify", {key: SEND_PINCODE, data: pincode});
+        bleManager.send(SEND_PINCODE, pincode)
     },
 })
