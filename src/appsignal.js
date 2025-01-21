@@ -6,7 +6,7 @@ class Logger {
     appsignal = null;
 
     setAppsignalKey(key){
-        this.appsignal = new Appsignal({ key: key });
+        this.appsignal = new Appsignal({ key: key, revision: pjson.version });
     }
 
     logError(message, action, namespace, tags){
@@ -16,7 +16,7 @@ class Logger {
             this.appsignal.sendError(message, (span) => {
                 span.setAction(action);
                 span.setNamespace(namespace);
-                span.setTags(Object.assign({ host: store.get("host"), version: pjson.version }, tags || {}));
+                span.setTags(Object.assign({ host: store.get("host") }, tags || {}));
             });
         }
     }
