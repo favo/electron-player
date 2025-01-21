@@ -1,6 +1,7 @@
 const { rebootDevice, sendDeviceInfo, updateApp, updateFirmware, getSystemStats, setScreenRotation, 
     setScreenResolution, getAllScreenResolution, readBluetoothID, turnDisplayOff, updateDisplayConfiguration, setBluetoothID, getPlayerConfig, parseWiFiScanResults } = require("./utils");
 const NetworkManager = require("./networkManager");
+const BleManager = require("./bleManager");
 
 const { app, BrowserWindow, ipcMain, globalShortcut } = require("electron");
 
@@ -74,7 +75,7 @@ const createWindow = async () => {
         mainWindow.loadFile(path.join(__dirname, "index/index.html"));
     }
 
-    NetworkManager.enableBLE();
+    BleManager.enableBLE();
 
     mainWindow.on("closed", () => {
         mainWindow = null;
