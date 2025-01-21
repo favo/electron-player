@@ -449,6 +449,13 @@ const networkManager = (module.exports = {
             console.log("BLE enabled");
         });
 
+        bleSocket.io.on("reconnect", () => {
+            console.log("Reconnecting to BLE bridge...");
+
+            networkManager.startBle()
+        })
+
+
         bleSocket.on("ble-disabled", () => {
             console.log("BLE disabled");
 
