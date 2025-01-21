@@ -5,16 +5,10 @@ const fs = require("fs");
 
 const { promisify } = require("util");
 const execAsync = promisify(nodeChildProcess.exec);
-
-const Store = require("electron-store");
-const store = new Store();
-
 const crypto = require("crypto");
 
-const Appsignal = require("@appsignal/javascript").default;
-const appsignal = new Appsignal({
-    key: "b2bdf969-f795-467e-b710-6b735163281f",
-});
+const { logger} = require("./appsignal");
+const { store } = require("./store");
 
 const utils = (module.exports = {
 
@@ -40,27 +34,23 @@ const utils = (module.exports = {
     async executeCommand(command, type = null) {
         try {
             const { stdout, stderr } = await execAsync(command);
-            const result = {
+
+            return {
                 type: type,
                 success: true,
                 stdout: stdout.trim(),
                 stderr: stderr.trim(),
             };
-            return result;
         } catch (error) {
-            appsignal.sendError(error, (span) => {
-                span.setAction(type || "unknown")
-                span.setNamespace("executeCommand")
-                span.setTags({host: store.get("host"), version: pjson.version });
-            });
-            const result = {
+            logger.logError(error, type || "executeCommand", "utils")
+
+            return {
                 type: type,
                 success: false,
                 stdout: null,
                 stderr: null,
                 error: error,
             };
-            return result;
         }
     },
 
@@ -83,7 +73,7 @@ const utils = (module.exports = {
      */
     async getSystemStats() {
         try {
-            var stats = {};
+            const stats = {};
 
             const cpuLoad = await si.currentLoad();
             stats["cpu_load"] = cpuLoad.currentLoad;
@@ -103,12 +93,7 @@ const utils = (module.exports = {
 
             return stats;
         } catch (error) {
-            appsignal.sendError(error, (span) => {
-                span.setAction("getSystemStats")
-                span.setNamespace("utils")
-                span.setTags({host: store.get("host"), version: pjson.version });
-            });
-
+            logger.logError(error,  "getSystemStats", "utils")
             return {}
         }
     },
@@ -130,6 +115,9 @@ const utils = (module.exports = {
         if (result.success) {
             utils.rebootDevice();
         }
+        else {
+            logger.logError("Failed to update firmware: " + result.stderr + result.stdout,  "updateFirmware", "utils")
+        }
     },
 
 
@@ -146,11 +134,7 @@ const utils = (module.exports = {
         try {
             nodeChildProcess.execSync("sudo reboot");
         } catch (error) {
-            appsignal.sendError(error, (span) => {
-                span.setAction("rebootDevice")
-                span.setNamespace("utils")
-                span.setTags({host: store.get("host"), version: pjson.version });
-            });
+            logger.logError(error,  "rebootDevice", "utils")
         }
     },
 
@@ -174,26 +158,20 @@ const utils = (module.exports = {
      */
     async sendDeviceInfo() {
         try {
-            var options = {};
+            const options = {};
+            const osInfo = await si.osInfo();
             options["Host"] = store.get("host");
             options["App-version"] = pjson.version;
             options["Platform"] = "Electron";
             options["Build"] = utils.readBuildVersion()
             options["App-name"] = pjson.name;
             options["Bluetooth-ID"] = await utils.readBluetoothID();
-            const screenResolution = await utils.getAllScreenResolution()
-            options["Screen-resolutions"] = screenResolution
-            const osInfo = await si.osInfo();
+            options["Screen-resolutions"] =  await utils.getAllScreenResolution()
             options["Kernel-version"]  = osInfo["Kernel"]
 
             return options;
         } catch(error) {
-            appsignal.sendError(error, (span) => {
-                span.setAction("sendDeviceInfo")
-                span.setNamespace("utils")
-                span.setTags({host: store.get("host"), version: pjson.version });
-            });
-
+            logger.logError(error,  "sendDeviceInfo", "utils")
             return {}
         }
     },
@@ -209,11 +187,7 @@ const utils = (module.exports = {
         try {
             autoUpdater.checkForUpdates();
         } catch (error) {
-            appsignal.sendError(error, (span) => {
-                span.setAction("updateApp")
-                span.setNamespace("utils")
-                span.setTags({host: store.get("host"), version: pjson.version });
-            });
+            logger.logError(error,  "updateApp", "utils")
         }
     },
 
@@ -253,11 +227,8 @@ const utils = (module.exports = {
             const config = fs.readFileSync('./player-config.json', 'utf8').trim();
             return config ? JSON.parse(config) : defaultConfig;
         } catch(error) {
-            appsignal.sendError(error, (span) => {
-                span.setAction("getPlayerConfig")
-                span.setNamespace("utils")
-                span.setTags({host: store.get("host"), version: pjson.version });
-            });
+            logger.logError(error,  "getPlayerConfig", "utils")
+
             return defaultConfig;
         }
     },
@@ -288,13 +259,9 @@ const utils = (module.exports = {
 
             fs.writeFileSync("./rotation", rotation);   
             
-            utils.updateDisplayConfiguration()
+            await utils.updateDisplayConfiguration()
         } catch(error) {
-            appsignal.sendError(error, (span) => {
-                span.setAction("setScreenRotation")
-                span.setNamespace("utils")
-                span.setTags({host: store.get("host"), version: pjson.version });
-            });
+            logger.logError(error,  "setScreenRotation", "utils")
         }
     },
     
@@ -308,12 +275,7 @@ const utils = (module.exports = {
         try {
             return fs.readFileSync('./rotation', { encoding: 'utf8', flag: 'r' });
         } catch(error) {
-            appsignal.sendError(error, (span) => {
-                span.setAction("getScreenRotation")
-                span.setNamespace("utils")
-                span.setTags({host: store.get("host"), version: pjson.version });
-            });
-            
+            logger.logError(error,  "getScreenRotation", "utils")
             return "";
         }
     },
@@ -360,11 +322,7 @@ const utils = (module.exports = {
         try {
             fs.writeFileSync("./bluetooth_id", id);
         } catch(error) {
-            appsignal.sendError(error, (span) => {
-                span.setAction("setBluetoothID")
-                span.setNamespace("utils")
-                span.setTags({host: store.get("host"), version: pjson.version });
-            });
+            logger.logError(error,  "setBluetoothID", "utils")
         }
     },
 
@@ -433,11 +391,7 @@ const utils = (module.exports = {
             fs.writeFileSync("./resolution", resolution);
             return await utils.updateDisplayConfiguration()
         } catch(error) {
-            appsignal.sendError(error, (span) => {
-                span.setAction("setScreenResolution")
-                span.setNamespace("utils")
-                span.setTags({host: store.get("host"), version: pjson.version });
-            });
+            logger.logError(error,  "setScreenResolution", "utils")
         }
     },
     

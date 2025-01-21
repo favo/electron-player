@@ -5,9 +5,7 @@ const io = require("socket.io-client");
 let bleSocket = io("ws://127.0.0.1:3333");
 
 const { ipcMain } = require("electron");
-
-const Store = require("electron-store");
-const store = new Store();
+const { store } = require("./store");
 
 const RECEIVE_SET_HOST = 1
 const RECEIVE_SET_ROTATION = 2

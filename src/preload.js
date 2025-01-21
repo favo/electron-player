@@ -3,7 +3,7 @@ const { contextBridge, ipcRenderer } = require("electron");
 contextBridge.exposeInMainWorld("api", {
     send: (channel, data) => {
         // whitelist channels
-        let validChannels = [
+        const validChannels = [
             "reboot_device",
             "restart_app",
             "request_device_info",
@@ -38,7 +38,7 @@ contextBridge.exposeInMainWorld("api", {
         }
     },
     receive: (channel, func) => {
-        let validChannels = [
+        const validChannels = [
             "send_device_info",
             "list_of_networks",
             "connect_to_network_status",
@@ -59,14 +59,14 @@ contextBridge.exposeInMainWorld("api", {
     },
 
     getFromStore: (key) => {
-        let validKeys = ["host", "dns", "uuid", "lang", "devMode"];
+        const validKeys = ["host", "dns", "uuid", "lang", "devMode"];
 
         if (validKeys.includes(key)) {
             ipcRenderer.send("getFromStore", key);
         }
     },
     resultFromStore: (key, func) => {
-        let validKeys = ["host", "dns", "uuid", "lang", "devMode"];
+        const validKeys = ["host", "dns", "uuid", "lang", "devMode"];
         if (validKeys.includes(key)) {
             ipcRenderer.on(key, (event, ...args) => func(...args));
         }

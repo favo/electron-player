@@ -3,8 +3,7 @@ const { executeCommand } = require("./utils.js");
 
 const { ipcMain } = require("electron");
 
-const Store = require("electron-store");
-const store = new Store();
+const { store } = require("./store");
 
 let lastConnectionSSID;
 let ethernetInterval;

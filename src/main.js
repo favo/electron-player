@@ -5,8 +5,8 @@ const BleManager = require("./bleManager");
 
 const { app, BrowserWindow, ipcMain, globalShortcut } = require("electron");
 
-const Appsignal = require("@appsignal/javascript").default;
-let appsignal;
+const { logger } = require("./appsignal");
+const { store } = require("./store");
 
 const { autoUpdater } = require("electron-updater");
 
@@ -14,9 +14,6 @@ const path = require("path");
 const fs = require("fs");
 
 const QRCode = require("qrcode");
-
-const Store = require("electron-store");
-const store = new Store();
 
 const pjson = require("../package.json");
 
@@ -114,7 +111,7 @@ async function setSettingsFromPlayerConfig() {
     }
 
     if (config["appsignal-key"]) {
-        appsignal = new Appsignal({ key: config["appsignal-key"] });
+        logger.setAppsignalKey(config["appsignal-key"]);
     }
 }
 
@@ -234,7 +231,8 @@ ipcMain.on("search_after_networks", async (event, arg) => {
     const result = await NetworkManager.scanAvailableNetworks();
 
     if (result.success) {
-        mainWindow.webContents.send("list_of_networks", result.stdout.toString());
+        const listOfNetworks = parseWiFiScanResults(result.stdout.toString());
+        mainWindow.webContents.send("list_of_networks", listOfNetworks);
     }
 });
 
@@ -352,11 +350,7 @@ ipcMain.on("create_qr_code", async (event, options) => {
  *   AutoUpdater callbacks
  */
 autoUpdater.on("error", (error) => {
-    appsignal.sendError(error, (span) => {
-        span.setAction("autoUpdater");
-        span.setNamespace("main");
-        span.setTags({ host: store.get("host"), version: pjson.version });
-    });
+    logger.logError(error, "autoUpdater", "main")
 });
 
 autoUpdater.on("checking-for-update", (info) => {

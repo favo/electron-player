@@ -181,7 +181,7 @@ function setButtonEvents() {
 
 function connectToNetwork() {
     /* If is connection then returning preventing mulitple calls */
-    if (isConnecting == true) return;
+    if (isConnecting) return;
 
     isConnecting = true;
     errorMessage.innerHTML = null;
@@ -240,9 +240,7 @@ function displayListOfNetworks(data) {
     select.innerHTML = "";
     refreshButton.dataset.status = null;
 
-    const list = parseWiFiScanResults(data);
-
-    list.forEach((network) => {
+    data.forEach((network) => {
         const option = document.createElement("option");
         option.textContent = `${network.ssid} - ${network.security}`;
         option.value = network.ssid;
@@ -269,40 +267,6 @@ function connectToHost() {
 function setScreenResolution() {
     const res = screenResolution.value 
     window.api.send("set_screen_resolution", res);
-}
-
-function parseWiFiScanResults(inputString) {
-    const lines = inputString.split("\n");
-    const uniqueSSIDs = [];
-    const uniqueSSIDNames = new Set();
-
-    for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        if (line.trim().startsWith("SSID:")) {
-            const ssid = line.replace("SSID:", "").trim();
-            let securityLine;
-            for (let j = i + 1; j < lines.length; j++) {
-                if (lines[j].trim().startsWith("SECURITY:")) {
-                    securityLine = lines[j];
-                    break;
-                }
-            }
-
-            const security = securityLine ? securityLine.replace("SECURITY:", "").trim() : "";
-
-            if (!uniqueSSIDNames.has(ssid) && ssid) {
-                uniqueSSIDNames.add(ssid);
-
-                const ssidObject = {
-                    ssid: ssid,
-                    security: security,
-                };
-
-                uniqueSSIDs.push(ssidObject);
-            }
-        }
-    }
-    return uniqueSSIDs;
 }
 
 function isWrongPassword(data) {
