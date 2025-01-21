@@ -204,7 +204,7 @@ ipcMain.on("update_app", (event, arg) => {
 });
 
 ipcMain.on("pincode", (event, pincode) => {
-    NetworkManager.sendPincodeToBluetooth(pincode)
+    BleManager.sendPincodeToBluetooth(pincode)
 });
 
 ipcMain.on("wake", (event, arg) => {
