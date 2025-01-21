@@ -1,9 +1,6 @@
 const quote = require("shell-quote/quote");
 const { executeCommand } = require("./utils.js");
 
-const io = require("socket.io-client");
-let bleSocket = io("ws://127.0.0.1:3333");
-
 const { ipcMain } = require("electron");
 
 const Store = require("electron-store");
