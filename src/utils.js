@@ -163,11 +163,13 @@ const utils = (module.exports = {
             options["Host"] = store.get("host");
             options["App-version"] = pjson.version;
             options["Platform"] = "PinToMind OS";
-            options["Build"] = utils.readBuildVersion().trim()
+            options["Build"] = utils.readBuildVersion()
             options["App-name"] = pjson.name;
             options["Screen-resolutions"] =  await utils.getAllScreenResolution()
-            options["Kernel-version"]  = osInfo["Kernel"]
-            options["Model"]  = await utils.executeCommand("cat /proc/cpuinfo | grep 'Model' | awk -F': ' '{print $2}'").stdout()
+            options["Bluetooth-ID"] =  await utils.readBluetoothID()
+            options["Kernel-version"] = osInfo["kernel"]
+            const model = await utils.executeCommand("cat /proc/cpuinfo | grep 'Model' | awk -F': ' '{print $2}'")
+            options["Model"]  = model.stdout
 
             return options;
         } catch(error) {
@@ -364,7 +366,7 @@ const utils = (module.exports = {
 
     readBuildVersion(){
         try {
-            return fs.readFileSync('./BUILD_VERSION', { encoding: 'utf8', flag: 'r' });
+            return fs.readFileSync('./BUILD_VERSION', { encoding: 'utf8', flag: 'r' }).trim();
         } catch (err) {
             return ""
         }
