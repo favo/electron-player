@@ -162,12 +162,12 @@ const utils = (module.exports = {
             const osInfo = await si.osInfo();
             options["Host"] = store.get("host");
             options["App-version"] = pjson.version;
-            options["Platform"] = "Electron";
-            options["Build"] = utils.readBuildVersion()
+            options["Platform"] = "PinToMind OS";
+            options["Build"] = utils.readBuildVersion().trim()
             options["App-name"] = pjson.name;
-            options["Bluetooth-ID"] = await utils.readBluetoothID();
             options["Screen-resolutions"] =  await utils.getAllScreenResolution()
             options["Kernel-version"]  = osInfo["Kernel"]
+            options["Model"]  = await utils.executeCommand("cat /proc/cpuinfo | grep 'Model' | awk -F': ' '{print $2}'").stdout()
 
             return options;
         } catch(error) {

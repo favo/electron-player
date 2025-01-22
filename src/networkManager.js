@@ -120,6 +120,7 @@ const networkManager = (module.exports = {
         }
 
         ipcMain.emit("connecting_result", null, result);
+        return result;
     },
 
     /**

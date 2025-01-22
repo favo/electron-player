@@ -23,9 +23,10 @@ const SEND_CONNECT_WIFI_RESPONSE = 2
 const SEND_NETWORK_STATUS = 3
 const SEND_DEVICE_SETTINGS = 4
 const SEND_PINCODE = 5
+const SEND_FINISHED_SETUP = 6
+let networkStatusInterval;
 
 const bleManager = (module.exports = {
-
     async startBle() {
         const bluetooth_id = await readBluetoothID()
         bleSocket.emit("ble-enable", {bluetooth_id: bluetooth_id, firstTime: store.get("firstTime", true)});
@@ -35,8 +36,6 @@ const bleManager = (module.exports = {
      *  Enables BLE by connecting to the local BLE bridge, and registers listeners for BLE events
      */
     async enableBLE() {
-        let networkStatusInterval;
-
         bleSocket.io.on("reconnect", () => {
             console.log("Reconnecting to BLE bridge...");
 
@@ -58,11 +57,7 @@ const bleManager = (module.exports = {
         });
 
         bleSocket.on("device-disconnected", () => {
-            if (networkStatusInterval) {
-                clearInterval(networkStatusInterval)
-                networkStatusInterval = null 
-            }
-
+            bleManager.stopNetworkStatusInterval()
             bleManager.startBle()
         });
 
@@ -105,6 +100,8 @@ const bleManager = (module.exports = {
                     break;
                 case RECEIVE_FINISH_SETUP:
                     store.set("firstTime", false)
+                    bleManager.send(SEND_FINISHED_SETUP, "FINISH_SETUP")
+                    bleManager.stopNetworkStatusInterval()
                     break;
                 case RECEIVE_FACTORY_RESET:
                     ipcMain.emit("factory_reset");
@@ -115,6 +112,13 @@ const bleManager = (module.exports = {
         });
 
         bleManager.startBle()
+    },
+
+    stopNetworkStatusInterval() {
+        if (networkStatusInterval) {
+            clearInterval(networkStatusInterval)
+            networkStatusInterval = null 
+        }
     },
 
     send(key, data) {
