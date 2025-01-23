@@ -1,14 +1,12 @@
 const { rebootDevice, sendDeviceInfo, updateApp, updateFirmware, updateBleBridge, getSystemStats, setScreenRotation, 
-    setScreenResolution, getAllScreenResolution, readBluetoothID, turnDisplayOff, updateDisplayConfiguration, setBluetoothID, getPlayerConfig, parseWiFiScanResults } = require("./utils");
+    setScreenResolution, getAllScreenResolution, readBluetoothID, turnDisplayOff, updateDisplayConfiguration, setBluetoothID, setSettingsFromPlayerConfig, parseWiFiScanResults } = require("./utils");
 const NetworkManager = require("./networkManager");
 const BleManager = require("./bleManager");
 
 const { app, BrowserWindow, ipcMain, globalShortcut } = require("electron");
 
-const { logger } = require("./appsignal");
 const { store } = require("./store");
-
-const { autoUpdater } = require("electron-updater");
+const { autoUpdater } = require("./autoUpdater");
 
 const path = require("path");
 const fs = require("fs");
@@ -19,10 +17,6 @@ const pjson = require("../package.json");
 
 let mainWindow;
 let systemStatsStream;
-
-autoUpdater.autoDownload = false;
-autoUpdater.autoInstallOnAppQuit = true;
-autoUpdater.allowPrerelease = false;
 
 //app.commandLine.appendSwitch("use-vulkan");
 //app.commandLine.appendSwitch("enable-features", "Vulkan");
@@ -78,7 +72,7 @@ const createWindow = async () => {
         mainWindow = null;
     });
 
-    updateApp(autoUpdater);
+    updateApp();
 };
 
 app.on("ready", () => {
@@ -95,25 +89,6 @@ app.on("activate", () => {
     }
 });
 
-async function setSettingsFromPlayerConfig() {
-    const config = await getPlayerConfig()
-    
-    if (! store.has("host")) {
-        store.set("host", config["host"]);
-    }
-
-    if (! store.has("lang")) {
-        store.set("lang", config["language"]);
-    }
-
-    if (! store.has("lang") && config["devMode"]) {
-        store.set("devMode", config["devMode"]);
-    }
-
-    if (config["appsignal-key"]) {
-        logger.setAppsignalKey(config["appsignal-key"]);
-    }
-}
 
 /*
  *   Listeners from user key commands
@@ -140,7 +115,7 @@ app.whenReady().then(() => {
     /* Update app */
     globalShortcut.register("CommandOrControl+U", () => {
         console.log("Checking and Updating App..");
-        updateApp(autoUpdater);
+        updateApp();
     });
     
     /* Opens settings page */
@@ -180,16 +155,13 @@ app.whenReady().then(() => {
     });
 });
 
-/*
- *   Listeners from renderer. Called when server sends message
- */
+
 ipcMain.on("reboot_device", (event, arg) => {
     rebootDevice();
 });
 
 ipcMain.on("request_device_info", async (event, arg) => {
-    const deviceInfo = await sendDeviceInfo();
-    mainWindow.webContents.send("send_device_info", deviceInfo);
+    sendDeviceInfoToMainWindow()
 });
 
 ipcMain.on("upgrade_firmware", async (event, arg) => {
@@ -260,20 +232,20 @@ ipcMain.on("connecting_result", async (_event, arg) => {
     mainWindow.webContents.send("connect_to_network_status", arg);
 });
 
-/* 
-  Listeners from settings page.
-*/
+
 ipcMain.on("getFromStore", (_event, key) => {
     const value = store.get(key);
     mainWindow.webContents.send(key, value);
 });
 
-ipcMain.on("set_screen_rotation", (_event, rotation) => {
+ipcMain.on("set_screen_rotation", async (_event, rotation) => {
     setScreenRotation(rotation);
+    sendDeviceInfoToMainWindow()
 });
 
-ipcMain.on("set_screen_resolution", (event, resolution) => {
+ipcMain.on("set_screen_resolution", async (event, resolution) => {
     setScreenResolution(resolution);
+    sendDeviceInfoToMainWindow()
 });
 
 ipcMain.on("get_screen_resolutions", async (event, arg) => {
@@ -346,39 +318,12 @@ ipcMain.on("create_qr_code", async (event, options) => {
     });
 });
 
-/*
- *   AutoUpdater callbacks
- */
-autoUpdater.on("error", (error) => {
-    logger.logError(error, "autoUpdater", "main")
-});
 
-autoUpdater.on("checking-for-update", (info) => {
-    console.log(info);
-    mainWindow.webContents.send("open_toaster", "Checking for update");
-});
 
-autoUpdater.on("update-not-available", (info) => {
-    console.log(info);
-    mainWindow.webContents.send("open_toaster", "No updates available");
-});
-
-autoUpdater.on("update-available", (info) => {
-    console.log(info);
-    autoUpdater.downloadUpdate();
-    mainWindow.webContents.send("open_toaster", "Update available");
-});
-
-autoUpdater.on("download-progress", (info) => {
-    console.log(info);
-    mainWindow.webContents.send("open_toaster", `Download progress ${info.percent.toFixed(2)}%`);
-});
-
-autoUpdater.on("update-downloaded", (info) => {
-    console.log(info);
-    autoUpdater.quitAndInstall();
-    mainWindow.webContents.send("open_toaster", "Update downloaded");
-});
+async function sendDeviceInfoToMainWindow() {
+    const deviceInfo = await sendDeviceInfo();
+    mainWindow.webContents.send("send_device_info", deviceInfo);
+}
 
 
 async function factoryReset() {

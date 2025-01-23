@@ -9,6 +9,7 @@ const crypto = require("crypto");
 
 const { logger} = require("./appsignal");
 const { store } = require("./store");
+const { autoUpdater } = require("./autoUpdater");
 
 const utils = (module.exports = {
 
@@ -181,11 +182,9 @@ const utils = (module.exports = {
     /**
      * Checks for app updates using the autoUpdater.
      * 
-     * @param {object} autoUpdater The autoUpdater object used to check for app updates.
-     * 
      * @throws {Error} If there is an issue with the `checkForUpdates` method, the error is logged but not rethrown.
      */
-    updateApp(autoUpdater) {
+    updateApp() {
         try {
             autoUpdater.checkForUpdates();
         } catch (error) {
@@ -232,6 +231,26 @@ const utils = (module.exports = {
             logger.logError(error,  "getPlayerConfig", "utils")
 
             return defaultConfig;
+        }
+    },
+
+    async setSettingsFromPlayerConfig() {
+        const config = await getPlayerConfig()
+        
+        if (! store.has("host")) {
+            store.set("host", config["host"]);
+        }
+    
+        if (! store.has("lang")) {
+            store.set("lang", config["language"]);
+        }
+    
+        if (! store.has("lang") && config["devMode"]) {
+            store.set("devMode", config["devMode"]);
+        }
+    
+        if (config["appsignal-key"]) {
+            logger.setAppsignalKey(config["appsignal-key"]);
         }
     },
     
