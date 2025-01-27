@@ -1,4 +1,4 @@
-const pjson = require("../package.json");
+const pjson = require("../../package.json");
 const Appsignal = require("@appsignal/javascript").default;
 const { store } = require("./store");
 

@@ -2,7 +2,7 @@
     "name": "pintomind-player",
     "version": "2.0.0",
     "description": "Player app for PinToMind",
-    "main": "src/main.js",
+    "main": "src/main/main.js",
     "scripts": {
         "test": "echo \"Error: no test specified\" && exit 1",
         "start": "electron .",

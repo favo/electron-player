@@ -1,5 +1,5 @@
 const nodeChildProcess = require("child_process");
-const pjson = require("../package.json");
+const pjson = require("../../package.json");
 const si = require("systeminformation");
 const fs = require("fs");
 const crypto = require("crypto");

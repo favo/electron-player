@@ -1,13 +1,13 @@
 @font-face {
     font-family: 'Edmondsans';
-    src: url("../fonts/Edmondsans/Edmondsans-Regular.ttf") format("opentype");
+    src: url("../../assets/fonts/Edmondsans/Edmondsans-Regular.ttf") format("opentype");
     font-weight: normal;
     font-style: normal;
 }
   
 @font-face {
     font-family: 'Edmondsans';
-    src: url("../fonts/Edmondsans/Edmondsans-Bold.ttf") format("opentype");
+    src: url("../../assets/fonts/Edmondsans/Edmondsans-Bold.ttf") format("opentype");
     font-weight: bold;
     font-style: normal;
 }

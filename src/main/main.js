@@ -1,6 +1,6 @@
 const { rebootDevice, updateApp, updateFirmware, updateBleBridge, getSystemStats, setScreenRotation,
     setScreenResolution, getAllScreenResolution, readBluetoothID, turnDisplayOff, updateDisplayConfiguration, 
-    setSettingsFromPlayerConfig, parseWiFiScanResults, sendDeviceInfoToMainWindow } = require("./utils");
+    setSettingsFromPlayerConfig, parseWiFiScanResults, sendDeviceInfoToMainWindow, setBluetoothID } = require("./utils");
 
 const NetworkManager = require("./networkManager");
 const BleManager = require("./bleManager");
@@ -11,8 +11,11 @@ const { store } = require("./store");
 const { autoUpdater } = require("./autoUpdater");
 const { setMainWindow, getWebContents, getMainWindow } = require('./windowManager');
 
-const path = require("path");
+const pjson = require("../../package.json");
 const QRCode = require("qrcode");
+const path = require("path");
+const fs = require("fs");
+
 
 //app.commandLine.appendSwitch("use-vulkan");
 //app.commandLine.appendSwitch("enable-features", "Vulkan");
@@ -58,9 +61,9 @@ const createWindow = async () => {
 
     if (store.get("firstTime", true)) {
         NetworkManager.checkEthernetConnectionInterval()
-        mainWindow.loadFile(path.join(__dirname, "get_started/get_started.html"));
+        mainWindow.loadFile(path.join(__dirname, "../renderer/get_started/get_started.html"));
     } else {
-        mainWindow.loadFile(path.join(__dirname, "index/index.html"));
+        mainWindow.loadFile(path.join(__dirname, "../renderer/index/index.html"));
     }
 
     BleManager.enableBLE();
@@ -116,18 +119,18 @@ app.whenReady().then(() => {
     
     /* Opens settings page */
     globalShortcut.register("CommandOrControl+I", () => {
-        getMainWindow().loadFile(path.join(__dirname, "settings/settings.html"));
+        getMainWindow().loadFile(path.join(__dirname, "../renderer/settings/settings.html"));
     });
 
     /* Opens player page */
     globalShortcut.register("CommandOrControl+P", () => {
         NetworkManager.stopEthernetInterval();
-        getMainWindow().loadFile(path.join(__dirname, "index/index.html"));
+        getMainWindow().loadFile(path.join(__dirname, "../renderer/index/index.html"));
     });
 
     /* Opens get started page */
     globalShortcut.register("CommandOrControl+G", () => {
-        getMainWindow().loadFile(path.join(__dirname, "get_started/get_started.html"));
+        getMainWindow().loadFile(path.join(__dirname, "../renderer/get_started/get_started.html"));
     });
     
     /* Toggle devMode */
@@ -269,7 +272,7 @@ ipcMain.on("set_host", (event, data) => {
 ipcMain.on("go_to_screen", (_event, _arg) => {
     store.set("firstTime", false);
     NetworkManager.stopEthernetInterval();
-    getMainWindow().loadFile(path.join(__dirname, "index/index.html"));
+    getMainWindow().loadFile(path.join(__dirname, "../renderer/index/index.html"));
 });
 
 ipcMain.on("connect_to_dns", async (event, dns) => {

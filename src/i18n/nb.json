@@ -1,6 +1,6 @@
 {
     "title": "Infoskjermen Player",
-    "logo": "../../assets/logo-infoskjermen.svg",
+    "logo": "../../assets/svg/logo-infoskjermen.svg",
     "host_name": "infoskjermen.no",
     "ethernet_title": "Vi ser du er koblet til via ethernet!",
     "ethernet_description": "Trykk på hvilken som helst knapp ellers blir du omdirigert til skjermen din om <span id='countdown'>15</span>",
