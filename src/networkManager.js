@@ -1,8 +1,7 @@
 const quote = require("shell-quote/quote");
+
 const { executeCommand } = require("./utils.js");
-
 const { ipcMain } = require("electron");
-
 const { store } = require("./store");
 
 let lastConnectionSSID;

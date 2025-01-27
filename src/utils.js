@@ -2,14 +2,15 @@ const nodeChildProcess = require("child_process");
 const pjson = require("../package.json");
 const si = require("systeminformation");
 const fs = require("fs");
+const crypto = require("crypto");
 
 const { promisify } = require("util");
 const execAsync = promisify(nodeChildProcess.exec);
-const crypto = require("crypto");
 
+const { getWebContents } = require('./windowManager');
+const { autoUpdater } = require("./autoUpdater");
 const { logger} = require("./appsignal");
 const { store } = require("./store");
-const { autoUpdater } = require("./autoUpdater");
 
 const utils = (module.exports = {
 
@@ -179,6 +180,11 @@ const utils = (module.exports = {
         }
     },
 
+    async sendDeviceInfoToMainWindow() {
+        const deviceInfo = await utils.sendDeviceInfo();
+        getWebContents().send("send_device_info", deviceInfo);
+    },
+
     /**
      * Checks for app updates using the autoUpdater.
      * 
@@ -235,7 +241,7 @@ const utils = (module.exports = {
     },
 
     async setSettingsFromPlayerConfig() {
-        const config = await getPlayerConfig()
+        const config = await utils.getPlayerConfig()
         
         if (! store.has("host")) {
             store.set("host", config["host"]);
@@ -253,7 +259,7 @@ const utils = (module.exports = {
             logger.setAppsignalKey(config["appsignal-key"]);
         }
     },
-    
+
     /**
      * Sets the screen rotation by writing the rotation value to a file and updating the display configuration.
      * 
